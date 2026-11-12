@@ -50,8 +50,10 @@ exists this week.
 3. Ten hand-made fixtures with known par in `content/fixtures/*.json`.
 4. Decide the solver ceiling with measured numbers (PROMPT W5).
 
-**Status Nov 12:** part (b) done and committed (157 tests; fixtures all at hand-worked par;
-`npm run bench` for speed). Part (a) not started.
+**Status Nov 12: Milestone 1 complete.** Engine committed (157 tests, fixtures at hand-worked par,
+`npm run bench`). Spike run on desktop and iOS; answers in `PLATFORM.md`. Carried forward: Android
+and logged-out checks, comment-as-user on desktop, Journeys receipts on a published build.
+The journey map has not been sent to Reddit yet (needs Maulik: see the M5 task list).
 
 **Files:** `PLATFORM.md`, `src/shared/{config,types,rng,trace,solve,validate}.ts` + `*.test.ts`,
 `content/fixtures/`, `package.json`, `vitest.config.ts`, spike-only code under `src/server/spike/`
@@ -182,7 +184,7 @@ debug switch.
 5. Heatmap: per-tile counters, locked until submit; par solution locked until the day ends.
 6. Share: the app posts one stickied "Lumen #N results" comment when the daily post is created;
    `/api/share` replies under it; explicit tap only.
-7. Shared Night Sky: append + `realtime.send('sky-{day}')`, `/api/sky` for late joiners, client
+7. Shared Night Sky: append + `realtime.send('sky_{day}')` (underscore: hyphens are invalid), `/api/sky` for late joiners, client
    renders with instancing (300 cap, glow band beyond), "older nights" at the horizon†, poll fallback.
 8. Scheduler `daily-post` (idempotent†, `postData` carries the preview payload†) and the mod menu
    action "Post today's Lumen". Mod action "Reset test data"† (removed in M9).

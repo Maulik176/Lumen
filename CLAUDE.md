@@ -52,6 +52,10 @@ scripts/      gen, report
    30 s, never stream, and treat every Redis write as fallible.
 8. **Redis on Devvit** has strings, hashes, sorted sets, bitfields and transactions only. No lists,
    no plain sets, no pipelining. Keep keys small, group reads, set TTLs as in SPEC.
+8a. **Realtime channel names** use only letters, digits and underscores (`sky_12`). Wrap
+    `connectRealtime` in try/catch: it throws synchronously on a bad name.
+8b. **Nothing passes between the preview and the game through `sessionStorage`** (it does not
+    carry on iOS). The viewport is measured at run time: expanded mode is not full screen.
 9. **Reddit API calls that are decoration** (flair, sticky comment, avatar) fail silently and never
    block play.
 10. **User actions** (comment, post, subscribe) happen only on an explicit, separately labelled tap;
