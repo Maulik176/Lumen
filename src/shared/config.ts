@@ -55,11 +55,31 @@ export const SCORING = {
 
 export const RULES = {
   /**
-   * false: nightfall plays by itself when the last lantern lights, then a "Release your lantern"
-   * button sends the player's lantern up (decided Nov 12, PROMPT section 7, A1).
-   * true: the lantern lifts off by itself straight after nightfall, with no button.
+   * false (decided Nov 12, PROMPT section 7, A1): lighting every lantern locks nothing. The
+   * player sees the "all lit" line and chooses Lock in or Keep refining. Lock in is the single
+   * ranked submission and starts nightfall. The timer runs until Lock in.
+   * true: the first full light is submitted at once, as SPEC first described.
    */
-  autoReleaseOnSolve: false,
+  autoLockInOnSolve: false,
   /** A solve started before 00:00 UTC still counts as ranked if it lands within this window. */
   rolloverGraceMs: 10 * 60 * 1000,
+} as const;
+
+/**
+ * Words the player reads. Calm, warm, short; no exclamation marks except on hitting par.
+ * `{pieces}`, `{par}` and similar are filled in by the UI.
+ */
+export const COPY = {
+  /** Shown with a soft glow the moment every lantern is lit, before anything is submitted. */
+  allLit: 'All lit · {pieces} pieces (par {par})',
+  /** Same line when exactly one piece is on the island. */
+  allLitOnePiece: 'All lit · 1 piece (par {par})',
+  /** Commits the ranked solve, then nightfall and the lantern release. */
+  lockIn: 'Lock in',
+  /** Dismisses the prompt so the player can remove or move pieces. */
+  keepRefining: 'Keep refining',
+  /** Island Builder, when the server cannot prove an island solvable inside its budget. */
+  builderTooComplex: 'Too complex to verify. Try removing a piece.',
+  /** Share button failure. Never blocks play. */
+  shareFailed: 'Could not post. Try again from the Reddit app.',
 } as const;

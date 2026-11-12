@@ -3,6 +3,46 @@
 Lumen is a daily 3D light-routing puzzle on Reddit's Devvit Web platform (SDK 0.15, Three.js, Hono,
 Vite). It is an entry for Reddit's Game of the Day hackathon; submission closes Dec 8, 2026, 6 pm PT.
 
+## Where things stand (update at the end of every milestone)
+
+**As of Thu Nov 12, 2026, night IST.** Milestone 1 done. Milestone 2 in progress.
+
+- App: `lumen-game` (the name `lumen` was taken). Listing: developers.reddit.com/apps/lumen-game.
+  Owner account u/Dry_Promotion2506. Playtest subreddit `r/lumen_game_dev`. Launch subreddit
+  `r/LumenGame` still to be created by Maulik (needed by Nov 24).
+- `npx devvit login` expires within hours; a 401 from playtest means log in again. Claude cannot
+  open reddit.com in its browser tools: Maulik does anything that needs the Reddit site.
+- Branch `spike/platform` holds the throwaway spike. Never merge it.
+- Done: engine in `src/shared` (tracer, exact solver, validator, RNG, text format), ten fixtures,
+  157 tests, `npm run bench`, `PLATFORM.md`.
+- Solver: exact; under 2 s through par 5 on open 9x9 islands, slower at par 6. Maulik: do not
+  optimise blind. Bar for end of M2: every generated day solves under 2 s; Island Builder server
+  check on a budget under 10 s.
+
+**Decisions that override SPEC (full list: PROMPT.md section 7):**
+
+- **Lock in (A1).** Lighting every lantern locks nothing. A soft glow and "All lit · N pieces
+  (par P)" appear with two buttons, **Lock in** and **Keep refining**. Lock in is the single ranked
+  submission and triggers nightfall and the lantern release. The timer runs until Lock in. Copy
+  lives in `config.ts`.
+- **Cut order if Monday runs out:** (1) Island Builder, Sunday falls back to a generated island;
+  (2) biomes 5 → 3. Never cut the Shared Night Sky. Archipelago becomes a 2D map before it is ever
+  cut. Trailer mode stays.
+- **Saturday par is at most 6.** The Builder refuses to publish on solver timeout:
+  "Too complex to verify. Try removing a piece."
+- **Share:** the app posts one stickied "Lumen #N results" comment at post creation; shares are
+  replies under it.
+- **App review submitted Nov 17–18**, with `JOURNEY_MAP.md`.
+- **Snoovatars:** texture from `i.redd.it` with `crossOrigin` (proven). Client sends its own
+  `context.snoovatar` at Lock in; server validates the host. Glyph when an account has none.
+- **Prisms** can turn light as well as split it. Generator treats them as scarce;
+  `difficulty.ts` counts "prism used as a turn" as its own factor.
+- **Decoys** are misleading paths, never lanterns that must stay dark.
+- **Reduced motion** is a first-class path: the calm nightfall and release must be as beautiful
+  as the full version. Maulik's own phone has Reduce Motion on.
+- **Testing devices:** iPhone now; Android arrives before Milestone 4. Until then also test in
+  desktop Chrome with 4x CPU slowdown.
+
 ## Read first
 
 - `SPEC.md` — intent. Read only the section for the task in hand.
@@ -10,6 +50,7 @@ Vite). It is an entry for Reddit's Game of the Day hackathon; submission closes 
   amendments override SPEC.
 - `PLAN.md` — the nine milestones, their tests and exit criteria, and the fixed cut line.
 - `PLATFORM.md` (after M1) — what Devvit really allows. Trust it over memory and over SPEC.
+- `JOURNEY_MAP.md` — the Journeys events, triggers and fields sent to Reddit for approval.
 - `HANDOFF.md` (after M9) — tuning guide and known issues.
 - `AGENTS.md` came with the template. Its Devvit limitations list is right; its mentions of React
   and tRPC are not (this repo uses neither).

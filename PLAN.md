@@ -112,17 +112,19 @@ feel wrong for their weekday.
 
 **Goal:** day 1 playable start to finish on a phone, placeholder art, right feel.
 
-**Decided:** nightfall plays automatically on the last lantern, then a "Release your lantern"
-button (A1; one point awaiting confirmation in PROMPT section 7). Tap cycle (A9). Lead with lanterns and sky (W1).
+**Decided:** Lock in (A1): all lit shows "All lit · N pieces (par P)" with **Lock in** and
+**Keep refining**; Lock in is the ranked submission and starts nightfall; timer runs until Lock in.
+Tap cycle (A9). Lead with lanterns and sky (W1).
 
 **Tasks**
 1. Scene bootstrap: renderer, capped pixel ratio with the adaptive drop, resize, context-loss handling, teardown.
 2. Island from puzzle data: instanced tiles, rocks, trees, water, sources, lanterns.
 3. Input: tap → tile via raycast against a ground plane; 44 px effective targets on a 9x9 at 360 px wide.
 4. Tap cycle with Undo, Reset, inventory counter; beams re-traced on every change from the shared tracer.
-5. Beam rendering (simple ribbons for now), lantern lit state, "ready" state and Release†.
+5. Beam rendering (simple ribbons for now), lantern lit state, the "all lit" prompt with Lock in
+   and Keep refining.
 6. Camera: fixed framing that fits any board on 360x640 and 430x932; 90° rotate with a 400 ms ease.
-7. Placeholder nightfall on release.
+7. Placeholder nightfall on Lock in.
 8. A local puzzle source (day 1 from `content/puzzles.json`) so M3 does not depend on M5.
 
 **Files:** `src/client/game.html`, `src/client/game/{main,scene,island,beams,input,camera,state,hud}.ts`,
@@ -152,7 +154,8 @@ allocations in the render loop (checked with the perf overlay stub).
    `PLATFORM.md`) and the camera following it up into the sky.
 6. Five biomes as palette + prop sets (Moss, Snow, Cherry blossom, Desert dune, Autumn).
 7. UI kit: paper panels, bundled OFL display font, hand-drawn icons (undo, reset, rotate, mute, release).
-8. Colour-blind glyphs on beams and lanterns; reduced-motion variants.
+8. Colour-blind glyphs on beams and lanterns. Reduced motion is a first-class path: a calm
+   nightfall and release designed to be as beautiful as the full version, not a stripped one.
 9. Perf overlay (dev): fps, frame time, draw calls, triangles.
 10. Judge pass against the anti-slop checklist.
 

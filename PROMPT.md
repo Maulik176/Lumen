@@ -264,13 +264,15 @@ comment, the Fable rule, the 3D art direction or the performance budget. Those n
 | D2 | The app posts one stickied "Lumen #N results" comment when the daily post is created. Shares are replies under it. |
 | D3 | Submit the app for review Nov 17–18. |
 | D5 | Fallback only. Result card and leaderboard may use an HTML overlay for the snoovatar. In the 3D sky a texture is preferred; if that is impossible, other players' lanterns carry glyphs and only the player's own lantern gets an overlay. |
-| A1 | Nightfall plays automatically when the last lantern lights. Then a "Release your lantern" button sends the lantern up. `RULES.autoReleaseOnSolve` stays in config, default false. |
+| A1 | **Final (Nov 12, third pass).** When every lantern is lit nothing locks. A soft glow and "All lit · N pieces (par P)" appear with two buttons: **Lock in** and **Keep refining**. Lock in is the single ranked submission and triggers nightfall and the lantern release. The timer runs until Lock in. Players may keep removing pieces and re-lighting before they lock. Copy lives in `config.ts` (`COPY`); `RULES.autoLockInOnSolve` keeps SPEC's original behaviour available. |
 
-**A1, one point to confirm.** As worded, the ranked score is fixed at the first moment every lantern
-is lit, which is SPEC's original rule: a player who lights everything with 6 pieces while exploring
-cannot then trim to 5. The button is about the lantern, not the score. If that is the intent, good.
-If the intent was "let me finish optimising, then commit", the commit has to come before nightfall.
-Built as worded unless Maulik says otherwise before Milestone 3.
+**Also decided Nov 12 (third pass):**
+
+- `JOURNEY_MAP.md` is drafted now and goes in with the app review on Nov 17–18.
+- An Android phone arrives before Milestone 4. Until then, also test in desktop Chrome with
+  4x CPU slowdown.
+- Reduced motion is a first-class path: the calm nightfall and release must be as beautiful as
+  the full version.
 
 **Solver (Maulik, Nov 12):** do not optimise now. In Milestone 2 measure on real generator output.
 Bar for the end of M2: every generated day solves in under 2 s, and the Island Builder's server
