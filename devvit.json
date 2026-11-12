@@ -1,6 +1,6 @@
 {
   "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
-  "name": "lumen",
+  "name": "lumen-game",
   "post": {
     "dir": "dist/client",
     "entrypoints": {
@@ -44,5 +44,8 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite build --watch"
+  },
+  "dev": {
+    "subreddit": "lumen_game_dev"
   }
 }
