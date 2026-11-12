@@ -1,0 +1,17 @@
+{
+  "name": "Over Water",
+  "par": 2,
+  "inventory": {
+    "mirrors": 3,
+    "prisms": 0
+  },
+  "rows": [
+    "...W..",
+    "......",
+    ">~~~~.",
+    "......",
+    "......",
+    "......"
+  ],
+  "note": "The beam crosses water on row 2, where no piece can stand. The only tile on its path that can hold a piece is (5,2), and one mirror there sends light up or down column 5, never to (3,0). \"/\" at (5,2) then \"\\\" at (5,0) lights the lantern along row 0."
+}

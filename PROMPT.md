@@ -249,16 +249,31 @@ built in M5, removed in M9), and confirm the installed version is the approved o
 - Report honestly. If an exit criterion is not met, say which and why.
 - Push back when a request crowds out something in section 3.
 
-## 7. Open decisions for Maulik
+## 7. Decisions
 
-| # | Decision | My recommendation | Needed by |
+**Nov 12, Maulik:** section 4 is approved, except anything that cuts, delays or downgrades the
+signature features (Shared Night Sky with realtime, Archipelago, Island Builder + Sunday pick,
+trailer mode), snoovatars, streak lantern styles, flair, Journeys, the opt-in share comment, the
+Fable rule, the 3D art direction or the performance budget. Those need an explicit OK each.
+
+**Approved and applied or scheduled:** A1 (Release button, `RULES.autoReleaseOnSolve` flag),
+A2–A9, D1, D4, D6–D12, W1, W2, W3, W6, W7, section 4.4.
+
+**Waiting for an explicit OK** (each touches a protected item):
+
+| # | What it would change | Protected item touched | Status |
 | --- | --- | --- | --- |
-| A1 | Auto-submit on first full light, or explicit Release | Release button, auto mode kept as a flag | before M3 |
-| A9 | Tap cycle vs piece tray | Tap cycle, tray designed as a switch | before M3 |
-| W1 | Accept the genre risk and lead with lanterns and sky | Yes | before M3 |
-| D3 | Submit app for review Nov 17–18 instead of Nov 24–30 | Yes | Nov 16 |
-| W4 | Cut line order as listed | Yes | now |
-| — | Second Reddit account + second phone for M5 | Needed; a friend's account works | Sat Nov 14 |
+| W4 | A fixed cut line: Island Builder + Sunday pick, then Archipelago 3D map, all-time tab, realtime, biomes beyond three | Signature features, art direction | **Not applied.** Nothing is cut. The line only says what goes first if Monday night arrives with work unfinished. |
+| W5 | If the solver is too slow: Saturday par capped at 6; Island Builder refuses to publish when the server check times out | Island Builder | **Not applied.** See solver numbers below; to be decided in M2 with real generated islands. |
+| D2 | Share posts as a reply under one stickied results comment instead of a top-level comment | Opt-in share comment | **Not applied.** This is Devvit's required pattern for score comments; without it the app can be rejected at review. Not a downgrade, but it changes the feature. |
+| D3 | Submit the app for review Nov 17–18 so `runAs: 'USER'` works for non-owners before judging | Opt-in share comment, Island Builder | **Not applied.** Earlier, not later; needs the freeze to hold. |
+| D5 | If snoovatar images cannot be used as WebGL textures: draw the snoovatar as an HTML overlay following the lantern; glyph only when no image exists | Snoovatars | **Not applied.** Depends on the M1 spike. |
+
+**Solver numbers (Nov 12, `npm run bench`, 240 random open islands, the hard case):**
+par 1–3: under 10 ms. Par 4: median 23 ms, worst 0.16 s. Par 5: median 0.27 s, worst 1.3 s.
+Par 6: 2 islands, one took 9 s. So SPEC's target (any 9x9, par up to 7, under 2 s) holds through
+par 5 and not yet beyond on open boards. Generated daily islands are tighter than these; M2
+measures the real distribution and either speeds the solver up further or raises W5.
 
 ## Sources
 

@@ -1,0 +1,21 @@
+{
+  "name": "Magenta Meeting",
+  "par": 1,
+  "inventory": {
+    "mirrors": 2,
+    "prisms": 0
+  },
+  "rows": [
+    "......",
+    "......",
+    ">..M..",
+    "......",
+    "......",
+    ".....^"
+  ],
+  "note": "The red beam reaches the magenta lantern on its own, which is not enough: magenta needs red and blue. The blue beam runs north up column 5. A \"\\\" at (5,2) turns it west along row 2 into the lantern.",
+  "sourceColours": [
+    "red",
+    "blue"
+  ]
+}

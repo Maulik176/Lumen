@@ -4,7 +4,7 @@ Nine milestones, Nov 12–16 (IST), matching SPEC.md "Build schedule". Amendment
 section 4 are folded in and marked †. Each milestone ends with: tests green, the phone demo below,
 a judge pass (anti-slop checklist, top three issues fixed), and a commit.
 
-**Cut line (fixed; bottom is cut first):** Island Builder + Sunday pick → Archipelago 3D map
+**Cut line (proposed in PROMPT W4, not yet approved by Maulik; bottom is cut first):** Island Builder + Sunday pick → Archipelago 3D map
 (fallback: flat list of past days) → all-time leaderboard tab → realtime (fallback: poll
 `/api/sky`) → biomes beyond Moss + two.
 
@@ -49,6 +49,9 @@ exists this week.
    `solve.ts`, `validate.ts`.
 3. Ten hand-made fixtures with known par in `content/fixtures/*.json`.
 4. Decide the solver ceiling with measured numbers (PROMPT W5).
+
+**Status Nov 12:** part (b) done and committed (157 tests; fixtures all at hand-worked par;
+`npm run bench` for speed). Part (a) not started.
 
 **Files:** `PLATFORM.md`, `src/shared/{config,types,rng,trace,solve,validate}.ts` + `*.test.ts`,
 `content/fixtures/`, `package.json`, `vitest.config.ts`, spike-only code under `src/server/spike/`

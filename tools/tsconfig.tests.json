@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../dist/types/tests",
+    "tsBuildInfoFile": "../dist/types/tests/tsconfig.tsbuildinfo",
+    "types": [
+      "node"
+    ],
+    "rootDir": ".."
+  },
+  "include": [
+    "../tests/**/*",
+    "../vitest.config.ts",
+    "../vitest.bench.config.ts"
+  ],
+  "exclude": [],
+  "references": [
+    {
+      "path": "./tsconfig.shared.json"
+    }
+  ]
+}

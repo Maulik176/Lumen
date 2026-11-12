@@ -24,10 +24,11 @@ in `HANDOFF.md` and ask Maulik.
 ## Layout
 
 ```
-src/shared/   pure engine: config, types, rng, trace, solve, generate, difficulty, validate, api types
+src/shared/   pure engine: config, types, rng, board, trace, solve, generate, difficulty, validate, api types
 src/client/   preview (inline, no Three.js), game/ (Three.js), archipelago, builder, trailer, debug
 src/server/   Hono app: /api/* for the client, /internal/* for scheduler, menu, triggers
-content/      puzzles.json (90 generated days), fixtures/, tutorial.json
+content/      puzzles.json (90 generated days), fixtures/ (hand-made, par worked out by hand), tutorial.json
+tests/        fixture tests, bench/ (speed reports)
 scripts/      gen, report
 ```
 
@@ -77,7 +78,8 @@ scripts/      gen, report
 | Command | Does |
 | --- | --- |
 | `npm run dev` | `devvit playtest` against the subreddit in `devvit.json` (`dev.subreddit`) |
-| `npm test` | Vitest, all suites (added in M1) |
+| `npm test` | Vitest: unit tests beside the code in `src/`, fixture tests in `tests/` |
+| `npm run bench` | Solver speed report by par on open islands (not part of `npm test`) |
 | `npm run test:types` | `tsc --build` |
 | `npm run lint` | ESLint |
 | `npm run build` | Vite build of client and server |

@@ -1,0 +1,17 @@
+{
+  "name": "Fixed Mirror",
+  "par": 1,
+  "inventory": {
+    "mirrors": 2,
+    "prisms": 0
+  },
+  "rows": [
+    ">...\\.",
+    "......",
+    "......",
+    "W.....",
+    "......",
+    "......"
+  ],
+  "note": "The fixed \"\\\" at (4,0) sends the beam south down column 4 and off the island, so par is at least 1. A \"/\" at (4,3) turns it west along row 3 into the lantern at (0,3)."
+}

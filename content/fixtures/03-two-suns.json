@@ -1,0 +1,17 @@
+{
+  "name": "Two Suns",
+  "par": 2,
+  "inventory": {
+    "mirrors": 3,
+    "prisms": 0
+  },
+  "rows": [
+    "...W..",
+    ">.....",
+    "......",
+    "......",
+    ">.....",
+    "...W.."
+  ],
+  "note": "Nothing is lit with no pieces. The two beams run on rows 1 and 4, and a single piece sits on one tile so it can redirect only one of them, lighting at most one lantern. \"/\" at (3,1) and \"\\\" at (3,4) light both."
+}

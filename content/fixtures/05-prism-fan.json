@@ -1,0 +1,17 @@
+{
+  "name": "Prism Fan",
+  "par": 1,
+  "inventory": {
+    "mirrors": 2,
+    "prisms": 1
+  },
+  "rows": [
+    "...R..",
+    "......",
+    ">....G",
+    "......",
+    "......",
+    "...B.."
+  ],
+  "note": "The white beam reaches the green lantern but does not light it, so par is at least 1. A prism at (3,2) sends red north to (3,0), green straight on to (5,2) and blue south to (3,5)."
+}

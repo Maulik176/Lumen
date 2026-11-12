@@ -1,0 +1,18 @@
+{
+  "name": "Yellow Dusk",
+  "par": 3,
+  "inventory": {
+    "mirrors": 3,
+    "prisms": 1
+  },
+  "rows": [
+    "......Y",
+    "...~...",
+    ".......",
+    ">...~~.",
+    ".......",
+    ".......",
+    "...B..."
+  ],
+  "note": "Yellow needs red and green and blue needs blue, so a prism is required and two mirrors alone cannot work. With a prism and one mirror: green runs along row 3 and needs a turn to reach (6,0), so red would have to arrive unaided, which only happens with the prism at (6,3), where green leaves the island at once. So at least 3. Prism at (3,3) lights blue at (3,6); \"/\" at (6,3) sends green north; \"/\" at (3,0) sends red east along row 0."
+}

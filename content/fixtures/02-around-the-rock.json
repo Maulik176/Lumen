@@ -1,0 +1,17 @@
+{
+  "name": "Around the Rock",
+  "par": 2,
+  "inventory": {
+    "mirrors": 3,
+    "prisms": 0
+  },
+  "rows": [
+    ">.....",
+    "......",
+    "......",
+    "..#...",
+    "......",
+    "..W..."
+  ],
+  "note": "The lantern at (2,5) can be reached down column 2 or along row 5. One mirror on row 0 only sends light down a column, and column 2 is blocked by the rock at (2,3), so one piece is not enough. \"\\\" at (4,0) then \"/\" at (4,5) lights it along row 5."
+}

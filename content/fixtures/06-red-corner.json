@@ -1,0 +1,17 @@
+{
+  "name": "Red Corner",
+  "par": 2,
+  "inventory": {
+    "mirrors": 2,
+    "prisms": 1
+  },
+  "rows": [
+    "..v...",
+    "......",
+    "......",
+    "......",
+    "...#.R",
+    "......"
+  ],
+  "note": "Only red lights the lantern at (5,4), so a prism is needed, and it must sit on column 2 where the white beam runs. From (2,y) red travels east along row y. Only row 4 leads to the lantern and the rock at (3,4) blocks it, so one piece is not enough. Prism at (2,2), then \"\\\" at (5,2) turns red south into the lantern."
+}

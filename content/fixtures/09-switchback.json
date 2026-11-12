@@ -1,0 +1,17 @@
+{
+  "name": "Switchback",
+  "par": 3,
+  "inventory": {
+    "mirrors": 4,
+    "prisms": 0
+  },
+  "rows": [
+    ">....#",
+    "####.#",
+    ".....#",
+    "#.####",
+    "......",
+    ".W...."
+  ],
+  "note": "Rocks leave one way out of row 0: south at column 4, so a piece at (4,0) is forced. Column 4 is blocked at (4,3), so the second piece is at (4,1) or (4,2); from (4,1) both sides are rock, so it is (4,2), turning west along row 2, which runs off the island. A third piece at (1,2) turns south through the gap at (1,3) into the lantern at (1,5). Exactly one minimum solution."
+}

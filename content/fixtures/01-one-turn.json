@@ -1,0 +1,17 @@
+{
+  "name": "One Turn",
+  "par": 1,
+  "inventory": {
+    "mirrors": 2,
+    "prisms": 0
+  },
+  "rows": [
+    "...W..",
+    "......",
+    ">.....",
+    "......",
+    "......",
+    "......"
+  ],
+  "note": "With no pieces the beam runs east along row 2 and leaves the island, so par is at least 1. A \"/\" at (3,2) turns it north into the lantern at (3,0)."
+}
