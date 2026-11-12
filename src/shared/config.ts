@@ -55,8 +55,9 @@ export const SCORING = {
 
 export const RULES = {
   /**
-   * false: lighting every lantern arms a Release button and the player commits when ready (PROMPT A1).
-   * true: the first full light commits immediately, as SPEC originally described.
+   * false: nightfall plays by itself when the last lantern lights, then a "Release your lantern"
+   * button sends the player's lantern up (decided Nov 12, PROMPT section 7, A1).
+   * true: the lantern lifts off by itself straight after nightfall, with no button.
    */
   autoReleaseOnSolve: false,
   /** A solve started before 00:00 UTC still counts as ranked if it lands within this window. */

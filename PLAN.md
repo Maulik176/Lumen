@@ -4,9 +4,9 @@ Nine milestones, Nov 12–16 (IST), matching SPEC.md "Build schedule". Amendment
 section 4 are folded in and marked †. Each milestone ends with: tests green, the phone demo below,
 a judge pass (anti-slop checklist, top three issues fixed), and a commit.
 
-**Cut line (proposed in PROMPT W4, not yet approved by Maulik; bottom is cut first):** Island Builder + Sunday pick → Archipelago 3D map
-(fallback: flat list of past days) → all-time leaderboard tab → realtime (fallback: poll
-`/api/sky`) → biomes beyond Moss + two.
+**Cut line (decided Nov 12):** if Monday runs out, cut (1) the Island Builder, with Sunday falling
+back to a generated puzzle, then (2) biomes 5 → 3. Never cut the Shared Night Sky. Simplify the
+Archipelago to a 2D map before ever cutting it. Trailer mode stays.
 
 **Insurance:** a rough phone-recorded demo exists by the end of M5 (Sat night) and a Devpost draft
 exists this week.
@@ -83,6 +83,9 @@ on a second device, your flair changed, and a comment from your account under th
 2. `difficulty.ts`: weighted score, every component logged, bands and weights in `config.ts`.
 3. `names.ts`: seeded two-word names ("Moss Steps") from curated word lists per biome; no repeats in 90 days.
 4. Biome assignment by week.
+4a. Prisms are scarce in inventories; `difficulty.ts` has a separate "prism used as a turn" factor.
+4b. Saturday par is at most 6. Measure solver time on every generated day: all under 2 s.
+    Set `SOLVER.builderNodeLimit` from a measured budget under 10 s.
 5. `scripts/gen.ts` → `npm run gen -- --from 1 --to 90` writes `content/puzzles.json`.
 6. `scripts/report.ts` → `npm run report` prints par, difficulty and rejection counts per weekday.
 7. `src/client/debug.html` (dev only): any day's board in 2D, par solution, difficulty breakdown, prev/next.
@@ -95,6 +98,7 @@ weekday inside its band; no day solvable with zero pieces; ≤ 20 minimum soluti
 generation of 90 days finishes in a bounded time (logged).
 
 **Exit criteria:** `content/puzzles.json` committed with 90 days; report shows every weekday in band;
+every generated day solves in under 2 s; Builder check budget under 10 s;
 a short written report of rejection rates and any band that was hard to hit.
 
 **Phone demo:** open the debug page (desktop is fine here) and step through days 1–14; note any that
@@ -106,7 +110,8 @@ feel wrong for their weekday.
 
 **Goal:** day 1 playable start to finish on a phone, placeholder art, right feel.
 
-**Decisions needed first:** A1 (Release button vs auto-submit), A9 (tap cycle vs tray), W1.
+**Decided:** nightfall plays automatically on the last lantern, then a "Release your lantern"
+button (A1; one point awaiting confirmation in PROMPT section 7). Tap cycle (A9). Lead with lanterns and sky (W1).
 
 **Tasks**
 1. Scene bootstrap: renderer, capped pixel ratio with the adaptive drop, resize, context-loss handling, teardown.
@@ -175,7 +180,8 @@ debug switch.
 3. Streaks with the weekly grace rule†, lantern-style unlocks, flair (silent on failure).
 4. Leaderboard (daily top 10 + own row with snoovatars; all-time by Lamplighter medals), percentile.
 5. Heatmap: per-tile counters, locked until submit; par solution locked until the day ends.
-6. Share: stickied results comment per daily post, `/api/share` replies under it†, explicit tap only.
+6. Share: the app posts one stickied "Lumen #N results" comment when the daily post is created;
+   `/api/share` replies under it; explicit tap only.
 7. Shared Night Sky: append + `realtime.send('sky-{day}')`, `/api/sky` for late joiners, client
    renders with instancing (300 cap, glow band beyond), "older nights" at the horizon†, poll fallback.
 8. Scheduler `daily-post` (idempotent†, `postData` carries the preview payload†) and the mod menu
@@ -209,10 +215,11 @@ the other; open the result card; tap Share and find your comment under the stick
 
 **Tasks**
 1. `/api/archipelago` and the `archipelago` entry: night map of every past day (glow by solve count,
-   your medal, creator snoovatar), tap to play unranked. Flat-list fallback behind a config flag.
+   your medal, creator snoovatar), tap to play unranked. If time is short it becomes a 2D map; it is not cut.
 2. Archive play: any past day loads in the game entry, clearly unranked, heatmap after solve.
 3. `builder` entry: place sources, lanterns, rocks, water on a grid; live solver check; name field
-   with a length limit; publish only when solvable, par from the solver, server re-validates with a time cap.
+   with a length limit; publish only when solvable, par from the solver, server re-validates with a time cap;
+   on timeout it refuses with "Too complex to verify. Try removing a piece."
 4. `/api/islands`: `submitCustomPost` with `runAs: 'USER'` and `userGeneratedContent`; per-user weekly cap.
 5. `sunday-pick` job: highest-scored island of the week inside the difficulty band becomes Sunday's
    puzzle; "Island by u/name"; Islandwright flair; generated fallback when none qualifies.

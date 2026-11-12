@@ -202,9 +202,9 @@ card itself as a small live thumbnail, and the button expands it. [will do in M5
 **W4. Nine sessions in five days with seven community features is the main risk to everything.**
 From the retrospectives: Budget Treaty was not submitted because polish and evidence came before a
 recorded core demo. So:
-- **Cut line, fixed now** (bottom is cut first): Island Builder + Sunday pick → Archipelago 3D map
-  (falls back to a flat list of past days) → all-time leaderboard tab → realtime (falls back to
-  polling `/api/sky` every 20 s) → extra biomes (Moss + two more minimum).
+- **Cut line (as decided Nov 12, see section 7):** first the Island Builder, with Sunday falling
+  back to a generated puzzle; then biomes 5 → 3. The Shared Night Sky is never cut, the
+  Archipelago becomes a 2D map before it is ever cut, and trailer mode stays.
 - **A rough recorded demo exists by Saturday night (end of M5)**, captured from the phone, kept as
   the insurance submission. Trailer mode improves it later; it does not gate it.
 - **A Devpost draft is created this week** with the description stub, so submission is never a
@@ -251,29 +251,38 @@ built in M5, removed in M9), and confirm the installed version is the approved o
 
 ## 7. Decisions
 
-**Nov 12, Maulik:** section 4 is approved, except anything that cuts, delays or downgrades the
-signature features (Shared Night Sky with realtime, Archipelago, Island Builder + Sunday pick,
-trailer mode), snoovatars, streak lantern styles, flair, Journeys, the opt-in share comment, the
-Fable rule, the 3D art direction or the performance budget. Those need an explicit OK each.
+**Nov 12, Maulik (first pass):** section 4 approved, except anything that cuts, delays or downgrades
+the signature features, snoovatars, streak lantern styles, flair, Journeys, the opt-in share
+comment, the Fable rule, the 3D art direction or the performance budget. Those need an explicit OK.
 
-**Approved and applied or scheduled:** A1 (Release button, `RULES.autoReleaseOnSolve` flag),
-A2–A9, D1, D4, D6–D12, W1, W2, W3, W6, W7, section 4.4.
+**Nov 12, Maulik (second pass), all now decided:**
 
-**Waiting for an explicit OK** (each touches a protected item):
+| # | Decision |
+| --- | --- |
+| W4 | Cut order if Monday runs out: (1) Island Builder, with Sunday falling back to a generated puzzle; (2) biomes 5 → 3. **Never cut the Shared Night Sky.** The Archipelago is simplified to a 2D map before it is ever cut. Trailer mode stays. |
+| W5 | Saturday par is at most 6. The Island Builder refuses to publish when the solver check times out, with a friendly message: "Too complex to verify. Try removing a piece." |
+| D2 | The app posts one stickied "Lumen #N results" comment when the daily post is created. Shares are replies under it. |
+| D3 | Submit the app for review Nov 17–18. |
+| D5 | Fallback only. Result card and leaderboard may use an HTML overlay for the snoovatar. In the 3D sky a texture is preferred; if that is impossible, other players' lanterns carry glyphs and only the player's own lantern gets an overlay. |
+| A1 | Nightfall plays automatically when the last lantern lights. Then a "Release your lantern" button sends the lantern up. `RULES.autoReleaseOnSolve` stays in config, default false. |
 
-| # | What it would change | Protected item touched | Status |
-| --- | --- | --- | --- |
-| W4 | A fixed cut line: Island Builder + Sunday pick, then Archipelago 3D map, all-time tab, realtime, biomes beyond three | Signature features, art direction | **Not applied.** Nothing is cut. The line only says what goes first if Monday night arrives with work unfinished. |
-| W5 | If the solver is too slow: Saturday par capped at 6; Island Builder refuses to publish when the server check times out | Island Builder | **Not applied.** See solver numbers below; to be decided in M2 with real generated islands. |
-| D2 | Share posts as a reply under one stickied results comment instead of a top-level comment | Opt-in share comment | **Not applied.** This is Devvit's required pattern for score comments; without it the app can be rejected at review. Not a downgrade, but it changes the feature. |
-| D3 | Submit the app for review Nov 17–18 so `runAs: 'USER'` works for non-owners before judging | Opt-in share comment, Island Builder | **Not applied.** Earlier, not later; needs the freeze to hold. |
-| D5 | If snoovatar images cannot be used as WebGL textures: draw the snoovatar as an HTML overlay following the lantern; glyph only when no image exists | Snoovatars | **Not applied.** Depends on the M1 spike. |
+**A1, one point to confirm.** As worded, the ranked score is fixed at the first moment every lantern
+is lit, which is SPEC's original rule: a player who lights everything with 6 pieces while exploring
+cannot then trim to 5. The button is about the lantern, not the score. If that is the intent, good.
+If the intent was "let me finish optimising, then commit", the commit has to come before nightfall.
+Built as worded unless Maulik says otherwise before Milestone 3.
+
+**Solver (Maulik, Nov 12):** do not optimise now. In Milestone 2 measure on real generator output.
+Bar for the end of M2: every generated day solves in under 2 s, and the Island Builder's server
+check runs on a budget under 10 s.
+
+**Prisms (Maulik, Nov 12):** a prism can turn light as well as split it (its red and blue parts
+leave sideways, and a white lantern accepts them). The rule stays. The generator treats prisms as
+scarce, and `difficulty.ts` counts "prism used as a turn" as its own factor.
 
 **Solver numbers (Nov 12, `npm run bench`, 240 random open islands, the hard case):**
 par 1–3: under 10 ms. Par 4: median 23 ms, worst 0.16 s. Par 5: median 0.27 s, worst 1.3 s.
-Par 6: 2 islands, one took 9 s. So SPEC's target (any 9x9, par up to 7, under 2 s) holds through
-par 5 and not yet beyond on open boards. Generated daily islands are tighter than these; M2
-measures the real distribution and either speeds the solver up further or raises W5.
+Par 6: 2 islands, one took 9 s. Par 7 did not occur in the sample.
 
 ## Sources
 
