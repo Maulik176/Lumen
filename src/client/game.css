@@ -1,13 +1,27 @@
-/* Lumen play screen. Milestone 3 placeholder styling; one palette, one radius. */
+/* Lumen play screen. Colours and sizes come from config.ts (UI) through applyTheme(). */
+@font-face {
+  font-family: 'Young Serif';
+  src: url('./assets/fonts/young-serif.woff2') format('woff2');
+  font-display: swap;
+}
+
 :root {
-  --paper: rgba(250, 240, 220, 0.92);
-  --paper-soft: rgba(34, 24, 54, 0.5);
+  --paper: #faf0dc;
+  --paper-alpha: 0.9;
   --ink: #2a2233;
-  --ink-soft: rgba(42, 34, 51, 0.62);
-  --light: #fbeed2;
+  --ink-soft: #5f566b;
   --amber: #f0a94a;
+  --amber-ink: #2a2233;
+  --light: #fbeed2;
+  --veil: rgba(30, 22, 50, 0.6);
+  --medal-lamplighter: #a8530f;
+  --medal-glow: #7a5a12;
+  --medal-spark: #5f566b;
   --radius: 14px;
   --gap: 10px;
+  --tap: 44px;
+  --display: 'Young Serif', Georgia, 'Times New Roman', serif;
+  --text: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
 * {
@@ -20,13 +34,9 @@ body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: #17132a;
-  color: var(--light);
-  font:
-    15px/1.35 system-ui,
-    -apple-system,
-    'Segoe UI',
-    sans-serif;
+  background: #1a1430;
+  color: var(--ink);
+  font: 15px/1.35 var(--text);
   user-select: none;
   -webkit-user-select: none;
 }
@@ -48,36 +58,45 @@ canvas {
   margin: 0;
   padding: 24px;
   text-align: center;
+  color: var(--light);
+  font-family: var(--display);
+  font-size: 18px;
 }
 
 #hud {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  transition: opacity 600ms ease;
 }
 
-#hud > * {
+/* Warm paper, a little translucent, with a soft edge. Every panel is this. */
+.panel {
+  position: absolute;
+  border-radius: var(--radius);
+  background: color-mix(
+    in srgb,
+    var(--paper) calc(var(--paper-alpha) * 100%),
+    transparent
+  );
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.55) inset,
+    0 6px 18px rgba(30, 22, 50, 0.22);
+  color: var(--ink);
   pointer-events: auto;
+  transition:
+    opacity 420ms ease,
+    transform 420ms ease;
 }
 
 /* The two thin bars. */
 .bar {
-  position: absolute;
   left: var(--gap);
   right: var(--gap);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 48px;
+  min-height: 50px;
   padding: 0 14px;
-  border-radius: var(--radius);
-  background: var(--paper-soft);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  transition:
-    opacity 500ms ease,
-    transform 500ms ease;
 }
 
 .bar-top {
@@ -87,23 +106,24 @@ canvas {
 .bar-bottom {
   bottom: var(--gap);
   justify-content: space-around;
-  padding: 0 6px;
+  padding: 3px 6px;
 }
 
 .title {
   display: flex;
   flex-direction: column;
-  line-height: 1.15;
+  line-height: 1.12;
   min-width: 0;
 }
 
 .title-number {
-  font-weight: 700;
+  font-family: var(--display);
+  font-size: 17px;
 }
 
 .title-name {
-  font-size: 12px;
-  opacity: 0.8;
+  font-size: 12.5px;
+  color: var(--ink-soft);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -128,30 +148,58 @@ canvas {
 
 .count-number,
 .par-number {
-  font-size: 18px;
+  font-family: var(--text);
+  font-size: 19px;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
+/* Small pictures of the two pieces: a mirror in its frame, and a prism. */
 .glyph {
   display: inline-block;
-  width: 20px;
+  width: 22px;
+  height: 22px;
+  position: relative;
+}
+
+.glyph-mirror::before {
+  content: '';
+  position: absolute;
+  left: 9px;
+  top: -2px;
+  width: 4px;
+  height: 26px;
+  border-radius: 2px;
+  background: var(--ink);
+  transform: rotate(45deg);
+}
+
+.glyph-mirror::after {
+  content: '';
+  position: absolute;
+  left: 10.5px;
+  top: 1px;
+  width: 1.5px;
   height: 20px;
+  background: var(--paper);
+  transform: rotate(45deg);
+  opacity: 0.8;
 }
 
-.glyph-mirror {
-  background: linear-gradient(
-    135deg,
-    transparent 43%,
-    var(--light) 43%,
-    var(--light) 57%,
-    transparent 57%
-  );
+.glyph-prism::before {
+  content: '';
+  position: absolute;
+  inset: 1px 0 2px;
+  background: var(--ink);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
 }
 
-.glyph-prism {
-  background: var(--light);
-  clip-path: polygon(50% 8%, 96% 92%, 4% 92%);
-  opacity: 0.9;
+.glyph-prism::after {
+  content: '';
+  position: absolute;
+  inset: 7px 5px 5px;
+  background: var(--paper);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
 }
 
 .par {
@@ -161,8 +209,8 @@ canvas {
 }
 
 .par-label {
-  font-size: 12px;
-  opacity: 0.8;
+  font-size: 12.5px;
+  color: var(--ink-soft);
 }
 
 .shake {
@@ -182,18 +230,18 @@ canvas {
 }
 
 .icon-button {
-  width: 56px;
-  height: 46px;
+  width: 54px;
+  height: var(--tap);
   display: grid;
   place-items: center;
   border: 0;
   background: none;
-  color: var(--light);
-  border-radius: var(--radius);
+  color: var(--ink);
+  border-radius: calc(var(--radius) - 4px);
 }
 
 .icon-button:active {
-  background: rgba(250, 240, 220, 0.18);
+  background: rgba(42, 34, 51, 0.1);
 }
 
 .icon-button svg {
@@ -201,28 +249,24 @@ canvas {
   height: 26px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 2;
+  stroke-width: 2.1;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 
-/* One line under the top bar: hint or notice, on its own small panel so it reads on any sky. */
+/* One line under the top bar: a hint or a notice. */
 .line {
-  position: absolute;
-  top: 68px;
+  top: calc(var(--gap) * 2 + 50px);
   left: 50%;
   max-width: calc(100% - 2 * var(--gap));
   margin: 0;
   padding: 7px 14px;
-  border-radius: var(--radius);
-  background: rgba(34, 24, 54, 0.62);
   text-align: center;
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 600;
   opacity: 0;
   transform: translateX(-50%);
-  transition: opacity 300ms ease;
-  pointer-events: none !important;
+  pointer-events: none;
 }
 
 .line.visible {
@@ -234,17 +278,18 @@ canvas {
 }
 
 .line[data-kind='notice'] {
-  color: #ffd9a0;
+  color: var(--medal-lamplighter);
 }
 
 /* Buttons. */
 .button {
-  min-height: 46px;
-  padding: 0 20px;
+  min-height: var(--tap);
+  padding: 0 18px;
   border: 0;
-  border-radius: var(--radius);
+  border-radius: calc(var(--radius) - 2px);
   font: inherit;
   font-weight: 650;
+  color: var(--ink);
 }
 
 .button:disabled {
@@ -253,44 +298,40 @@ canvas {
 
 .button-main {
   background: var(--amber);
-  color: var(--ink);
+  color: var(--amber-ink);
+  box-shadow: 0 2px 0 rgba(42, 34, 51, 0.18);
 }
 
 .button-quiet {
   background: transparent;
-  color: var(--ink);
   box-shadow: inset 0 0 0 1.5px var(--ink-soft);
 }
 
-/* The "All lit" prompt. */
-.prompt {
-  position: absolute;
-  left: var(--gap);
-  right: var(--gap);
-  bottom: 68px;
-  padding: 14px;
-  border-radius: var(--radius);
-  background: var(--paper);
-  color: var(--ink);
-  text-align: center;
-  opacity: 0;
-  transform: translateY(12px);
-  pointer-events: none !important;
-  transition:
-    opacity 260ms ease,
-    transform 260ms ease;
+.lock-small {
+  display: none;
+  min-height: 40px;
 }
 
-.prompt.visible {
-  opacity: 1;
-  transform: none;
-  pointer-events: auto !important;
+.lock-small.visible {
+  display: block;
+}
+
+/* The "All lit" prompt takes the bottom bar's place, so it never sits on the island. */
+.prompt {
+  left: var(--gap);
+  right: var(--gap);
+  bottom: var(--gap);
+  padding: 10px 12px 12px;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
 }
 
 .prompt-text {
-  margin: 0 0 12px;
-  font-size: 17px;
-  font-weight: 650;
+  margin: 0 0 9px;
+  font-family: var(--display);
+  font-size: 18px;
 }
 
 .prompt-buttons {
@@ -299,90 +340,104 @@ canvas {
   gap: var(--gap);
 }
 
-.lock-pill {
-  position: absolute;
-  right: var(--gap);
-  bottom: 68px;
-  opacity: 0;
-  pointer-events: none !important;
-  transition: opacity 260ms ease;
-}
-
-.lock-pill.visible {
+#hud.prompting .prompt {
   opacity: 1;
-  pointer-events: auto !important;
+  transform: none;
+  pointer-events: auto;
 }
 
-/* Nightfall: only the island. */
+#hud.prompting .bar-bottom {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Nightfall and the lantern's flight: only the island and the sky. */
 #hud.quiet .bar,
 #hud.quiet .line,
-#hud.quiet .prompt,
-#hud.quiet .lock-pill {
+#hud.quiet .prompt {
   opacity: 0;
-  pointer-events: none !important;
+  pointer-events: none;
 }
 
-/* The one end screen. */
+/* The one end screen, at the foot of the view. */
 .result {
-  position: absolute;
   left: 50%;
-  bottom: 24px;
-  width: min(340px, calc(100% - 2 * var(--gap)));
-  padding: 20px 18px 16px;
-  border-radius: var(--radius);
-  background: var(--paper);
-  color: var(--ink);
+  bottom: var(--gap);
+  width: min(360px, calc(100% - 2 * var(--gap)));
+  padding: 16px 16px 12px;
   text-align: center;
   opacity: 0;
-  transform: translate(-50%, 16px);
-  pointer-events: none !important;
-  transition:
-    opacity 500ms ease,
-    transform 500ms ease;
+  transform: translate(-50%, 14px);
+  pointer-events: none;
 }
 
-.result.visible {
+#hud.resulting .result {
   opacity: 1;
   transform: translate(-50%, 0);
-  pointer-events: auto !important;
+  pointer-events: auto;
 }
 
 .result-medal {
   margin: 0;
-  font-size: 30px;
-  letter-spacing: 0.01em;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 32px;
+  line-height: 1.1;
+  color: var(--medal-spark);
 }
 
 .result-medal[data-medal='lamplighter'] {
-  color: #b5651d;
+  color: var(--medal-lamplighter);
+}
+
+.result-medal[data-medal='glow'] {
+  color: var(--medal-glow);
 }
 
 .result-line {
-  margin: 6px 0 2px;
-  font-size: 17px;
+  margin: 6px 0 0;
+  font-size: 16.5px;
 }
 
 .result-time {
-  margin: 0 0 14px;
-  font-size: 15px;
+  margin: 2px 0 12px;
+  font-size: 14.5px;
   color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
 }
 
 .result-footer {
-  margin: 12px 0 0;
+  margin: 10px 0 0;
   font-size: 13px;
   color: var(--ink-soft);
+}
+
+.perf {
+  position: absolute;
+  left: var(--gap);
+  top: 50%;
+  margin: 0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--veil);
+  color: var(--light);
+  font:
+    11px/1.3 ui-monospace,
+    monospace;
+  display: none;
+}
+
+.perf.visible {
+  display: block;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .shake {
     animation: none;
   }
-  .prompt,
-  .result,
-  .bar,
-  #hud {
-    transition-duration: 1ms;
+  .panel {
+    transition:
+      opacity 700ms ease,
+      transform 1ms;
   }
 }

@@ -1,6 +1,6 @@
 /**
  * The play screen: load today's island, wire taps to the rules, the rules to the 3D view and
- * the HUD, and Lock in to the server.
+ * the interface, and Lock in to the server.
  */
 import type {
   IslandResponse,
@@ -8,7 +8,8 @@ import type {
   LockInResponse,
   PublicIsland,
 } from '../../shared/api';
-import { COPY } from '../../shared/config';
+import type { Biome } from '../../shared/calendar';
+import { BIOMES, COPY } from '../../shared/config';
 import {
   keepRefining,
   lockIn,
@@ -21,12 +22,15 @@ import {
 } from '../../shared/play';
 import { puzzleFromText } from '../../shared/puzzle-text';
 import { createSound } from './audio';
-import { createHud } from './hud';
+import { applyTheme, createHud } from './hud';
+import type { Rider } from './release';
 import { createIslandView } from './scene';
 
 const HINTS_KEY = 'lumen.hints.done';
 /** A press that moves further than this many pixels is a drag, not a tap. */
 const TAP_SLOP = 12;
+
+const query = new URLSearchParams(location.search);
 
 function byId(id: string): HTMLElement {
   const node = document.getElementById(id);
@@ -52,7 +56,7 @@ function store(key: string): void {
 
 async function loadIsland(): Promise<PublicIsland | null> {
   try {
-    const wanted = new URLSearchParams(location.search).get('day');
+    const wanted = query.get('day');
     const response = await fetch(
       wanted === null
         ? '/api/island'
@@ -79,13 +83,33 @@ async function sendLockIn(request: LockInRequest): Promise<LockInResponse> {
   }
 }
 
+/**
+ * Who rides the sky lantern. Inside Reddit this comes from the post's context; when the page is
+ * opened on its own for testing, ?user= and ?avatar= stand in.
+ */
+async function loadRider(): Promise<Rider> {
+  const rider: Rider = {
+    snoovatar: query.get('avatar'),
+    username: query.get('user'),
+  };
+  try {
+    const { context } = await import('@devvit/web/client');
+    rider.username = context.username ?? rider.username;
+    rider.snoovatar = context.snoovatar ?? rider.snoovatar;
+  } catch {
+    // Not running inside Reddit.
+  }
+  return rider;
+}
+
 async function start(): Promise<void> {
   const root = byId('hud');
   const canvas = document.querySelector('canvas');
   const status = byId('status');
   if (canvas === null) throw new Error('missing canvas');
+  applyTheme(document.documentElement);
 
-  const island = await loadIsland();
+  const [island, rider] = await Promise.all([loadIsland(), loadRider()]);
   if (island === null) {
     status.textContent = COPY.loadFailed;
     return;
@@ -93,12 +117,26 @@ async function start(): Promise<void> {
   status.remove();
 
   const puzzle = puzzleFromText(island);
-  const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const forcedBiome: Biome | undefined = BIOMES.find(
+    (name) => name === query.get('biome')
+  );
+  const calm =
+    query.get('calm') === '1' ||
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const sound = createSound();
-  const view = createIslandView(canvas, puzzle, calm);
+  const view = createIslandView(canvas, puzzle, {
+    biome: forcedBiome ?? island.biome,
+    calm,
+    rider,
+  });
   let state: PlayState = startPlay(puzzle);
   let startedAt = performance.now();
   let busy = false;
+
+  const layout = (): void => {
+    const { top, bottom } = hud.insets();
+    view.resize(window.innerWidth, window.innerHeight, top, bottom);
+  };
 
   const apply = (step: PlayStep): void => {
     state = step.state;
@@ -114,8 +152,8 @@ async function start(): Promise<void> {
       if (event.type === 'all-lit') sound.chime(0);
     }
     view.sync(state);
-    view.setAllLit(state.light.solved);
     hud.update(state);
+    layout();
   };
 
   const commit = async (): Promise<void> => {
@@ -137,9 +175,12 @@ async function start(): Promise<void> {
     apply(lockIn(state));
     store(HINTS_KEY);
     hud.quiet(true);
+    layout();
     sound.nightPad();
     await view.nightfall((index) => sound.chime(index));
+    await view.release();
     hud.showResult(outcome);
+    layout();
     busy = false;
     hud.setBusy(false);
   };
@@ -161,20 +202,15 @@ async function start(): Promise<void> {
         state = startPlay(puzzle);
         startedAt = performance.now();
         view.sync(state);
-        view.setAllLit(false);
         hud.update(state);
+        layout();
       },
     },
     !stored(HINTS_KEY)
   );
   hud.setMuted(sound.isMuted());
 
-  const layout = (): void => {
-    const { top, bottom } = hud.insets();
-    view.resize(window.innerWidth, window.innerHeight, top, bottom);
-  };
   window.addEventListener('resize', layout);
-  layout();
 
   // A tap is a press and release in nearly the same place.
   let downX = 0;
@@ -205,6 +241,23 @@ async function start(): Promise<void> {
 
   view.sync(state);
   hud.update(state);
+  layout();
+  // The display font changes the bars' height once it arrives.
+  void document.fonts?.ready.then(layout);
+
+  if (query.get('perf') === '1') {
+    // Developer hook for scripted checks: place a piece by tile, without a pointer.
+    Object.assign(window, {
+      lumenTap: (x: number, y: number) => apply(tapTile(state, x, y)),
+      lumenLockIn: () => void commit(),
+    });
+    window.setInterval(() => {
+      const stats = view.stats();
+      hud.perf(
+        `${stats.fps.toFixed(0)} fps · ${stats.calls} calls · ${stats.triangles} tris · x${stats.pixelRatio}`
+      );
+    }, 500);
+  }
 }
 
 start().catch((error: unknown) => {

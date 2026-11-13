@@ -1,9 +1,12 @@
 /**
  * Everything on screen that is not the island: the two thin bars, the hint line, the
  * "All lit" prompt and the result card. Plain DOM over the canvas.
+ *
+ * The island is always framed in the space these leave free: `insets()` reports how much room
+ * the interface is taking at the top and the bottom right now.
  */
 import type { LockInResponse, PublicIsland } from '../../shared/api';
-import { COPY, VIEW } from '../../shared/config';
+import { COPY, UI, VIEW } from '../../shared/config';
 import {
   canLockIn,
   hintFor,
@@ -30,21 +33,27 @@ export type Hud = {
   notice: (text: string) => void;
   setBusy: (busy: boolean) => void;
   setMuted: (muted: boolean) => void;
-  /** Hide everything but the island, for nightfall. */
+  /** Hide everything but the island, for nightfall and the lantern's flight. */
   quiet: (quiet: boolean) => void;
   showResult: (result: Extract<LockInResponse, { ok: true }>) => void;
   hideResult: () => void;
-  /** Heights of the bars in pixels, so the island can be framed between them. */
+  /** Room the interface is taking at the top and bottom, in pixels. */
   insets: () => { top: number; bottom: number };
+  /** Developer read-out, shown only with ?perf=1. */
+  perf: (text: string) => void;
 };
 
+/** Hand-drawn style: single round strokes, slightly loose. Drawn on a 26 x 26 grid. */
 const ICONS = {
-  undo: 'M9 7 4 12l5 5M4.5 12H14a5.5 5.5 0 0 1 0 11h-2',
-  reset: 'M5 6v6h6M5.6 12A8 8 0 1 1 8 19.6',
+  undo: 'M10.2 6.6 4.6 11.9l5.9 5M5 11.9c4.2-.5 8.4-.4 11.2.9 3.6 1.700 4.800 5.800 2.200 8.300',
+  reset:
+    'M5.200 5.400v6.100h6.200M5.600 11.300c1.400-3.600 5-6 9-5.400 4.700.7 7.900 5 7.200 9.700-.7 4.600-5 7.800-9.700 7.100-2.300-.3-4.300-1.500-5.600-3.200',
   rotate:
-    'M4 14a8 8 0 0 0 15.5 2.5M20 10A8 8 0 0 0 4.5 7.5M20 4v6h-6M4 20v-6h6',
-  soundOn: 'M4 10v6h4l5 4V6L8 10H4zM16.5 9.5a4 4 0 0 1 0 7M19 7a8 8 0 0 1 0 12',
-  soundOff: 'M4 10v6h4l5 4V6L8 10H4zM17 10l5 6M22 10l-5 6',
+    'M3.800 13.400c0-4.200 4.200-7.200 9.300-7.200 4 0 7.500 1.900 8.700 4.700M21.900 5.900v5.100h-5.200M22.200 13c0 4.100-4.200 7-9.300 7-3.800 0-7.200-1.700-8.600-4.300M4.100 20.400v-5h5.100',
+  soundOn:
+    'M3.900 10.200v5.700h3.900l5.300 4.200V5.900L7.800 10.200H3.900zM16.700 9.800c1.500 1.800 1.500 4.800 0 6.600M19.600 7.300c2.900 3.300 2.900 8.300 0 11.600',
+  soundOff:
+    'M3.900 10.200v5.700h3.900l5.300 4.200V5.900L7.800 10.200H3.900zM17.200 10.300l5.200 5.600M22.400 10.300l-5.200 5.600',
 } as const;
 
 const MEDAL_NAME: Record<Medal, string> = {
@@ -96,6 +105,26 @@ function fill(
   );
 }
 
+/** Hand the interface colours in config.ts to the stylesheet. */
+export function applyTheme(root: HTMLElement): void {
+  const set = (name: string, value: string): void =>
+    root.style.setProperty(name, value);
+  set('--paper', UI.paper);
+  set('--paper-alpha', String(UI.paperAlpha));
+  set('--ink', UI.ink);
+  set('--ink-soft', UI.inkSoft);
+  set('--amber', UI.amber);
+  set('--amber-ink', UI.amberInk);
+  set('--light', UI.light);
+  set('--veil', UI.veil);
+  set('--medal-lamplighter', UI.medalLamplighter);
+  set('--medal-glow', UI.medalGlow);
+  set('--medal-spark', UI.medalSpark);
+  set('--radius', `${UI.radiusPx}px`);
+  set('--gap', `${UI.gapPx}px`);
+  set('--tap', `${UI.tapPx}px`);
+}
+
 export function createHud(
   root: HTMLElement,
   island: PublicIsland,
@@ -103,7 +132,7 @@ export function createHud(
   showHints: boolean
 ): Hud {
   // Top bar: which island, what is left to place, and par.
-  const top = element('header', 'bar bar-top');
+  const top = element('header', 'panel bar bar-top');
   const title = element('div', 'title');
   title.append(
     element('span', 'title-number', `Lumen #${island.day}`),
@@ -113,9 +142,11 @@ export function createHud(
   const mirrors = element('span', 'count');
   const mirrorCount = element('b', 'count-number');
   mirrors.append(element('i', 'glyph glyph-mirror'), mirrorCount);
+  mirrors.setAttribute('aria-label', 'Mirrors left');
   const prisms = element('span', 'count');
   const prismCount = element('b', 'count-number');
   prisms.append(element('i', 'glyph glyph-prism'), prismCount);
+  prisms.setAttribute('aria-label', 'Prisms left');
   inventory.append(mirrors);
   if (island.inventory.prisms > 0) inventory.append(prisms);
   const par = element('div', 'par');
@@ -126,24 +157,31 @@ export function createHud(
   top.append(title, inventory, par);
 
   // One line under the top bar: a first-time hint, or a short notice.
-  const line = element('p', 'line');
+  const line = element('p', 'panel line');
   line.setAttribute('role', 'status');
 
-  // Bottom bar: the four controls.
-  const bottom = element('footer', 'bar bar-bottom');
-  const muteButton = iconButton(COPY.mute, ICONS.soundOn, () => {
-    const muted = actions.toggleMute();
-    setMuted(muted);
-  });
+  // Bottom bar: the four controls, and Lock in once the player has chosen to keep refining.
+  const bottom = element('footer', 'panel bar bar-bottom');
+  const muteButton = iconButton(COPY.mute, ICONS.soundOn, () =>
+    setMuted(actions.toggleMute())
+  );
+  const lockSmall = element(
+    'button',
+    'button button-main lock-small',
+    COPY.lockIn
+  );
+  lockSmall.type = 'button';
+  lockSmall.addEventListener('click', actions.lockIn);
   bottom.append(
     iconButton(COPY.undo, ICONS.undo, actions.undo),
     iconButton(COPY.reset, ICONS.reset, actions.reset),
     iconButton(COPY.rotate, ICONS.rotate, actions.rotate),
-    muteButton
+    muteButton,
+    lockSmall
   );
 
-  // The "All lit" prompt, and the smaller Lock in that stays after Keep refining.
-  const prompt = element('section', 'prompt');
+  // The "All lit" prompt takes the bottom bar's place.
+  const prompt = element('section', 'panel prompt');
   const promptText = element('p', 'prompt-text');
   const lockButton = element('button', 'button button-main', COPY.lockIn);
   lockButton.type = 'button';
@@ -159,16 +197,8 @@ export function createHud(
   promptButtons.append(refineButton, lockButton);
   prompt.append(promptText, promptButtons);
 
-  const lockPill = element(
-    'button',
-    'button button-main lock-pill',
-    COPY.lockIn
-  );
-  lockPill.type = 'button';
-  lockPill.addEventListener('click', actions.lockIn);
-
   // The one end screen.
-  const result = element('section', 'result');
+  const result = element('section', 'panel result');
   const resultMedal = element('h2', 'result-medal');
   const resultLine = element('p', 'result-line');
   const resultTime = element('p', 'result-time');
@@ -178,11 +208,16 @@ export function createHud(
   againButton.addEventListener('click', actions.playAgain);
   result.append(resultMedal, resultLine, resultTime, againButton, resultFooter);
 
-  root.append(top, line, prompt, lockPill, bottom, result);
+  const perfLine = element('pre', 'perf');
+
+  root.append(top, line, prompt, bottom, result, perfLine);
 
   let noticeUntil = 0;
   let noticeTimer = 0;
   let lastHint = '';
+  let promptShown = false;
+  let resultShown = false;
+  let hushed = false;
 
   function setMuted(muted: boolean): void {
     muteButton.replaceChildren(icon(muted ? ICONS.soundOff : ICONS.soundOn));
@@ -208,14 +243,11 @@ export function createHud(
         count === 1 ? COPY.allLitOnePiece : COPY.allLit,
         { pieces: count, par: island.par }
       );
-      prompt.classList.toggle('visible', state.phase === 'prompt');
-      lockPill.classList.toggle(
+      promptShown = state.phase === 'prompt';
+      root.classList.toggle('prompting', promptShown);
+      lockSmall.classList.toggle(
         'visible',
         state.phase === 'playing' && state.promptDismissed && canLockIn(state)
-      );
-      root.classList.toggle(
-        'all-lit',
-        state.light.solved && state.phase !== 'locked'
       );
 
       const hint = showHints ? hintFor(state) : null;
@@ -246,13 +278,14 @@ export function createHud(
 
     setBusy(busy) {
       lockButton.disabled = busy;
-      lockPill.disabled = busy;
+      lockSmall.disabled = busy;
       refineButton.disabled = busy;
     },
 
     setMuted,
 
     quiet(quiet) {
+      hushed = quiet;
       root.classList.toggle('quiet', quiet);
     },
 
@@ -267,15 +300,33 @@ export function createHud(
               par: outcome.par,
             });
       resultTime.textContent = formatTime(outcome.elapsedMs);
-      result.classList.add('visible');
+      resultShown = true;
+      root.classList.add('resulting');
     },
 
     hideResult() {
-      result.classList.remove('visible');
+      resultShown = false;
+      root.classList.remove('resulting');
     },
 
     insets() {
-      return { top: top.offsetHeight + 28, bottom: bottom.offsetHeight + 8 };
+      const gap = UI.gapPx;
+      if (resultShown)
+        return { top: gap, bottom: result.offsetHeight + gap * 2 };
+      if (hushed) return { top: gap, bottom: gap };
+      const lineRoom = line.classList.contains('visible')
+        ? line.offsetHeight + gap
+        : gap;
+      return {
+        top: top.offsetHeight + gap + lineRoom,
+        bottom:
+          (promptShown ? prompt.offsetHeight : bottom.offsetHeight) + gap * 2,
+      };
+    },
+
+    perf(text) {
+      perfLine.textContent = text;
+      perfLine.classList.add('visible');
     },
   };
 }

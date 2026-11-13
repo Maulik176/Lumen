@@ -147,8 +147,8 @@ export const VIEW = {
   /** The sky drifts from afternoon to dusk over this long while the player thinks. */
   duskDriftMs: 180_000,
   /** How dark the sky is at the start of play (0 afternoon, 1 night) and where the drift ends. */
-  duskStart: 0.3,
-  duskEnd: 0.6,
+  duskStart: 0.1,
+  duskEnd: 0.5,
   /** After Lock in: sky falls to night over this long. */
   nightfallMs: 1500,
   /** Then each lantern blooms this long after the one before. */
@@ -186,34 +186,213 @@ export const SOUND = {
   padVolume: 0.18,
 } as const;
 
+/** Weekly look of the island. Same geometry, different palette and props. */
+export const BIOMES = ['moss', 'snow', 'blossom', 'dune', 'autumn'] as const;
+
+/** Colours as Three.js reads them (0xRRGGBB). */
+export type Hex = number;
+
+/** Colours that are the same in every biome: light, lanterns and the pieces the player places. */
+export const LOOK = {
+  beamWhite: 0xfff1c2,
+  beamRed: 0xff6a5c,
+  beamGreen: 0x63e08a,
+  beamBlue: 0x6aa6ff,
+  lanternMagenta: 0xee74dc,
+  lanternCyan: 0x5fdbe2,
+  lanternYellow: 0xf5d64e,
+  /** Unlit lantern paper, and the warm colour a white lantern glows. */
+  lanternPaper: 0xfbf0d8,
+  lanternWarm: 0xffc66e,
+  wood: 0x8a5a3a,
+  woodDark: 0x5c3d2a,
+  brass: 0xd9a441,
+  /** The mirror's glass, and the sheen it shows toward the sky. */
+  glass: 0xcfe6ee,
+  glassSheen: 0xf4fbff,
+  prismGlass: 0xdaf3ff,
+  stone: 0x8d8b98,
+  stoneDark: 0x6c6a78,
+  crystal: 0xfff4c8,
+  /** Stars and the sky lantern's flame. */
+  star: 0xfff6e0,
+  flame: 0xffb14a,
+} as const;
+
+/** Which low-poly shape a biome's "tree" tiles use. */
+export type TreeShape = 'pine' | 'round' | 'cactus';
+
 /**
- * Placeholder colours for Milestone 3. Milestone 4 replaces these with per-biome palettes.
- * Hex numbers as Three.js reads them.
+ * One biome's palette and props. Geometry is the same everywhere; only these change.
+ * Sky colours are [afternoon, dusk, night], for the top of the dome and for the horizon.
  */
-export const PALETTE = {
-  skyDay: 0xf0b56e,
-  skyDusk: 0xb0668c,
-  skyNight: 0x141033,
-  grassA: 0x6f9b58,
-  grassB: 0x79a660,
-  rock: 0x7b7a86,
-  tree: 0x3e7a4d,
-  trunk: 0x6b4a32,
-  water: 0x4a86b8,
-  underside: 0x6b5348,
-  crystal: 0xfff1b8,
-  lanternPaper: 0xfff6e0,
-  lanternDark: 0x5a4636,
-  mirror: 0xdfe9f2,
-  mirrorFixed: 0x9aa0b5,
-  prism: 0xcfeaff,
-  beamWhite: 0xfff3c4,
-  beamRed: 0xff6b5e,
-  beamGreen: 0x6fe08a,
-  beamBlue: 0x6fa8ff,
-  lanternMagenta: 0xe36fe0,
-  lanternCyan: 0x62d9e0,
-  lanternYellow: 0xf0d552,
+export type BiomeLook = {
+  skyTop: readonly [Hex, Hex, Hex];
+  skyHorizon: readonly [Hex, Hex, Hex];
+  /** Two tones of ground, laid like a quiet chequerboard. */
+  groundA: Hex;
+  groundB: Hex;
+  /** The shaded sides of the tiles. */
+  groundSide: Hex;
+  /** The earth rim around the playable tiles, and the rock the island hangs from. */
+  rim: Hex;
+  underside: Hex;
+  rock: Hex;
+  water: Hex;
+  waterEdge: Hex;
+  tree: TreeShape;
+  crown: Hex;
+  /** Snow caps, blossom, cactus flowers, the lighter leaves. */
+  crownAccent: Hex;
+  trunk: Hex;
+  /** Small tufts and pebbles on the rim. */
+  tuft: Hex;
+  /** The mist the underside fades into. */
+  mist: Hex;
+};
+
+export const BIOME_LOOK: Record<(typeof BIOMES)[number], BiomeLook> = {
+  moss: {
+    skyTop: [0xf1c282, 0x63468c, 0x0c0a24],
+    skyHorizon: [0xfbe6b8, 0xf2876a, 0x2b2459],
+    groundA: 0x80b05e,
+    groundB: 0x74a454,
+    groundSide: 0x577a41,
+    rim: 0x8c6b4b,
+    underside: 0x6a5146,
+    rock: 0x8d8b98,
+    water: 0x5aa6cc,
+    waterEdge: 0x3f7fa6,
+    tree: 'pine',
+    crown: 0x3f8250,
+    crownAccent: 0x5fa565,
+    trunk: 0x6b4a32,
+    tuft: 0x97c86c,
+    mist: 0xf3d6b0,
+  },
+  snow: {
+    skyTop: [0xc9dcec, 0x56589a, 0x0a0d28],
+    skyHorizon: [0xf7ead9, 0xf0a48c, 0x27305e],
+    groundA: 0xf1f5f8,
+    groundB: 0xe3ebf1,
+    groundSide: 0xb4c3d0,
+    rim: 0x9fb0c0,
+    underside: 0x6d7a8c,
+    rock: 0x8f9cb2,
+    water: 0xa6d8ea,
+    waterEdge: 0x7fb6cf,
+    tree: 'pine',
+    crown: 0x2f6c5c,
+    crownAccent: 0xffffff,
+    trunk: 0x5a4636,
+    tuft: 0xffffff,
+    mist: 0xe8eef6,
+  },
+  blossom: {
+    skyTop: [0xf4c6a0, 0x7a4a8e, 0x100a26],
+    skyHorizon: [0xfde3cf, 0xf590a2, 0x34245a],
+    groundA: 0x9ccb7c,
+    groundB: 0x8fbf70,
+    groundSide: 0x6c9856,
+    rim: 0x9c7c6a,
+    underside: 0x705449,
+    rock: 0xa49ba8,
+    water: 0x7cc4d8,
+    waterEdge: 0x579fb6,
+    tree: 'round',
+    crown: 0xf3a6c2,
+    crownAccent: 0xffd6e4,
+    trunk: 0x6b4a3a,
+    tuft: 0xf8c2d5,
+    mist: 0xfbdcd6,
+  },
+  dune: {
+    skyTop: [0xf5c474, 0x7b487a, 0x120b22],
+    skyHorizon: [0xfee8b2, 0xf3814c, 0x3a2450],
+    groundA: 0xe5c68b,
+    groundB: 0xdcb87a,
+    groundSide: 0xb69254,
+    rim: 0xab854f,
+    underside: 0x8b6a48,
+    rock: 0xc28c5c,
+    water: 0x50b6aa,
+    waterEdge: 0x358f86,
+    tree: 'cactus',
+    crown: 0x5c9c64,
+    crownAccent: 0xf3d26c,
+    trunk: 0x5c9c64,
+    tuft: 0xcfb26c,
+    mist: 0xf8dcae,
+  },
+  autumn: {
+    skyTop: [0xf0b672, 0x6c4280, 0x0e0a22],
+    skyHorizon: [0xfbdfae, 0xf07a4a, 0x30224f],
+    groundA: 0xbcaa5a,
+    groundB: 0xae9c4e,
+    groundSide: 0x847438,
+    rim: 0x7c5b3e,
+    underside: 0x5f4638,
+    rock: 0x8c828a,
+    water: 0x5c95b2,
+    waterEdge: 0x40718c,
+    tree: 'round',
+    crown: 0xda6a2e,
+    crownAccent: 0xf2a53c,
+    trunk: 0x5a3e2c,
+    tuft: 0xe28c3a,
+    mist: 0xf4cfa2,
+  },
+};
+
+/**
+ * Colours and sizes of the interface, as CSS reads them. One palette, one corner radius.
+ * `ink` on `paper` and `amberInk` on `amber` both pass WCAG AA (checked by a test).
+ */
+export const UI = {
+  paper: '#faf0dc',
+  /** Panel fill: paper with a little of the sky showing through. */
+  paperAlpha: 0.9,
+  ink: '#2a2233',
+  inkSoft: '#5f566b',
+  amber: '#f0a94a',
+  amberInk: '#2a2233',
+  /** Text laid straight on the sky, with a dark veil behind it. */
+  light: '#fbeed2',
+  veil: 'rgba(30, 22, 50, 0.6)',
+  /** Medal colours on paper. */
+  medalLamplighter: '#a8530f',
+  medalGlow: '#7a5a12',
+  medalSpark: '#5f566b',
+  radiusPx: 14,
+  gapPx: 10,
+  /** Smallest tap target, in CSS pixels. */
+  tapPx: 44,
+} as const;
+
+/** Which shape stands for which colour, for players who cannot tell the colours apart. */
+export const COLOUR_SHAPE = {
+  red: 'triangle',
+  green: 'circle',
+  blue: 'square',
+} as const;
+
+/** The sky lantern release after Lock in. Times in milliseconds, distances in tiles. */
+export const RELEASE = {
+  /** Pause after the last island lantern blooms before the sky lantern lifts. */
+  delayMs: 500,
+  /** How long the camera follows the lantern up. */
+  riseMs: 5200,
+  /** How high the lantern climbs while the camera follows. */
+  riseHeight: 9,
+  /** The lantern keeps drifting up at this speed (tiles per second) behind the result card. */
+  driftSpeed: 0.35,
+  /** Gentle sideways sway: width in tiles and period in milliseconds. */
+  swayWidth: 0.25,
+  swayPeriodMs: 3600,
+  /** Reduced motion: the camera stays put and the lantern fades up over this long. */
+  calmRiseMs: 4200,
+  /** Size of the snoovatar or glyph on the lantern, in tiles. */
+  portraitSize: 0.62,
 } as const;
 
 export const CALENDAR = {
@@ -446,6 +625,3 @@ export const DIFFICULTY = {
   /** Per fixed mirror. They help as often as they hinder, so this is small. */
   fixedMirrorWeight: 1,
 } as const;
-
-/** Weekly look of the island. Same geometry, different palette and props. */
-export const BIOMES = ['moss', 'snow', 'blossom', 'dune', 'autumn'] as const;
