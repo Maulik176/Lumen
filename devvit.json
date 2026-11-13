@@ -6,7 +6,8 @@
     "entrypoints": {
       "default": {
         "inline": true,
-        "entry": "splash.html"
+        "entry": "preview.html",
+        "height": "regular"
       },
       "game": {
         "entry": "game.html"
@@ -20,26 +21,27 @@
   "menu": {
     "items": [
       {
-        "label": "Create a new post",
-        "description": "lumen",
+        "label": "Post today's Lumen",
+        "description": "Create the post for today's island",
         "location": "subreddit",
         "forUserType": "moderator",
-        "endpoint": "/internal/menu/post-create"
+        "endpoint": "/internal/menu/post-today"
       },
       {
-        "label": "Example form",
-        "description": "Show a simple form",
+        "label": "Post a Lumen island (testing)",
+        "description": "Create a post for any day number",
         "location": "subreddit",
         "forUserType": "moderator",
-        "endpoint": "/internal/menu/example-form"
+        "endpoint": "/internal/menu/post-day"
       }
     ]
   },
   "forms": {
-    "exampleForm": "/internal/form/example-submit"
+    "postDay": "/internal/form/post-day"
   },
   "triggers": {
-    "onAppInstall": "/internal/triggers/on-app-install"
+    "onAppInstall": "/internal/triggers/on-app-install",
+    "onAppUpgrade": "/internal/triggers/on-app-upgrade"
   },
   "scripts": {
     "build": "vite build",
@@ -47,5 +49,8 @@
   },
   "dev": {
     "subreddit": "lumen_game_dev"
+  },
+  "permissions": {
+    "redis": true
   }
 }

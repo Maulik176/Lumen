@@ -1,0 +1,59 @@
+/* Feed card. Milestone 3 placeholder: Milestone 7 adds the island silhouette, sky strip and streak. */
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+body {
+  display: grid;
+  place-items: center;
+  background: linear-gradient(180deg, #f2c58b 0%, #b9799a 55%, #2a2150 100%);
+  color: #fbeed2;
+  font:
+    16px/1.35 system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+}
+.card {
+  text-align: center;
+  padding: 16px;
+  width: 100%;
+}
+.kicker {
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+.name {
+  margin: 4px 0 6px;
+  font-size: 30px;
+  line-height: 1.1;
+  text-shadow: 0 2px 12px rgba(30, 20, 60, 0.45);
+}
+.line {
+  margin: 0 0 18px;
+  opacity: 0.95;
+}
+.play {
+  min-height: 52px;
+  padding: 0 28px;
+  border: 0;
+  border-radius: 14px;
+  background: #f0a94a;
+  color: #2a2233;
+  font: inherit;
+  font-size: 18px;
+  font-weight: 700;
+}
+.par {
+  margin: 12px 0 0;
+  font-size: 13px;
+  opacity: 0.8;
+}

@@ -1,22 +1,24 @@
 import { Hono } from 'hono';
 import type { UiResponse } from '@devvit/web/shared';
-
-type ExampleFormValues = {
-  message?: string;
-};
+import { islandForDay } from '../core/content';
+import { createDailyPost } from '../core/post';
+import { postAddress } from './menu';
 
 export const forms = new Hono();
 
-forms.post('/example-submit', async (c) => {
-  const { message } = await c.req.json<ExampleFormValues>();
-  const trimmedMessage = typeof message === 'string' ? message.trim() : '';
-
-  return c.json<UiResponse>(
-    {
-      showToast: trimmedMessage
-        ? `Form says: ${trimmedMessage}`
-        : 'Form submitted with no message',
-    },
-    200
-  );
+forms.post('/post-day', async (c) => {
+  const body: unknown = await c.req.json().catch(() => null);
+  const fields: Record<string, unknown> =
+    typeof body === 'object' && body !== null ? { ...body } : {};
+  const day = Number(fields['day']);
+  if (!Number.isInteger(day) || islandForDay(day) === undefined) {
+    return c.json<UiResponse>({ showToast: 'No island for that day' }, 200);
+  }
+  try {
+    const post = await createDailyPost(day);
+    return c.json<UiResponse>({ navigateTo: postAddress(post.id) }, 200);
+  } catch (error) {
+    console.error(`Error creating post for day ${day}: ${String(error)}`);
+    return c.json<UiResponse>({ showToast: 'Could not create the post' }, 200);
+  }
 });

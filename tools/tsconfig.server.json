@@ -4,11 +4,16 @@
     "outDir": "../dist/types/server",
     "tsBuildInfoFile": "../dist/types/server/tsconfig.tsbuildinfo",
     "customConditions": [],
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "exactOptionalPropertyTypes": false,
-    "rootDir": "../src/server"
+    "rootDir": ".."
   },
-  "include": ["../src/server/**/*"],
+  "include": [
+    "../src/server/**/*",
+    "../content/puzzles.json"
+  ],
   "exclude": [],
   "references": [
     {

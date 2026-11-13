@@ -70,6 +70,21 @@ export const RULES = {
  * `{pieces}`, `{par}` and similar are filled in by the UI.
  */
 export const COPY = {
+  /** Feed card and expanded-view title. {day}, {name}, {weekday} are filled in. */
+  postTitle: 'Lumen #{day} · {name} · {weekday}',
+  /** Feed card, one line under the title. {lanterns} is the lantern count. */
+  previewLine: '{lanterns} lanterns wait in the dusk.',
+  previewLineOne: 'One lantern waits in the dusk.',
+  /** The one big button on the feed card. */
+  playButton: 'Light the lanterns',
+  /** First play only: shown until the first piece is placed. */
+  hintPlace: 'Tap the grass to place a mirror',
+  /** First play only: shown after the first piece, until a piece is turned. */
+  hintTurn: 'Tap it again to turn it',
+  /** First play only, on days with a prism: shown once a mirror has been turned. */
+  hintPrism: 'A third tap makes a prism: it splits white light in three',
+  /** Shown briefly when the player taps empty grass with nothing left to place. */
+  noPiecesLeft: 'No pieces left. Tap one to take it back.',
   /** Shown with a soft glow the moment every lantern is lit, before anything is submitted. */
   allLit: 'All lit · {pieces} pieces (par {par})',
   /** Same line when exactly one piece is on the island. */
@@ -78,10 +93,127 @@ export const COPY = {
   lockIn: 'Lock in',
   /** Dismisses the prompt so the player can remove or move pieces. */
   keepRefining: 'Keep refining',
+  /** Result card, first line. The exclamation mark is allowed only on par. */
+  resultPar: 'Lit with {pieces}. That is par!',
+  resultOverPar: 'Lit with {pieces}. Par is {par}.',
+  /** Medal names as the player reads them. */
+  medalLamplighter: 'Lamplighter',
+  medalGlow: 'Glow',
+  medalSpark: 'Spark',
+  /** Result card footer. */
+  comeBack: 'Come back at nightfall tomorrow.',
+  /** Result card: replay without ranking. */
+  playAgain: 'Play again, unranked',
+  /** If the island cannot be loaded. */
+  loadFailed: 'The island is hidden in mist. Try again in a moment.',
+  /** If Lock in cannot reach the server. */
+  lockInFailed: 'Could not lock in. Try again.',
+  /** Labels read by screen readers for the icon buttons. */
+  undo: 'Undo',
+  reset: 'Reset',
+  rotate: 'Rotate',
+  mute: 'Mute',
+  unmute: 'Sound on',
   /** Island Builder, when the server cannot prove an island solvable inside its budget. */
   builderTooComplex: 'Too complex to verify. Try removing a piece.',
   /** Share button failure. Never blocks play. */
   shareFailed: 'Could not post. Try again from the Reddit app.',
+} as const;
+
+/** The camera that looks at the island. Angles in degrees, times in milliseconds. */
+export const CAMERA = {
+  /** Tilt down from the horizon. Higher is flatter and easier to tap; lower is more scenic. */
+  pitchDegrees: 52,
+  /** Lens angle. Small keeps the island close to isometric. */
+  fieldOfViewDegrees: 28,
+  /** Each tap on Rotate turns the view this far. */
+  rotateStepDegrees: 90,
+  rotateMs: 400,
+  /** Empty space kept around the island, as a share of the island's size. */
+  margin: 0.08,
+  /** How far the camera rises to follow the night, as a share of its distance. */
+  nightLift: 0.06,
+} as const;
+
+/** Timings and sizes of the play screen. Times in milliseconds. */
+export const VIEW = {
+  /** Device pixel ratio is never above this. */
+  maxPixelRatio: 2,
+  /** If frames stay slower than `slowFrameMs` the pixel ratio drops to this. */
+  lowPixelRatio: 1.25,
+  slowFrameMs: 22,
+  /** Slow frames in a row before the pixel ratio drops. */
+  slowFramesBeforeDrop: 45,
+  /** The sky drifts from afternoon to dusk over this long while the player thinks. */
+  duskDriftMs: 180_000,
+  /** How dark the sky is at the start of play (0 afternoon, 1 night) and where the drift ends. */
+  duskStart: 0.3,
+  duskEnd: 0.6,
+  /** After Lock in: sky falls to night over this long. */
+  nightfallMs: 1500,
+  /** Then each lantern blooms this long after the one before. */
+  lanternBloomGapMs: 420,
+  /** A lantern's pop: scale goes 1 to `lanternPopScale` and back over `lanternPopMs`. */
+  lanternPopScale: 1.15,
+  lanternPopMs: 360,
+  /** Pause after the last lantern before the result card rises. */
+  resultDelayMs: 900,
+  /** How long "No pieces left" stays on screen. */
+  noticeMs: 2200,
+  /** A piece drops in over this long. */
+  pieceDropMs: 140,
+  /** The island's slow float: height of the bob in tiles, and its period. */
+  floatHeight: 0.05,
+  floatPeriodMs: 7000,
+  /** Reduced motion: nightfall and blooms use these gentler timings and no camera movement. */
+  calmNightfallMs: 2400,
+  calmBloomGapMs: 600,
+} as const;
+
+/** Sound. Frequencies in hertz, times in seconds, volumes 0 to 1. All synthesised. */
+export const SOUND = {
+  masterVolume: 0.5,
+  /** The wooden click when a piece is placed or turned. */
+  clickHz: 540,
+  clickSeconds: 0.07,
+  /** Lantern chimes: the first note, and the scale steps (in semitones) each later one climbs. */
+  chimeBaseHz: 523.25,
+  chimeSteps: [0, 2, 4, 7, 9, 12, 14, 16],
+  chimeSeconds: 1.4,
+  /** The low pad under nightfall. */
+  padHz: 110,
+  padSeconds: 4,
+  padVolume: 0.18,
+} as const;
+
+/**
+ * Placeholder colours for Milestone 3. Milestone 4 replaces these with per-biome palettes.
+ * Hex numbers as Three.js reads them.
+ */
+export const PALETTE = {
+  skyDay: 0xf0b56e,
+  skyDusk: 0xb0668c,
+  skyNight: 0x141033,
+  grassA: 0x6f9b58,
+  grassB: 0x79a660,
+  rock: 0x7b7a86,
+  tree: 0x3e7a4d,
+  trunk: 0x6b4a32,
+  water: 0x4a86b8,
+  underside: 0x6b5348,
+  crystal: 0xfff1b8,
+  lanternPaper: 0xfff6e0,
+  lanternDark: 0x5a4636,
+  mirror: 0xdfe9f2,
+  mirrorFixed: 0x9aa0b5,
+  prism: 0xcfeaff,
+  beamWhite: 0xfff3c4,
+  beamRed: 0xff6b5e,
+  beamGreen: 0x6fe08a,
+  beamBlue: 0x6fa8ff,
+  lanternMagenta: 0xe36fe0,
+  lanternCyan: 0x62d9e0,
+  lanternYellow: 0xf0d552,
 } as const;
 
 export const CALENDAR = {

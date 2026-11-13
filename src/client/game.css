@@ -1,115 +1,388 @@
-/* Global resets */
+/* Lumen play screen. Milestone 3 placeholder styling; one palette, one radius. */
+:root {
+  --paper: rgba(250, 240, 220, 0.92);
+  --paper-soft: rgba(34, 24, 54, 0.5);
+  --ink: #2a2233;
+  --ink-soft: rgba(42, 34, 51, 0.62);
+  --light: #fbeed2;
+  --amber: #f0a94a;
+  --radius: 14px;
+  --gap: 10px;
+}
+
 * {
   box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  color: #ffffff;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html,
 body {
-  width: 100%;
+  margin: 0;
   height: 100%;
   overflow: hidden;
-  background: #000000;
+  background: #17132a;
+  color: var(--light);
+  font:
+    15px/1.35 system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-/* Three.js canvas fills the screen */
-#bg {
+canvas {
   position: fixed;
-  top: 0;
-  left: 0;
+  inset: 0;
   width: 100%;
   height: 100%;
   display: block;
+  touch-action: none;
 }
 
-/* Overlay container sitting above the canvas */
-.overlay {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: 20px;
+#status {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 24px;
   text-align: center;
-  padding: 0 16px;
-  pointer-events: none; /* allow clicks to pass through except on interactive elements */
+}
+
+#hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  transition: opacity 600ms ease;
+}
+
+#hud > * {
+  pointer-events: auto;
+}
+
+/* The two thin bars. */
+.bar {
+  position: absolute;
+  left: var(--gap);
+  right: var(--gap);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: var(--radius);
+  background: var(--paper-soft);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition:
+    opacity 500ms ease,
+    transform 500ms ease;
+}
+
+.bar-top {
+  top: var(--gap);
+}
+
+.bar-bottom {
+  bottom: var(--gap);
+  justify-content: space-around;
+  padding: 0 6px;
 }
 
 .title {
-  font-size: 2rem;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  min-width: 0;
+}
+
+.title-number {
   font-weight: 700;
-  line-height: 1.2;
-  pointer-events: auto;
 }
 
-.description {
-  font-size: 1rem;
-  color: #d1d5db;
-  pointer-events: auto;
+.title-name {
+  font-size: 12px;
+  opacity: 0.8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.code {
-  background-color: rgba(255, 255, 255, 0.15);
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-
-/* Counter styles */
-.counter-row {
+.inventory {
   display: flex;
+  gap: 14px;
   align-items: center;
-  justify-content: center;
-  gap: 20px;
-  margin-top: 12px;
-  pointer-events: auto;
 }
 
-.counter-button {
-  background-color: #ff4500;
-  color: #ffffff;
-  border: none;
-  width: 60px;
-  height: 60px;
-  font-size: 2rem;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
+.count {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 200ms ease;
 }
 
-.counter-button:hover {
-  background-color: #d93900;
+.count.empty {
+  opacity: 0.45;
 }
 
-.counter-value {
-  font-size: 2rem;
-  font-weight: 600;
-  min-width: 60px;
-  text-align: center;
+.count-number,
+.par-number {
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
 }
 
-/* Footer links */
-.footer {
-  position: absolute;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
+.glyph {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+}
+
+.glyph-mirror {
+  background: linear-gradient(
+    135deg,
+    transparent 43%,
+    var(--light) 43%,
+    var(--light) 57%,
+    transparent 57%
+  );
+}
+
+.glyph-prism {
+  background: var(--light);
+  clip-path: polygon(50% 8%, 96% 92%, 4% 92%);
+  opacity: 0.9;
+}
+
+.par {
   display: flex;
-  gap: 12px;
-  font-size: 0.9rem;
-  color: #d1d5db;
-  pointer-events: auto;
+  align-items: baseline;
+  gap: 6px;
 }
 
-.docs-link {
-  cursor: pointer;
-  text-decoration: underline;
+.par-label {
+  font-size: 12px;
+  opacity: 0.8;
 }
 
-.divider {
-  color: rgba(255, 255, 255, 0.25);
+.shake {
+  animation: shake 320ms ease;
+}
+
+@keyframes shake {
+  20% {
+    transform: translateX(-5px);
+  }
+  45% {
+    transform: translateX(5px);
+  }
+  70% {
+    transform: translateX(-3px);
+  }
+}
+
+.icon-button {
+  width: 56px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: none;
+  color: var(--light);
+  border-radius: var(--radius);
+}
+
+.icon-button:active {
+  background: rgba(250, 240, 220, 0.18);
+}
+
+.icon-button svg {
+  width: 26px;
+  height: 26px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* One line under the top bar: hint or notice, on its own small panel so it reads on any sky. */
+.line {
+  position: absolute;
+  top: 68px;
+  left: 50%;
+  max-width: calc(100% - 2 * var(--gap));
+  margin: 0;
+  padding: 7px 14px;
+  border-radius: var(--radius);
+  background: rgba(34, 24, 54, 0.62);
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  opacity: 0;
+  transform: translateX(-50%);
+  transition: opacity 300ms ease;
+  pointer-events: none !important;
+}
+
+.line.visible {
+  opacity: 1;
+}
+
+.line:empty {
+  display: none;
+}
+
+.line[data-kind='notice'] {
+  color: #ffd9a0;
+}
+
+/* Buttons. */
+.button {
+  min-height: 46px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: var(--radius);
+  font: inherit;
+  font-weight: 650;
+}
+
+.button:disabled {
+  opacity: 0.5;
+}
+
+.button-main {
+  background: var(--amber);
+  color: var(--ink);
+}
+
+.button-quiet {
+  background: transparent;
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1.5px var(--ink-soft);
+}
+
+/* The "All lit" prompt. */
+.prompt {
+  position: absolute;
+  left: var(--gap);
+  right: var(--gap);
+  bottom: 68px;
+  padding: 14px;
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+  text-align: center;
+  opacity: 0;
+  transform: translateY(12px);
+  pointer-events: none !important;
+  transition:
+    opacity 260ms ease,
+    transform 260ms ease;
+}
+
+.prompt.visible {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto !important;
+}
+
+.prompt-text {
+  margin: 0 0 12px;
+  font-size: 17px;
+  font-weight: 650;
+}
+
+.prompt-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap);
+}
+
+.lock-pill {
+  position: absolute;
+  right: var(--gap);
+  bottom: 68px;
+  opacity: 0;
+  pointer-events: none !important;
+  transition: opacity 260ms ease;
+}
+
+.lock-pill.visible {
+  opacity: 1;
+  pointer-events: auto !important;
+}
+
+/* Nightfall: only the island. */
+#hud.quiet .bar,
+#hud.quiet .line,
+#hud.quiet .prompt,
+#hud.quiet .lock-pill {
+  opacity: 0;
+  pointer-events: none !important;
+}
+
+/* The one end screen. */
+.result {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  width: min(340px, calc(100% - 2 * var(--gap)));
+  padding: 20px 18px 16px;
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+  text-align: center;
+  opacity: 0;
+  transform: translate(-50%, 16px);
+  pointer-events: none !important;
+  transition:
+    opacity 500ms ease,
+    transform 500ms ease;
+}
+
+.result.visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  pointer-events: auto !important;
+}
+
+.result-medal {
+  margin: 0;
+  font-size: 30px;
+  letter-spacing: 0.01em;
+}
+
+.result-medal[data-medal='lamplighter'] {
+  color: #b5651d;
+}
+
+.result-line {
+  margin: 6px 0 2px;
+  font-size: 17px;
+}
+
+.result-time {
+  margin: 0 0 14px;
+  font-size: 15px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.result-footer {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shake {
+    animation: none;
+  }
+  .prompt,
+  .result,
+  .bar,
+  #hud {
+    transition-duration: 1ms;
+  }
 }
