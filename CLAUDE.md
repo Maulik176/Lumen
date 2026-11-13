@@ -5,8 +5,9 @@ Vite). It is an entry for Reddit's Game of the Day hackathon; submission closes 
 
 ## Where things stand (update at the end of every milestone)
 
-**As of Fri Nov 13, 2026, afternoon IST.** Milestones 1 and 2 done. Milestone 3 built and
-uploaded (v0.0.1.10); waiting for Maulik's phone test before it is called done.
+**As of Fri Nov 13, 2026, evening IST.** Milestones 1 and 2 done. Milestone 3 built and uploaded
+(v0.0.1.10); Maulik phone-tests it tonight and fixes from that are a **separate pass**.
+**Milestone 4 (final art and the signature moment) is in progress.** See "Milestone 4 brief" below.
 
 - App: `lumen-game` (the name `lumen` was taken). Listing: developers.reddit.com/apps/lumen-game.
   Owner account u/Dry_Promotion2506. Playtest subreddit `r/lumen_game_dev`. Launch subreddit
@@ -37,6 +38,35 @@ uploaded (v0.0.1.10); waiting for Maulik's phone test before it is called done.
   for a first-timer, Saturday hard but fair, order of difficulty correct, nothing below par.
   His main worry is onboarding and payoff, which do not exist yet: treat every phone demo from M3
   on as a stranger test.
+
+## Milestone 4 brief (Maulik, Nov 13) — this is the final look, not a draft
+
+Must include, from the M3 judge pass:
+- Mirrors as real crafted pieces, not grey slabs. Sky dome with the dusk gradient and stars.
+- Colour-blind shapes on beams and lanterns (red triangle, green circle, blue square; mixed = both).
+- The "All lit" prompt and the result card must **never cover the island** on short screens
+  (360x460): the island reframes into the space left above or below.
+
+Then: beam shader with halo and shimmer; prism split with a sparkle; lantern bloom; nightfall; the
+lantern release with the player's snoovatar as a texture (glyph from the username when there is
+none); all 5 biomes (moss, snow, blossom, dune, autumn: same geometry, different palette and
+props); custom UI kit with a bundled OFL display font and hand-drawn icons, warm-paper panels.
+Reduced motion must be just as beautiful (slow fades and glow instead of camera travel and pops).
+
+Finish with a judge pass using screenshots at 430x701 and 360x460, fix the top issues, short report.
+
+How the work is laid out (so a fresh session can continue):
+- Per-biome colours and prop choices live in `config.ts` (`BIOME_LOOK`), UI colours in `UI`.
+- `src/client/game/` is split by subject: `sky.ts` (dome shader), `ground.ts` (tiles, rim,
+  underside, props), `pieces.ts` (mirror, prism, fixed mirror models), `beams.ts` (ribbon shader,
+  shapes, sparkle), `lanterns.ts` (island lanterns, shape badges, light spill), `release.ts` (the
+  sky lantern, snoovatar or glyph, camera rise), `scene.ts` (ties them together; same `IslandView`
+  interface as M3 plus `release()`), `hud.ts`, `audio.ts`, `main.ts`, `fit.ts`.
+- Sequence after Lock in: night falls → island lanterns bloom one by one with chimes → the
+  player's sky lantern lifts off and the camera follows it up → result card. All automatic.
+- Local check: `npm run debug`, then `http://localhost:5199/game.html?day=7` (`&biome=snow` and
+  `&calm=1` force a biome or the reduced-motion path; `&perf=1` shows fps and draw calls).
+- Budgets: draw calls under 120, triangles under 80k, 60 fps, game JS under 450 KB gzipped.
 
 **Decisions that override SPEC (full list: PROMPT.md section 7):**
 
