@@ -79,6 +79,7 @@ function svg(
 let file: DailyFile = { version: 1, dayOne: '', days: [] };
 let current = 0;
 let pieces: Placement[] = [];
+let notice = '';
 
 function island(): DailyIsland {
   const found = file.days[current];
@@ -86,12 +87,24 @@ function island(): DailyIsland {
   return found;
 }
 
+/** Same cycle the game will use, limited by the day's inventory: / then \ then prism then empty. */
 function cycle(x: number, y: number): void {
   const index = pieces.findIndex((piece) => piece.x === x && piece.y === y);
   const existing = pieces[index];
-  const allowPrism = island().inventory.prisms > 0;
+  const { inventory } = island();
+  const mirrors = pieces.filter(
+    (piece) => piece.piece.kind === 'mirror'
+  ).length;
+  const prismFree = pieces.length - mirrors < inventory.prisms;
+  notice = '';
   if (existing === undefined) {
-    pieces.push({ x, y, piece: { kind: 'mirror', orientation: 'slash' } });
+    if (mirrors < inventory.mirrors) {
+      pieces.push({ x, y, piece: { kind: 'mirror', orientation: 'slash' } });
+    } else if (prismFree) {
+      pieces.push({ x, y, piece: { kind: 'prism' } });
+    } else {
+      notice = 'No pieces left. Tap one on the island to take it back.';
+    }
   } else if (
     existing.piece.kind === 'mirror' &&
     existing.piece.orientation === 'slash'
@@ -101,7 +114,7 @@ function cycle(x: number, y: number): void {
       y,
       piece: { kind: 'mirror', orientation: 'backslash' },
     };
-  } else if (existing.piece.kind === 'mirror' && allowPrism) {
+  } else if (existing.piece.kind === 'mirror' && prismFree) {
     pieces[index] = { x, y, piece: { kind: 'prism' } };
   } else {
     pieces.splice(index, 1);
@@ -145,7 +158,13 @@ function draw(): void {
 
   for (const segment of result.segments) {
     const [dx, dy] = STEP[segment.direction];
-    const overshoot = segment.end === 'edge' ? TILE / 2 : 0;
+    // Run off the edge of the island; stop at the face of a rock, tree or sun crystal.
+    const overshoot =
+      segment.end === 'edge'
+        ? TILE / 2
+        : segment.end === 'blocked'
+          ? -TILE / 2
+          : 0;
     root.append(
       svg('line', {
         x1: centre(segment.from.x),
@@ -283,11 +302,11 @@ function draw(): void {
     (piece) => piece.piece.kind === 'mirror'
   ).length;
   const prisms = pieces.length - mirrors;
-  const over = mirrors > day.inventory.mirrors || prisms > day.inventory.prisms;
+  const left = `${day.inventory.mirrors - mirrors} mirrors, ${day.inventory.prisms - prisms} prisms left`;
   status.className = result.solved ? 'solved' : '';
   status.textContent = result.solved
     ? `All lit · ${pieces.length} pieces (par ${day.par}) · ${medalFor(pieces.length, day.par)}`
-    : `${result.litCount} of ${puzzle.lanterns.length} lit · ${pieces.length} pieces${over ? ' · over inventory' : ''}`;
+    : `${result.litCount} of ${puzzle.lanterns.length} lit · ${left}${notice ? ` · ${notice}` : ''}`;
 
   const table = byId('factors');
   table.replaceChildren();
