@@ -109,10 +109,11 @@ describe('generateIsland', () => {
     expect(JSON.stringify(one?.puzzle)).not.toBe(JSON.stringify(eight?.puzzle));
   });
 
-  it('weekday rules: Monday has mirrors only; prism days need their prism; Friday has a mixed lantern', () => {
+  it('weekday rules: Monday has two suns, two lanterns and mirrors only; prism days need their prism; Friday has a mixed lantern', () => {
     const monday = generateIsland(DAY_FOR.monday);
     expect(monday?.puzzle.inventory.prisms).toBe(0);
-    expect(monday?.puzzle.sources).toHaveLength(1);
+    expect(monday?.puzzle.sources).toHaveLength(2);
+    expect(monday?.puzzle.lanterns).toHaveLength(2);
     expect(monday?.puzzle.terrain).not.toContain('water');
 
     const wednesday = generateIsland(DAY_FOR.wednesday);

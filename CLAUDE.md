@@ -23,8 +23,10 @@ vertical slice).
   `SOLVER.builderNodeLimit` (about 2 s on a laptop, to be confirmed on the server in M6).
 - Changing `CALENDAR.dayOne` or anything in `GENERATOR`/`DIFFICULTY` means `npm run gen` again and
   committing `content/puzzles.json`; `tests/content.test.ts` fails until you do.
-- Open design note for Maulik: Monday islands have one lantern (one sun, mirrors only can light
-  only one). Option: Monday with two suns and two lanterns at par 2–3.
+- The debug page is a developer tool, not the game. Maulik's playtest of it (Nov 13): Monday right
+  for a first-timer, Saturday hard but fair, order of difficulty correct, nothing below par.
+  His main worry is onboarding and payoff, which do not exist yet: treat every phone demo from M3
+  on as a stranger test.
 
 **Decisions that override SPEC (full list: PROMPT.md section 7):**
 
@@ -35,6 +37,8 @@ vertical slice).
 - **Cut order if Monday runs out:** (1) Island Builder, Sunday falls back to a generated island;
   (2) biomes 5 → 3. Never cut the Shared Night Sky. Archipelago becomes a 2D map before it is ever
   cut. Trailer mode stays.
+- **Monday has two suns and two lanterns** (par 2–3), not one of each. Tuesday's new idea is the
+  fixed mirror. Launch date stays Nov 24, 2026.
 - **Saturday par is at most 6.** The Builder refuses to publish on solver timeout:
   "Too complex to verify. Try removing a piece."
 - **Share:** the app posts one stickied "Lumen #N results" comment at post creation; shares are

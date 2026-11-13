@@ -153,18 +153,21 @@ export const GENERATOR = {
   /** Tries at placing each hidden piece or lantern before the whole island is abandoned. */
   placementTries: 24,
   /**
-   * Monday to Sunday. SPEC "Weekly ramp", with Saturday par capped at 6 (decided Nov 12).
+   * Monday to Sunday. SPEC "Weekly ramp", with two changes: Saturday par capped at 6 (decided
+   * Nov 12), and Monday has two suns and two lanterns (decided Nov 13) because one sun with
+   * mirrors only can light a single lantern, which makes a thin nightfall. Tuesday's new idea
+   * is therefore the fixed mirror, on a slightly larger island.
    * Difficulty bands were set from `npm run report` so each day sits above the one before.
    */
   templates: {
     monday: {
       sizes: [6],
-      sources: [1, 1],
+      sources: [2, 2],
       colouredSourceChance: 0,
       fixedMirrors: [0, 0],
       builtMirrors: [2, 4],
       builtPrisms: [0, 0],
-      lanterns: [1, 1],
+      lanterns: [2, 2],
       colouredLanternChance: 0,
       mixedLanterns: [0, 0],
       rockShare: 0.16,
@@ -173,13 +176,13 @@ export const GENERATOR = {
       waterOnPathShare: 0,
       decoys: [0, 1],
       par: [2, 3],
-      difficulty: [30, 50],
+      difficulty: [34, 56],
     },
     tuesday: {
-      sizes: [6, 7],
+      sizes: [7],
       sources: [2, 2],
       colouredSourceChance: 0,
-      fixedMirrors: [0, 1],
+      fixedMirrors: [1, 1],
       builtMirrors: [3, 5],
       builtPrisms: [0, 0],
       lanterns: [2, 2],
@@ -191,7 +194,7 @@ export const GENERATOR = {
       waterOnPathShare: 0,
       decoys: [0, 1],
       par: [3, 4],
-      difficulty: [48, 66],
+      difficulty: [50, 70],
     },
     wednesday: {
       sizes: [7],

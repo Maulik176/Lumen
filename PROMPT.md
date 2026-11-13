@@ -274,6 +274,10 @@ comment, the Fable rule, the 3D art direction or the performance budget. Those n
 - Reduced motion is a first-class path: the calm nightfall and release must be as beautiful as
   the full version.
 
+**Nov 13, Maulik:** Monday changes to two suns and two lanterns at par 2–3 (one sun with mirrors
+only can light a single lantern, which makes a thin nightfall on the most-played day). Tuesday's
+new idea becomes the fixed mirror. Launch date stays Nov 24, 2026.
+
 **Solver (Maulik, Nov 12):** do not optimise now. In Milestone 2 measure on real generator output.
 Bar for the end of M2: every generated day solves in under 2 s, and the Island Builder's server
 check runs on a budget under 10 s.

@@ -9,13 +9,13 @@
    "biome": "moss",
    "name": "Bracken Hollow",
    "rows": [
-    ".T...#.",
-    "W..#...",
-    "......W",
-    ">..\\..T",
-    ".....T.",
-    "T....T.",
-    "....^.."
+    "W.v....",
+    ".#.....",
+    "...T...",
+    "./....<",
+    "..#....",
+    "....T..",
+    "W...#.."
    ],
    "inventory": {
     "mirrors": 5,
@@ -28,15 +28,15 @@
    "par": 3,
    "solution": [
     {
-     "x": 1,
-     "y": 1,
+     "x": 0,
+     "y": 2,
      "piece": {
       "kind": "mirror",
       "orientation": "backslash"
      }
     },
     {
-     "x": 4,
+     "x": 2,
      "y": 2,
      "piece": {
       "kind": "mirror",
@@ -45,7 +45,7 @@
     },
     {
      "x": 1,
-     "y": 3,
+     "y": 6,
      "piece": {
       "kind": "mirror",
       "orientation": "slash"
@@ -53,11 +53,11 @@
     }
    ],
    "difficulty": {
-    "score": 53.7,
+    "score": 53.5,
     "factors": {
      "par": 3,
-     "firstMoves": 22,
-     "minimumSolutions": 2,
+     "firstMoves": 18,
+     "minimumSolutions": 1,
      "prismNeeded": 0,
      "mixedLanterns": 0,
      "decoys": 0,
@@ -67,8 +67,8 @@
     },
     "points": {
      "par": 30,
-     "firstMoves": 13.4,
-     "minimumSolutions": 7.3,
+     "firstMoves": 12.5,
+     "minimumSolutions": 8,
      "prismNeeded": 0,
      "mixedLanterns": 0,
      "decoys": 0,
@@ -77,8 +77,8 @@
      "fixedMirrors": 1
     }
    },
-   "attempts": 4,
-   "solveNodes": 226
+   "attempts": 27,
+   "solveNodes": 164
   },
   {
    "day": 2,
@@ -530,41 +530,42 @@
    "biome": "snow",
    "name": "Birch Steps",
    "rows": [
-    "...#..",
+    ".W#...",
+    "W....#",
+    "....#.",
+    ".....#",
     "......",
-    "...T..",
-    "......",
-    "..#..T",
-    "..W^#."
+    "..^^.."
    ],
    "inventory": {
     "mirrors": 5,
     "prisms": 0
    },
    "sourceColours": [
+    "white",
     "white"
    ],
    "par": 3,
    "solution": [
     {
-     "x": 0,
-     "y": 3,
-     "piece": {
-      "kind": "mirror",
-      "orientation": "slash"
-     }
-    },
-    {
-     "x": 3,
-     "y": 3,
+     "x": 2,
+     "y": 1,
      "piece": {
       "kind": "mirror",
       "orientation": "backslash"
      }
     },
     {
-     "x": 0,
-     "y": 5,
+     "x": 1,
+     "y": 2,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "backslash"
+     }
+    },
+    {
+     "x": 3,
+     "y": 2,
      "piece": {
       "kind": "mirror",
       "orientation": "backslash"
@@ -572,32 +573,32 @@
     }
    ],
    "difficulty": {
-    "score": 43.3,
+    "score": 51.9,
     "factors": {
      "par": 3,
-     "firstMoves": 4,
-     "minimumSolutions": 2,
+     "firstMoves": 18,
+     "minimumSolutions": 6,
      "prismNeeded": 0,
      "mixedLanterns": 0,
-     "decoys": 0,
+     "decoys": 1,
      "prismsAsTurns": 0,
-     "lanterns": 1,
+     "lanterns": 2,
      "fixedMirrors": 0
     },
     "points": {
      "par": 30,
-     "firstMoves": 6,
-     "minimumSolutions": 7.3,
+     "firstMoves": 12.5,
+     "minimumSolutions": 4.4,
      "prismNeeded": 0,
      "mixedLanterns": 0,
-     "decoys": 0,
+     "decoys": 3,
      "prismsAsTurns": 0,
-     "lanterns": 0,
+     "lanterns": 2,
      "fixedMirrors": 0
     }
    },
-   "attempts": 36,
-   "solveNodes": 18
+   "attempts": 1,
+   "solveNodes": 196
   },
   {
    "day": 8,
@@ -606,13 +607,13 @@
    "biome": "snow",
    "name": "Drift Steps",
    "rows": [
-    "W....#.",
-    ".......",
-    ">.....#",
+    ".....#.",
     "...##.T",
-    "....\\.#",
-    "..T#...",
-    "..W.^.."
+    "....#..",
+    "..../.<",
+    ".......",
+    ".......",
+    ".W^..#W"
    ],
    "inventory": {
     "mirrors": 6,
@@ -626,22 +627,6 @@
    "solution": [
     {
      "x": 1,
-     "y": 0,
-     "piece": {
-      "kind": "mirror",
-      "orientation": "backslash"
-     }
-    },
-    {
-     "x": 1,
-     "y": 2,
-     "piece": {
-      "kind": "mirror",
-      "orientation": "slash"
-     }
-    },
-    {
-     "x": 0,
      "y": 4,
      "piece": {
       "kind": "mirror",
@@ -649,8 +634,24 @@
      }
     },
     {
-     "x": 0,
-     "y": 6,
+     "x": 4,
+     "y": 4,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "slash"
+     }
+    },
+    {
+     "x": 2,
+     "y": 5,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "slash"
+     }
+    },
+    {
+     "x": 6,
+     "y": 5,
      "piece": {
       "kind": "mirror",
       "orientation": "backslash"
@@ -658,14 +659,14 @@
     }
    ],
    "difficulty": {
-    "score": 58.2,
+    "score": 59,
     "factors": {
      "par": 4,
      "firstMoves": 20,
-     "minimumSolutions": 9,
+     "minimumSolutions": 14,
      "prismNeeded": 0,
      "mixedLanterns": 0,
-     "decoys": 0,
+     "decoys": 1,
      "prismsAsTurns": 0,
      "lanterns": 2,
      "fixedMirrors": 1
@@ -673,17 +674,17 @@
     "points": {
      "par": 40,
      "firstMoves": 13,
-     "minimumSolutions": 2.2,
+     "minimumSolutions": 0,
      "prismNeeded": 0,
      "mixedLanterns": 0,
-     "decoys": 0,
+     "decoys": 3,
      "prismsAsTurns": 0,
      "lanterns": 2,
      "fixedMirrors": 1
     }
    },
-   "attempts": 64,
-   "solveNodes": 821
+   "attempts": 6,
+   "solveNodes": 959
   },
   {
    "day": 9,
@@ -1130,31 +1131,32 @@
    "rows": [
     "......",
     "......",
-    "..#...",
-    ".#..TW",
-    "#T....",
-    "#T.^.."
+    "....T.",
+    ".....<",
+    ">.....",
+    "..WW.."
    ],
    "inventory": {
     "mirrors": 4,
     "prisms": 0
    },
    "sourceColours": [
+    "white",
     "white"
    ],
    "par": 2,
    "solution": [
     {
-     "x": 3,
-     "y": 0,
+     "x": 2,
+     "y": 3,
      "piece": {
       "kind": "mirror",
       "orientation": "slash"
      }
     },
     {
-     "x": 5,
-     "y": 0,
+     "x": 3,
+     "y": 4,
      "piece": {
       "kind": "mirror",
       "orientation": "backslash"
@@ -1162,32 +1164,32 @@
     }
    ],
    "difficulty": {
-    "score": 38.8,
+    "score": 42.3,
     "factors": {
      "par": 2,
-     "firstMoves": 10,
-     "minimumSolutions": 4,
+     "firstMoves": 20,
+     "minimumSolutions": 2,
      "prismNeeded": 0,
      "mixedLanterns": 0,
-     "decoys": 1,
+     "decoys": 0,
      "prismsAsTurns": 0,
-     "lanterns": 1,
+     "lanterns": 2,
      "fixedMirrors": 0
     },
     "points": {
      "par": 20,
-     "firstMoves": 10,
-     "minimumSolutions": 5.8,
+     "firstMoves": 13,
+     "minimumSolutions": 7.3,
      "prismNeeded": 0,
      "mixedLanterns": 0,
-     "decoys": 3,
+     "decoys": 0,
      "prismsAsTurns": 0,
-     "lanterns": 0,
+     "lanterns": 2,
      "fixedMirrors": 0
     }
    },
-   "attempts": 10,
-   "solveNodes": 21
+   "attempts": 9,
+   "solveNodes": 27
   },
   {
    "day": 15,
@@ -1196,13 +1198,13 @@
    "biome": "blossom",
    "name": "Silk Ridge",
    "rows": [
-    ".T.#.#W",
-    "..T....",
-    ">......",
-    "##....T",
-    "#....#.",
-    ".......",
-    "W...^.T"
+    "W..#...",
+    ">.....#",
+    "W..#...",
+    ".\\....<",
+    "......#",
+    "......T",
+    "......."
    ],
    "inventory": {
     "mirrors": 5,
@@ -1215,24 +1217,24 @@
    "par": 3,
    "solution": [
     {
-     "x": 6,
+     "x": 1,
+     "y": 0,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "backslash"
+     }
+    },
+    {
+     "x": 1,
+     "y": 1,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "slash"
+     }
+    },
+    {
+     "x": 1,
      "y": 2,
-     "piece": {
-      "kind": "mirror",
-      "orientation": "slash"
-     }
-    },
-    {
-     "x": 0,
-     "y": 5,
-     "piece": {
-      "kind": "mirror",
-      "orientation": "slash"
-     }
-    },
-    {
-     "x": 4,
-     "y": 5,
      "piece": {
       "kind": "mirror",
       "orientation": "backslash"
@@ -1240,32 +1242,32 @@
     }
    ],
    "difficulty": {
-    "score": 53.4,
+    "score": 52.9,
     "factors": {
      "par": 3,
      "firstMoves": 22,
-     "minimumSolutions": 1,
+     "minimumSolutions": 3,
      "prismNeeded": 0,
      "mixedLanterns": 0,
      "decoys": 0,
      "prismsAsTurns": 0,
      "lanterns": 2,
-     "fixedMirrors": 0
+     "fixedMirrors": 1
     },
     "points": {
      "par": 30,
      "firstMoves": 13.4,
-     "minimumSolutions": 8,
+     "minimumSolutions": 6.5,
      "prismNeeded": 0,
      "mixedLanterns": 0,
      "decoys": 0,
      "prismsAsTurns": 0,
      "lanterns": 2,
-     "fixedMirrors": 0
+     "fixedMirrors": 1
     }
    },
-   "attempts": 4,
-   "solveNodes": 202
+   "attempts": 6,
+   "solveNodes": 214
   },
   {
    "day": 16,
@@ -1711,88 +1713,12 @@
    "biome": "dune",
    "name": "Dust Hollow",
    "rows": [
-    "W..#..",
-    "...#T.",
-    "T....#",
-    "......",
-    "#.#...",
-    "#.T#^."
-   ],
-   "inventory": {
-    "mirrors": 5,
-    "prisms": 0
-   },
-   "sourceColours": [
-    "white"
-   ],
-   "par": 3,
-   "solution": [
-    {
-     "x": 1,
-     "y": 0,
-     "piece": {
-      "kind": "mirror",
-      "orientation": "backslash"
-     }
-    },
-    {
-     "x": 1,
-     "y": 2,
-     "piece": {
-      "kind": "mirror",
-      "orientation": "backslash"
-     }
-    },
-    {
-     "x": 4,
-     "y": 2,
-     "piece": {
-      "kind": "mirror",
-      "orientation": "backslash"
-     }
-    }
-   ],
-   "difficulty": {
-    "score": 43.6,
-    "factors": {
-     "par": 3,
-     "firstMoves": 6,
-     "minimumSolutions": 4,
-     "prismNeeded": 0,
-     "mixedLanterns": 0,
-     "decoys": 0,
-     "prismsAsTurns": 0,
-     "lanterns": 1,
-     "fixedMirrors": 0
-    },
-    "points": {
-     "par": 30,
-     "firstMoves": 7.8,
-     "minimumSolutions": 5.8,
-     "prismNeeded": 0,
-     "mixedLanterns": 0,
-     "decoys": 0,
-     "prismsAsTurns": 0,
-     "lanterns": 0,
-     "fixedMirrors": 0
-    }
-   },
-   "attempts": 36,
-   "solveNodes": 32
-  },
-  {
-   "day": 22,
-   "date": "2026-12-15",
-   "weekday": "tuesday",
-   "biome": "dune",
-   "name": "Dune Steps",
-   "rows": [
-    "##v##.",
-    ".T....",
-    "../.TT",
+    "W#.T..",
     "......",
     ".....<",
-    "..W.W."
+    "T.....",
+    "......",
+    "..^WT."
    ],
    "inventory": {
     "mirrors": 5,
@@ -1805,24 +1731,24 @@
    "par": 3,
    "solution": [
     {
+     "x": 2,
+     "y": 1,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "slash"
+     }
+    },
+    {
+     "x": 3,
+     "y": 1,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "backslash"
+     }
+    },
+    {
      "x": 0,
      "y": 2,
-     "piece": {
-      "kind": "mirror",
-      "orientation": "slash"
-     }
-    },
-    {
-     "x": 4,
-     "y": 4,
-     "piece": {
-      "kind": "mirror",
-      "orientation": "slash"
-     }
-    },
-    {
-     "x": 0,
-     "y": 5,
      "piece": {
       "kind": "mirror",
       "orientation": "backslash"
@@ -1830,11 +1756,89 @@
     }
    ],
    "difficulty": {
-    "score": 52.3,
+    "score": 52.6,
     "factors": {
      "par": 3,
-     "firstMoves": 16,
-     "minimumSolutions": 2,
+     "firstMoves": 18,
+     "minimumSolutions": 5,
+     "prismNeeded": 0,
+     "mixedLanterns": 0,
+     "decoys": 1,
+     "prismsAsTurns": 0,
+     "lanterns": 2,
+     "fixedMirrors": 0
+    },
+    "points": {
+     "par": 30,
+     "firstMoves": 12.5,
+     "minimumSolutions": 5.1,
+     "prismNeeded": 0,
+     "mixedLanterns": 0,
+     "decoys": 3,
+     "prismsAsTurns": 0,
+     "lanterns": 2,
+     "fixedMirrors": 0
+    }
+   },
+   "attempts": 9,
+   "solveNodes": 158
+  },
+  {
+   "day": 22,
+   "date": "2026-12-15",
+   "weekday": "tuesday",
+   "biome": "dune",
+   "name": "Dune Steps",
+   "rows": [
+    ".......",
+    ".....#.",
+    ">......",
+    "#/....<",
+    "....#..",
+    "W......",
+    "#.....W"
+   ],
+   "inventory": {
+    "mirrors": 5,
+    "prisms": 0
+   },
+   "sourceColours": [
+    "white",
+    "white"
+   ],
+   "par": 3,
+   "solution": [
+    {
+     "x": 2,
+     "y": 2,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "backslash"
+     }
+    },
+    {
+     "x": 2,
+     "y": 5,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "slash"
+     }
+    },
+    {
+     "x": 1,
+     "y": 6,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "backslash"
+     }
+    }
+   ],
+   "difficulty": {
+    "score": 51.5,
+    "factors": {
+     "par": 3,
+     "firstMoves": 26,
+     "minimumSolutions": 6,
      "prismNeeded": 0,
      "mixedLanterns": 0,
      "decoys": 0,
@@ -1844,8 +1848,8 @@
     },
     "points": {
      "par": 30,
-     "firstMoves": 12,
-     "minimumSolutions": 7.3,
+     "firstMoves": 14.1,
+     "minimumSolutions": 4.4,
      "prismNeeded": 0,
      "mixedLanterns": 0,
      "decoys": 0,
@@ -1854,8 +1858,8 @@
      "fixedMirrors": 1
     }
    },
-   "attempts": 4,
-   "solveNodes": 152
+   "attempts": 27,
+   "solveNodes": 304
   },
   {
    "day": 23,
@@ -2308,89 +2312,12 @@
    "biome": "autumn",
    "name": "Acorn Reach",
    "rows": [
-    "......",
-    "......",
-    "..T...",
-    "......",
-    "..#...",
-    "..W^T."
-   ],
-   "inventory": {
-    "mirrors": 5,
-    "prisms": 0
-   },
-   "sourceColours": [
-    "white"
-   ],
-   "par": 3,
-   "solution": [
-    {
-     "x": 0,
-     "y": 0,
-     "piece": {
-      "kind": "mirror",
-      "orientation": "slash"
-     }
-    },
-    {
-     "x": 3,
-     "y": 0,
-     "piece": {
-      "kind": "mirror",
-      "orientation": "backslash"
-     }
-    },
-    {
-     "x": 0,
-     "y": 5,
-     "piece": {
-      "kind": "mirror",
-      "orientation": "backslash"
-     }
-    }
-   ],
-   "difficulty": {
-    "score": 44.4,
-    "factors": {
-     "par": 3,
-     "firstMoves": 10,
-     "minimumSolutions": 6,
-     "prismNeeded": 0,
-     "mixedLanterns": 0,
-     "decoys": 0,
-     "prismsAsTurns": 0,
-     "lanterns": 1,
-     "fixedMirrors": 0
-    },
-    "points": {
-     "par": 30,
-     "firstMoves": 10,
-     "minimumSolutions": 4.4,
-     "prismNeeded": 0,
-     "mixedLanterns": 0,
-     "decoys": 0,
-     "prismsAsTurns": 0,
-     "lanterns": 0,
-     "fixedMirrors": 0
-    }
-   },
-   "attempts": 47,
-   "solveNodes": 44
-  },
-  {
-   "day": 29,
-   "date": "2026-12-22",
-   "weekday": "tuesday",
-   "biome": "autumn",
-   "name": "Hazel Bend",
-   "rows": [
-    "W#.Tv..",
-    ".......",
-    ".......",
-    ".T...##",
-    "...T...",
-    "..../..",
-    ".W^.T.."
+    "..v#T.",
+    ">....#",
+    ".....T",
+    "T#...W",
+    "...T#.",
+    ".....W"
    ],
    "inventory": {
     "mirrors": 5,
@@ -2403,23 +2330,23 @@
    "par": 3,
    "solution": [
     {
-     "x": 1,
-     "y": 4,
-     "piece": {
-      "kind": "mirror",
-      "orientation": "slash"
-     }
-    },
-    {
-     "x": 2,
-     "y": 4,
+     "x": 3,
+     "y": 1,
      "piece": {
       "kind": "mirror",
       "orientation": "backslash"
      }
     },
     {
-     "x": 0,
+     "x": 3,
+     "y": 3,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "backslash"
+     }
+    },
+    {
+     "x": 2,
      "y": 5,
      "piece": {
       "kind": "mirror",
@@ -2428,11 +2355,89 @@
     }
    ],
    "difficulty": {
-    "score": 55.9,
+    "score": 51.3,
     "factors": {
      "par": 3,
-     "firstMoves": 26,
-     "minimumSolutions": 4,
+     "firstMoves": 16,
+     "minimumSolutions": 2,
+     "prismNeeded": 0,
+     "mixedLanterns": 0,
+     "decoys": 0,
+     "prismsAsTurns": 0,
+     "lanterns": 2,
+     "fixedMirrors": 0
+    },
+    "points": {
+     "par": 30,
+     "firstMoves": 12,
+     "minimumSolutions": 7.3,
+     "prismNeeded": 0,
+     "mixedLanterns": 0,
+     "decoys": 0,
+     "prismsAsTurns": 0,
+     "lanterns": 2,
+     "fixedMirrors": 0
+    }
+   },
+   "attempts": 5,
+   "solveNodes": 74
+  },
+  {
+   "day": 29,
+   "date": "2026-12-22",
+   "weekday": "tuesday",
+   "biome": "autumn",
+   "name": "Hazel Bend",
+   "rows": [
+    "WT.....",
+    "...#...",
+    ".....#.",
+    ".......",
+    "..\\...#",
+    ".......",
+    "W#^.^.."
+   ],
+   "inventory": {
+    "mirrors": 5,
+    "prisms": 0
+   },
+   "sourceColours": [
+    "white",
+    "white"
+   ],
+   "par": 3,
+   "solution": [
+    {
+     "x": 0,
+     "y": 2,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "backslash"
+     }
+    },
+    {
+     "x": 4,
+     "y": 2,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "backslash"
+     }
+    },
+    {
+     "x": 0,
+     "y": 4,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "slash"
+     }
+    }
+   ],
+   "difficulty": {
+    "score": 55,
+    "factors": {
+     "par": 3,
+     "firstMoves": 18,
+     "minimumSolutions": 3,
      "prismNeeded": 0,
      "mixedLanterns": 0,
      "decoys": 1,
@@ -2442,8 +2447,8 @@
     },
     "points": {
      "par": 30,
-     "firstMoves": 14.1,
-     "minimumSolutions": 5.8,
+     "firstMoves": 12.5,
+     "minimumSolutions": 6.5,
      "prismNeeded": 0,
      "mixedLanterns": 0,
      "decoys": 3,
@@ -2452,8 +2457,8 @@
      "fixedMirrors": 1
     }
    },
-   "attempts": 13,
-   "solveNodes": 278
+   "attempts": 15,
+   "solveNodes": 222
   },
   {
    "day": 30,
@@ -2899,25 +2904,34 @@
    "biome": "moss",
    "name": "Clover Ridge",
    "rows": [
-    ".#.#..",
-    "......",
-    "......",
-    "......",
+    ".....W",
+    "#T.#..",
+    "T.....",
     "...#..",
-    ".#^W.."
+    "..##.W",
+    ".^..^."
    ],
    "inventory": {
     "mirrors": 5,
     "prisms": 0
    },
    "sourceColours": [
+    "white",
     "white"
    ],
    "par": 3,
    "solution": [
     {
-     "x": 2,
-     "y": 1,
+     "x": 1,
+     "y": 2,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "slash"
+     }
+    },
+    {
+     "x": 5,
+     "y": 2,
      "piece": {
       "kind": "mirror",
       "orientation": "slash"
@@ -2925,15 +2939,7 @@
     },
     {
      "x": 4,
-     "y": 1,
-     "piece": {
-      "kind": "mirror",
-      "orientation": "backslash"
-     }
-    },
-    {
-     "x": 4,
-     "y": 5,
+     "y": 4,
      "piece": {
       "kind": "mirror",
       "orientation": "slash"
@@ -2941,32 +2947,32 @@
     }
    ],
    "difficulty": {
-    "score": 44.4,
+    "score": 51.3,
     "factors": {
      "par": 3,
-     "firstMoves": 10,
-     "minimumSolutions": 6,
+     "firstMoves": 16,
+     "minimumSolutions": 2,
      "prismNeeded": 0,
      "mixedLanterns": 0,
      "decoys": 0,
      "prismsAsTurns": 0,
-     "lanterns": 1,
+     "lanterns": 2,
      "fixedMirrors": 0
     },
     "points": {
      "par": 30,
-     "firstMoves": 10,
-     "minimumSolutions": 4.4,
+     "firstMoves": 12,
+     "minimumSolutions": 7.3,
      "prismNeeded": 0,
      "mixedLanterns": 0,
      "decoys": 0,
      "prismsAsTurns": 0,
-     "lanterns": 0,
+     "lanterns": 2,
      "fixedMirrors": 0
     }
    },
-   "attempts": 63,
-   "solveNodes": 44
+   "attempts": 8,
+   "solveNodes": 162
   },
   {
    "day": 36,
@@ -2975,12 +2981,13 @@
    "biome": "moss",
    "name": "Bracken Reach",
    "rows": [
-    "...Wv.",
-    "...#..",
-    ".....#",
-    "#....<",
-    "#...T.",
-    "..W..."
+    "T##..TW",
+    ".......",
+    "....\\.T",
+    ".....#.",
+    "......<",
+    ".....#.",
+    "..W.^.."
    ],
    "inventory": {
     "mirrors": 6,
@@ -2994,23 +3001,15 @@
    "solution": [
     {
      "x": 0,
-     "y": 0,
+     "y": 1,
      "piece": {
       "kind": "mirror",
       "orientation": "slash"
      }
     },
     {
-     "x": 0,
-     "y": 2,
-     "piece": {
-      "kind": "mirror",
-      "orientation": "backslash"
-     }
-    },
-    {
-     "x": 4,
-     "y": 2,
+     "x": 6,
+     "y": 1,
      "piece": {
       "kind": "mirror",
       "orientation": "slash"
@@ -3018,40 +3017,48 @@
     },
     {
      "x": 2,
-     "y": 3,
+     "y": 2,
      "piece": {
       "kind": "mirror",
       "orientation": "slash"
      }
+    },
+    {
+     "x": 0,
+     "y": 4,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "backslash"
+     }
     }
    ],
    "difficulty": {
-    "score": 61.6,
+    "score": 60.4,
     "factors": {
      "par": 4,
-     "firstMoves": 12,
-     "minimumSolutions": 4,
+     "firstMoves": 24,
+     "minimumSolutions": 7,
      "prismNeeded": 0,
      "mixedLanterns": 0,
-     "decoys": 1,
+     "decoys": 0,
      "prismsAsTurns": 0,
      "lanterns": 2,
-     "fixedMirrors": 0
+     "fixedMirrors": 1
     },
     "points": {
      "par": 40,
-     "firstMoves": 10.8,
-     "minimumSolutions": 5.8,
+     "firstMoves": 13.8,
+     "minimumSolutions": 3.6,
      "prismNeeded": 0,
      "mixedLanterns": 0,
-     "decoys": 3,
+     "decoys": 0,
      "prismsAsTurns": 0,
      "lanterns": 2,
-     "fixedMirrors": 0
+     "fixedMirrors": 1
     }
    },
-   "attempts": 9,
-   "solveNodes": 363
+   "attempts": 111,
+   "solveNodes": 663
   },
   {
    "day": 37,
@@ -3511,40 +3518,41 @@
    "biome": "snow",
    "name": "Hoar Garden",
    "rows": [
-    "#.#WT.",
-    "..T...",
+    "#.T.T.",
+    "T#...<",
+    ".....W",
     "......",
-    "####..",
-    ">.....",
-    "#....T"
+    ".....<",
+    "W.#T.."
    ],
    "inventory": {
     "mirrors": 5,
     "prisms": 0
    },
    "sourceColours": [
+    "white",
     "white"
    ],
    "par": 3,
    "solution": [
     {
-     "x": 3,
+     "x": 2,
      "y": 1,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "slash"
+     }
+    },
+    {
+     "x": 2,
+     "y": 2,
      "piece": {
       "kind": "mirror",
       "orientation": "backslash"
      }
     },
     {
-     "x": 4,
-     "y": 1,
-     "piece": {
-      "kind": "mirror",
-      "orientation": "backslash"
-     }
-    },
-    {
-     "x": 4,
+     "x": 0,
      "y": 4,
      "piece": {
       "kind": "mirror",
@@ -3553,32 +3561,32 @@
     }
    ],
    "difficulty": {
-    "score": 45.8,
+    "score": 50.5,
     "factors": {
      "par": 3,
-     "firstMoves": 10,
-     "minimumSolutions": 4,
+     "firstMoves": 16,
+     "minimumSolutions": 3,
      "prismNeeded": 0,
      "mixedLanterns": 0,
      "decoys": 0,
      "prismsAsTurns": 0,
-     "lanterns": 1,
+     "lanterns": 2,
      "fixedMirrors": 0
     },
     "points": {
      "par": 30,
-     "firstMoves": 10,
-     "minimumSolutions": 5.8,
+     "firstMoves": 12,
+     "minimumSolutions": 6.5,
      "prismNeeded": 0,
      "mixedLanterns": 0,
      "decoys": 0,
      "prismsAsTurns": 0,
-     "lanterns": 0,
+     "lanterns": 2,
      "fixedMirrors": 0
     }
    },
-   "attempts": 2,
-   "solveNodes": 36
+   "attempts": 7,
+   "solveNodes": 136
   },
   {
    "day": 43,
@@ -3587,12 +3595,13 @@
    "biome": "snow",
    "name": "Hoar Ledge",
    "rows": [
-    "W...#.",
-    "#.....",
-    ".....<",
-    ">....T",
-    "......",
-    ".T#..W"
+    "#...WvW",
+    "T#../..",
+    ".......",
+    "..#....",
+    "T.....T",
+    "#..#...",
+    "#...^.."
    ],
    "inventory": {
     "mirrors": 6,
@@ -3605,15 +3614,23 @@
    "par": 4,
    "solution": [
     {
-     "x": 1,
+     "x": 2,
      "y": 0,
      "piece": {
       "kind": "mirror",
-      "orientation": "backslash"
+      "orientation": "slash"
      }
     },
     {
-     "x": 1,
+     "x": 6,
+     "y": 1,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "slash"
+     }
+    },
+    {
+     "x": 2,
      "y": 2,
      "piece": {
       "kind": "mirror",
@@ -3621,49 +3638,41 @@
      }
     },
     {
-     "x": 3,
-     "y": 3,
+     "x": 5,
+     "y": 2,
      "piece": {
       "kind": "mirror",
-      "orientation": "backslash"
-     }
-    },
-    {
-     "x": 3,
-     "y": 5,
-     "piece": {
-      "kind": "mirror",
-      "orientation": "backslash"
+      "orientation": "slash"
      }
     }
    ],
    "difficulty": {
-    "score": 55.2,
+    "score": 59.3,
     "factors": {
      "par": 4,
-     "firstMoves": 18,
-     "minimumSolutions": 11,
+     "firstMoves": 22,
+     "minimumSolutions": 8,
      "prismNeeded": 0,
      "mixedLanterns": 0,
      "decoys": 0,
      "prismsAsTurns": 0,
      "lanterns": 2,
-     "fixedMirrors": 0
+     "fixedMirrors": 1
     },
     "points": {
      "par": 40,
-     "firstMoves": 12.5,
-     "minimumSolutions": 0.7,
+     "firstMoves": 13.4,
+     "minimumSolutions": 2.9,
      "prismNeeded": 0,
      "mixedLanterns": 0,
      "decoys": 0,
      "prismsAsTurns": 0,
      "lanterns": 2,
-     "fixedMirrors": 0
+     "fixedMirrors": 1
     }
    },
-   "attempts": 36,
-   "solveNodes": 693
+   "attempts": 35,
+   "solveNodes": 463
   },
   {
    "day": 44,
@@ -4141,66 +4150,67 @@
    "biome": "blossom",
    "name": "Peach Hearth",
    "rows": [
+    "T...W.",
+    ".....<",
+    "......",
+    ".W....",
     "...#..",
-    "...T..",
-    "..T.T.",
-    "....#.",
-    "..T...",
-    "W..^.."
+    "T.^#.."
    ],
    "inventory": {
     "mirrors": 4,
     "prisms": 0
    },
    "sourceColours": [
+    "white",
     "white"
    ],
    "par": 2,
    "solution": [
     {
-     "x": 0,
-     "y": 3,
+     "x": 2,
+     "y": 0,
      "piece": {
       "kind": "mirror",
       "orientation": "slash"
      }
     },
     {
-     "x": 3,
-     "y": 3,
+     "x": 1,
+     "y": 1,
      "piece": {
       "kind": "mirror",
-      "orientation": "backslash"
+      "orientation": "slash"
      }
     }
    ],
    "difficulty": {
-    "score": 35.8,
+    "score": 41.8,
     "factors": {
      "par": 2,
-     "firstMoves": 6,
-     "minimumSolutions": 1,
+     "firstMoves": 18,
+     "minimumSolutions": 2,
      "prismNeeded": 0,
      "mixedLanterns": 0,
      "decoys": 0,
      "prismsAsTurns": 0,
-     "lanterns": 1,
+     "lanterns": 2,
      "fixedMirrors": 0
     },
     "points": {
      "par": 20,
-     "firstMoves": 7.8,
-     "minimumSolutions": 8,
+     "firstMoves": 12.5,
+     "minimumSolutions": 7.3,
      "prismNeeded": 0,
      "mixedLanterns": 0,
      "decoys": 0,
      "prismsAsTurns": 0,
-     "lanterns": 0,
+     "lanterns": 2,
      "fixedMirrors": 0
     }
    },
-   "attempts": 1,
-   "solveNodes": 11
+   "attempts": 2,
+   "solveNodes": 25
   },
   {
    "day": 50,
@@ -4209,13 +4219,13 @@
    "biome": "blossom",
    "name": "Silk Landing",
    "rows": [
-    "...W.vT",
-    "T..T...",
-    "T...T..",
-    "....#..",
-    "#.....<",
-    "#.....W",
-    "......."
+    "#.#T...",
+    ".......",
+    "W.....#",
+    "...#.#T",
+    ">..\\..W",
+    "T......",
+    ".#^...."
    ],
    "inventory": {
     "mirrors": 5,
@@ -4228,57 +4238,57 @@
    "par": 3,
    "solution": [
     {
-     "x": 1,
-     "y": 0,
-     "piece": {
-      "kind": "mirror",
-      "orientation": "slash"
-     }
-    },
-    {
-     "x": 1,
-     "y": 4,
+     "x": 2,
+     "y": 2,
      "piece": {
       "kind": "mirror",
       "orientation": "backslash"
      }
     },
     {
-     "x": 5,
+     "x": 3,
      "y": 5,
      "piece": {
       "kind": "mirror",
       "orientation": "backslash"
      }
+    },
+    {
+     "x": 6,
+     "y": 5,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "slash"
+     }
     }
    ],
    "difficulty": {
-    "score": 55.3,
+    "score": 52.3,
     "factors": {
      "par": 3,
-     "firstMoves": 20,
+     "firstMoves": 16,
      "minimumSolutions": 2,
      "prismNeeded": 0,
      "mixedLanterns": 0,
-     "decoys": 1,
+     "decoys": 0,
      "prismsAsTurns": 0,
      "lanterns": 2,
-     "fixedMirrors": 0
+     "fixedMirrors": 1
     },
     "points": {
      "par": 30,
-     "firstMoves": 13,
+     "firstMoves": 12,
      "minimumSolutions": 7.3,
      "prismNeeded": 0,
      "mixedLanterns": 0,
-     "decoys": 3,
+     "decoys": 0,
      "prismsAsTurns": 0,
      "lanterns": 2,
-     "fixedMirrors": 0
+     "fixedMirrors": 1
     }
    },
-   "attempts": 2,
-   "solveNodes": 164
+   "attempts": 3,
+   "solveNodes": 132
   },
   {
    "day": 51,
@@ -4733,89 +4743,12 @@
    "biome": "dune",
    "name": "Ochre Terrace",
    "rows": [
-    ".TT#v.",
+    "W...#.",
     "......",
-    "#.....",
-    "..#.T.",
-    "....#.",
-    "W....."
-   ],
-   "inventory": {
-    "mirrors": 5,
-    "prisms": 0
-   },
-   "sourceColours": [
-    "white"
-   ],
-   "par": 3,
-   "solution": [
-    {
-     "x": 1,
-     "y": 1,
-     "piece": {
-      "kind": "mirror",
-      "orientation": "slash"
-     }
-    },
-    {
-     "x": 4,
-     "y": 1,
-     "piece": {
-      "kind": "mirror",
-      "orientation": "slash"
-     }
-    },
-    {
-     "x": 1,
-     "y": 5,
-     "piece": {
-      "kind": "mirror",
-      "orientation": "slash"
-     }
-    }
-   ],
-   "difficulty": {
-    "score": 40.4,
-    "factors": {
-     "par": 3,
-     "firstMoves": 4,
-     "minimumSolutions": 6,
-     "prismNeeded": 0,
-     "mixedLanterns": 0,
-     "decoys": 0,
-     "prismsAsTurns": 0,
-     "lanterns": 1,
-     "fixedMirrors": 0
-    },
-    "points": {
-     "par": 30,
-     "firstMoves": 6,
-     "minimumSolutions": 4.4,
-     "prismNeeded": 0,
-     "mixedLanterns": 0,
-     "decoys": 0,
-     "prismsAsTurns": 0,
-     "lanterns": 0,
-     "fixedMirrors": 0
-    }
-   },
-   "attempts": 149,
-   "solveNodes": 38
-  },
-  {
-   "day": 57,
-   "date": "2027-01-19",
-   "weekday": "tuesday",
-   "biome": "dune",
-   "name": "Salt Gate",
-   "rows": [
-    ".v...#.",
-    "...##.#",
-    ">......",
-    ".......",
-    "W...#.#",
-    "#.....W",
-    "......."
+    ".....<",
+    ".....<",
+    "#..#..",
+    "...W#."
    ],
    "inventory": {
     "mirrors": 5,
@@ -4828,7 +4761,7 @@
    "par": 3,
    "solution": [
     {
-     "x": 2,
+     "x": 0,
      "y": 2,
      "piece": {
       "kind": "mirror",
@@ -4837,14 +4770,14 @@
     },
     {
      "x": 1,
-     "y": 4,
+     "y": 3,
      "piece": {
       "kind": "mirror",
       "orientation": "slash"
      }
     },
     {
-     "x": 2,
+     "x": 1,
      "y": 5,
      "piece": {
       "kind": "mirror",
@@ -4853,11 +4786,11 @@
     }
    ],
    "difficulty": {
-    "score": 53.5,
+    "score": 53.8,
     "factors": {
      "par": 3,
-     "firstMoves": 22,
-     "minimumSolutions": 5,
+     "firstMoves": 20,
+     "minimumSolutions": 4,
      "prismNeeded": 0,
      "mixedLanterns": 0,
      "decoys": 1,
@@ -4867,8 +4800,8 @@
     },
     "points": {
      "par": 30,
-     "firstMoves": 13.4,
-     "minimumSolutions": 5.1,
+     "firstMoves": 13,
+     "minimumSolutions": 5.8,
      "prismNeeded": 0,
      "mixedLanterns": 0,
      "decoys": 3,
@@ -4877,8 +4810,86 @@
      "fixedMirrors": 0
     }
    },
-   "attempts": 3,
-   "solveNodes": 230
+   "attempts": 9,
+   "solveNodes": 178
+  },
+  {
+   "day": 57,
+   "date": "2027-01-19",
+   "weekday": "tuesday",
+   "biome": "dune",
+   "name": "Salt Gate",
+   "rows": [
+    "W..v...",
+    ".......",
+    ".....#.",
+    "./....<",
+    ".......",
+    ".......",
+    ".#W...."
+   ],
+   "inventory": {
+    "mirrors": 5,
+    "prisms": 0
+   },
+   "sourceColours": [
+    "white",
+    "white"
+   ],
+   "par": 3,
+   "solution": [
+    {
+     "x": 0,
+     "y": 1,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "backslash"
+     }
+    },
+    {
+     "x": 3,
+     "y": 1,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "slash"
+     }
+    },
+    {
+     "x": 2,
+     "y": 3,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "slash"
+     }
+    }
+   ],
+   "difficulty": {
+    "score": 50,
+    "factors": {
+     "par": 3,
+     "firstMoves": 22,
+     "minimumSolutions": 7,
+     "prismNeeded": 0,
+     "mixedLanterns": 0,
+     "decoys": 0,
+     "prismsAsTurns": 0,
+     "lanterns": 2,
+     "fixedMirrors": 1
+    },
+    "points": {
+     "par": 30,
+     "firstMoves": 13.4,
+     "minimumSolutions": 3.6,
+     "prismNeeded": 0,
+     "mixedLanterns": 0,
+     "decoys": 0,
+     "prismsAsTurns": 0,
+     "lanterns": 2,
+     "fixedMirrors": 1
+    }
+   },
+   "attempts": 1,
+   "solveNodes": 270
   },
   {
    "day": 58,
@@ -5338,66 +5349,67 @@
    "biome": "autumn",
    "name": "Cedar Ledge",
    "rows": [
-    "T....T",
-    "#....<",
-    "......",
-    "......",
-    "......",
-    "W.#..#"
+    "#.v.##",
+    ".#.#W.",
+    "#.....",
+    ">....T",
+    "##..W.",
+    "......"
    ],
    "inventory": {
     "mirrors": 4,
     "prisms": 0
    },
    "sourceColours": [
+    "white",
     "white"
    ],
    "par": 2,
    "solution": [
     {
-     "x": 1,
-     "y": 1,
+     "x": 4,
+     "y": 3,
      "piece": {
       "kind": "mirror",
       "orientation": "slash"
      }
     },
     {
-     "x": 1,
-     "y": 5,
+     "x": 2,
+     "y": 4,
      "piece": {
       "kind": "mirror",
-      "orientation": "slash"
+      "orientation": "backslash"
      }
     }
    ],
    "difficulty": {
-    "score": 37,
+    "score": 45,
     "factors": {
      "par": 2,
-     "firstMoves": 8,
+     "firstMoves": 16,
      "minimumSolutions": 1,
      "prismNeeded": 0,
      "mixedLanterns": 0,
-     "decoys": 0,
+     "decoys": 1,
      "prismsAsTurns": 0,
-     "lanterns": 1,
+     "lanterns": 2,
      "fixedMirrors": 0
     },
     "points": {
      "par": 20,
-     "firstMoves": 9,
+     "firstMoves": 12,
      "minimumSolutions": 8,
      "prismNeeded": 0,
      "mixedLanterns": 0,
-     "decoys": 0,
+     "decoys": 3,
      "prismsAsTurns": 0,
-     "lanterns": 0,
+     "lanterns": 2,
      "fixedMirrors": 0
     }
    },
-   "attempts": 3,
-   "solveNodes": 13
+   "attempts": 1,
+   "solveNodes": 41
   },
   {
    "day": 64,
@@ -5406,13 +5418,13 @@
    "biome": "autumn",
    "name": "Maple Hollow",
    "rows": [
-    "......W",
+    "...v#..",
+    "#/.....",
+    "..#....",
     ".......",
-    "W..#...",
-    ">......",
-    ">......",
-    "T....T.",
-    ".T.TT.."
+    "...TT.W",
+    "......T",
+    "W^#T.##"
    ],
    "inventory": {
     "mirrors": 5,
@@ -5425,15 +5437,15 @@
    "par": 3,
    "solution": [
     {
-     "x": 1,
-     "y": 2,
+     "x": 6,
+     "y": 1,
      "piece": {
       "kind": "mirror",
       "orientation": "backslash"
      }
     },
     {
-     "x": 1,
+     "x": 0,
      "y": 3,
      "piece": {
       "kind": "mirror",
@@ -5441,8 +5453,8 @@
      }
     },
     {
-     "x": 6,
-     "y": 4,
+     "x": 3,
+     "y": 3,
      "piece": {
       "kind": "mirror",
       "orientation": "slash"
@@ -5450,32 +5462,32 @@
     }
    ],
    "difficulty": {
-    "score": 51.6,
+    "score": 54.4,
     "factors": {
      "par": 3,
-     "firstMoves": 24,
-     "minimumSolutions": 4,
+     "firstMoves": 22,
+     "minimumSolutions": 1,
      "prismNeeded": 0,
      "mixedLanterns": 0,
      "decoys": 0,
      "prismsAsTurns": 0,
      "lanterns": 2,
-     "fixedMirrors": 0
+     "fixedMirrors": 1
     },
     "points": {
      "par": 30,
-     "firstMoves": 13.8,
-     "minimumSolutions": 5.8,
+     "firstMoves": 13.4,
+     "minimumSolutions": 8,
      "prismNeeded": 0,
      "mixedLanterns": 0,
      "decoys": 0,
      "prismsAsTurns": 0,
      "lanterns": 2,
-     "fixedMirrors": 0
+     "fixedMirrors": 1
     }
    },
-   "attempts": 7,
-   "solveNodes": 274
+   "attempts": 1,
+   "solveNodes": 176
   },
   {
    "day": 65,
@@ -5920,41 +5932,42 @@
    "biome": "moss",
    "name": "Ivy Rest",
    "rows": [
+    "TT..#W",
+    ">.....",
+    "..TT..",
     "......",
-    "....#W",
-    ".....<",
-    "T....#",
-    "......",
-    "......"
+    ".#....",
+    "W.#^.."
    ],
    "inventory": {
     "mirrors": 5,
     "prisms": 0
    },
    "sourceColours": [
+    "white",
     "white"
    ],
    "par": 3,
    "solution": [
     {
-     "x": 0,
-     "y": 0,
+     "x": 5,
+     "y": 1,
      "piece": {
       "kind": "mirror",
       "orientation": "slash"
      }
     },
     {
-     "x": 5,
-     "y": 0,
+     "x": 0,
+     "y": 3,
      "piece": {
       "kind": "mirror",
-      "orientation": "backslash"
+      "orientation": "slash"
      }
     },
     {
-     "x": 0,
-     "y": 2,
+     "x": 3,
+     "y": 3,
      "piece": {
       "kind": "mirror",
       "orientation": "backslash"
@@ -5962,32 +5975,32 @@
     }
    ],
    "difficulty": {
-    "score": 45.8,
+    "score": 54.4,
     "factors": {
      "par": 3,
-     "firstMoves": 10,
-     "minimumSolutions": 4,
+     "firstMoves": 14,
+     "minimumSolutions": 1,
      "prismNeeded": 0,
      "mixedLanterns": 0,
-     "decoys": 0,
+     "decoys": 1,
      "prismsAsTurns": 0,
-     "lanterns": 1,
+     "lanterns": 2,
      "fixedMirrors": 0
     },
     "points": {
      "par": 30,
-     "firstMoves": 10,
-     "minimumSolutions": 5.8,
+     "firstMoves": 11.4,
+     "minimumSolutions": 8,
      "prismNeeded": 0,
      "mixedLanterns": 0,
-     "decoys": 0,
+     "decoys": 3,
      "prismsAsTurns": 0,
-     "lanterns": 0,
+     "lanterns": 2,
      "fixedMirrors": 0
     }
    },
-   "attempts": 66,
-   "solveNodes": 38
+   "attempts": 2,
+   "solveNodes": 86
   },
   {
    "day": 71,
@@ -5996,13 +6009,13 @@
    "biome": "moss",
    "name": "Willow Garden",
    "rows": [
-    "T..WvW.",
+    "..v#vW.",
+    "......T",
+    "...T.#.",
     ".....#.",
-    ".......",
-    ".......",
-    "#...#..",
-    "....#..",
-    "#^#...."
+    ".#...##",
+    "../....",
+    "....#TW"
    ],
    "inventory": {
     "mirrors": 6,
@@ -6015,24 +6028,24 @@
    "par": 4,
    "solution": [
     {
-     "x": 1,
-     "y": 0,
-     "piece": {
-      "kind": "mirror",
-      "orientation": "slash"
-     }
-    },
-    {
-     "x": 6,
-     "y": 0,
+     "x": 2,
+     "y": 1,
      "piece": {
       "kind": "mirror",
       "orientation": "backslash"
+     }
+    },
+    {
+     "x": 5,
+     "y": 1,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "slash"
      }
     },
     {
      "x": 4,
-     "y": 2,
+     "y": 5,
      "piece": {
       "kind": "mirror",
       "orientation": "backslash"
@@ -6040,40 +6053,40 @@
     },
     {
      "x": 6,
-     "y": 2,
+     "y": 5,
      "piece": {
       "kind": "mirror",
-      "orientation": "slash"
+      "orientation": "backslash"
      }
     }
    ],
    "difficulty": {
-    "score": 61.8,
+    "score": 67.4,
     "factors": {
      "par": 4,
-     "firstMoves": 18,
-     "minimumSolutions": 2,
+     "firstMoves": 22,
+     "minimumSolutions": 1,
      "prismNeeded": 0,
      "mixedLanterns": 0,
-     "decoys": 0,
+     "decoys": 1,
      "prismsAsTurns": 0,
      "lanterns": 2,
-     "fixedMirrors": 0
+     "fixedMirrors": 1
     },
     "points": {
      "par": 40,
-     "firstMoves": 12.5,
-     "minimumSolutions": 7.3,
+     "firstMoves": 13.4,
+     "minimumSolutions": 8,
      "prismNeeded": 0,
      "mixedLanterns": 0,
-     "decoys": 0,
+     "decoys": 3,
      "prismsAsTurns": 0,
      "lanterns": 2,
-     "fixedMirrors": 0
+     "fixedMirrors": 1
     }
    },
-   "attempts": 65,
-   "solveNodes": 323
+   "attempts": 19,
+   "solveNodes": 833
   },
   {
    "day": 72,
@@ -6525,34 +6538,35 @@
    "date": "2027-02-08",
    "weekday": "monday",
    "biome": "snow",
-   "name": "Lone Lantern",
+   "name": "Hush Nook",
    "rows": [
-    "#..#..",
-    "#.....",
-    "..T...",
-    "....#.",
-    "..T...",
-    "W^...."
+    ".v..T.",
+    "W.....",
+    "W.....",
+    "....T.",
+    "......",
+    "...^.."
    ],
    "inventory": {
     "mirrors": 4,
     "prisms": 0
    },
    "sourceColours": [
+    "white",
     "white"
    ],
    "par": 2,
    "solution": [
     {
-     "x": 0,
-     "y": 2,
+     "x": 1,
+     "y": 1,
      "piece": {
       "kind": "mirror",
       "orientation": "slash"
      }
     },
     {
-     "x": 1,
+     "x": 3,
      "y": 2,
      "piece": {
       "kind": "mirror",
@@ -6561,32 +6575,32 @@
     }
    ],
    "difficulty": {
-    "score": 36.5,
+    "score": 42.3,
     "factors": {
      "par": 2,
-     "firstMoves": 10,
-     "minimumSolutions": 3,
+     "firstMoves": 20,
+     "minimumSolutions": 2,
      "prismNeeded": 0,
      "mixedLanterns": 0,
      "decoys": 0,
      "prismsAsTurns": 0,
-     "lanterns": 1,
+     "lanterns": 2,
      "fixedMirrors": 0
     },
     "points": {
      "par": 20,
-     "firstMoves": 10,
-     "minimumSolutions": 6.5,
+     "firstMoves": 13,
+     "minimumSolutions": 7.3,
      "prismNeeded": 0,
      "mixedLanterns": 0,
      "decoys": 0,
      "prismsAsTurns": 0,
-     "lanterns": 0,
+     "lanterns": 2,
      "fixedMirrors": 0
     }
    },
-   "attempts": 1,
-   "solveNodes": 19
+   "attempts": 4,
+   "solveNodes": 27
   },
   {
    "day": 78,
@@ -6595,12 +6609,13 @@
    "biome": "snow",
    "name": "Pine Steps",
    "rows": [
-    "......",
-    "W.#...",
-    ">.....",
-    "#./..<",
-    "TT..TW",
-    ".T...."
+    "..Wv.##",
+    "..T....",
+    ".......",
+    ".....#W",
+    ".....T.",
+    ">.../..",
+    "....#.."
    ],
    "inventory": {
     "mirrors": 6,
@@ -6614,6 +6629,22 @@
    "solution": [
     {
      "x": 1,
+     "y": 0,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "slash"
+     }
+    },
+    {
+     "x": 3,
+     "y": 1,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "backslash"
+     }
+    },
+    {
+     "x": 6,
      "y": 1,
      "piece": {
       "kind": "mirror",
@@ -6622,22 +6653,6 @@
     },
     {
      "x": 1,
-     "y": 2,
-     "piece": {
-      "kind": "mirror",
-      "orientation": "slash"
-     }
-    },
-    {
-     "x": 2,
-     "y": 5,
-     "piece": {
-      "kind": "mirror",
-      "orientation": "backslash"
-     }
-    },
-    {
-     "x": 5,
      "y": 5,
      "piece": {
       "kind": "mirror",
@@ -6646,32 +6661,32 @@
     }
    ],
    "difficulty": {
-    "score": 63.5,
+    "score": 67.4,
     "factors": {
      "par": 4,
-     "firstMoves": 18,
-     "minimumSolutions": 1,
+     "firstMoves": 26,
+     "minimumSolutions": 2,
      "prismNeeded": 0,
      "mixedLanterns": 0,
-     "decoys": 0,
+     "decoys": 1,
      "prismsAsTurns": 0,
      "lanterns": 2,
      "fixedMirrors": 1
     },
     "points": {
      "par": 40,
-     "firstMoves": 12.5,
-     "minimumSolutions": 8,
+     "firstMoves": 14.1,
+     "minimumSolutions": 7.3,
      "prismNeeded": 0,
      "mixedLanterns": 0,
-     "decoys": 0,
+     "decoys": 3,
      "prismsAsTurns": 0,
      "lanterns": 2,
      "fixedMirrors": 1
     }
    },
-   "attempts": 43,
-   "solveNodes": 319
+   "attempts": 30,
+   "solveNodes": 1335
   },
   {
    "day": 79,
@@ -7125,89 +7140,12 @@
    "biome": "blossom",
    "name": "Rose Hearth",
    "rows": [
-    "......",
-    "......",
-    ">...T.",
-    "...#..",
-    "..T.#.",
-    "..T.#W"
-   ],
-   "inventory": {
-    "mirrors": 5,
-    "prisms": 0
-   },
-   "sourceColours": [
-    "white"
-   ],
-   "par": 3,
-   "solution": [
-    {
-     "x": 1,
-     "y": 0,
-     "piece": {
-      "kind": "mirror",
-      "orientation": "slash"
-     }
-    },
-    {
-     "x": 5,
-     "y": 0,
-     "piece": {
-      "kind": "mirror",
-      "orientation": "backslash"
-     }
-    },
-    {
-     "x": 1,
-     "y": 2,
-     "piece": {
-      "kind": "mirror",
-      "orientation": "slash"
-     }
-    }
-   ],
-   "difficulty": {
-    "score": 42.2,
-    "factors": {
-     "par": 3,
-     "firstMoves": 6,
-     "minimumSolutions": 6,
-     "prismNeeded": 0,
-     "mixedLanterns": 0,
-     "decoys": 0,
-     "prismsAsTurns": 0,
-     "lanterns": 1,
-     "fixedMirrors": 0
-    },
-    "points": {
-     "par": 30,
-     "firstMoves": 7.8,
-     "minimumSolutions": 4.4,
-     "prismNeeded": 0,
-     "mixedLanterns": 0,
-     "decoys": 0,
-     "prismsAsTurns": 0,
-     "lanterns": 0,
-     "fixedMirrors": 0
-    }
-   },
-   "attempts": 9,
-   "solveNodes": 34
-  },
-  {
-   "day": 85,
-   "date": "2027-02-16",
-   "weekday": "tuesday",
-   "biome": "blossom",
-   "name": "Wren Bend",
-   "rows": [
-    "#....v.",
-    ".......",
-    "#.##..<",
-    "#.#....",
-    "W.....W",
-    ".#.....",
-    "...../."
+    ".v....",
+    "..T...",
+    "..#..<",
+    "..#.#.",
+    "..#...",
+    "W....W"
    ],
    "inventory": {
     "mirrors": 5,
@@ -7220,7 +7158,7 @@
    "par": 3,
    "solution": [
     {
-     "x": 4,
+     "x": 3,
      "y": 2,
      "piece": {
       "kind": "mirror",
@@ -7228,16 +7166,16 @@
      }
     },
     {
-     "x": 5,
-     "y": 4,
+     "x": 1,
+     "y": 5,
      "piece": {
       "kind": "mirror",
       "orientation": "slash"
      }
     },
     {
-     "x": 4,
-     "y": 6,
+     "x": 3,
+     "y": 5,
      "piece": {
       "kind": "mirror",
       "orientation": "backslash"
@@ -7245,11 +7183,89 @@
     }
    ],
    "difficulty": {
-    "score": 53.8,
+    "score": 51.4,
+    "factors": {
+     "par": 3,
+     "firstMoves": 14,
+     "minimumSolutions": 1,
+     "prismNeeded": 0,
+     "mixedLanterns": 0,
+     "decoys": 0,
+     "prismsAsTurns": 0,
+     "lanterns": 2,
+     "fixedMirrors": 0
+    },
+    "points": {
+     "par": 30,
+     "firstMoves": 11.4,
+     "minimumSolutions": 8,
+     "prismNeeded": 0,
+     "mixedLanterns": 0,
+     "decoys": 0,
+     "prismsAsTurns": 0,
+     "lanterns": 2,
+     "fixedMirrors": 0
+    }
+   },
+   "attempts": 6,
+   "solveNodes": 104
+  },
+  {
+   "day": 85,
+   "date": "2027-02-16",
+   "weekday": "tuesday",
+   "biome": "blossom",
+   "name": "Wren Bend",
+   "rows": [
+    "..T...#",
+    ".......",
+    ".......",
+    ">../.W.",
+    "#..#.T.",
+    "......<",
+    "..W.#.."
+   ],
+   "inventory": {
+    "mirrors": 5,
+    "prisms": 0
+   },
+   "sourceColours": [
+    "white",
+    "white"
+   ],
+   "par": 3,
+   "solution": [
+    {
+     "x": 3,
+     "y": 0,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "slash"
+     }
+    },
+    {
+     "x": 5,
+     "y": 0,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "backslash"
+     }
+    },
+    {
+     "x": 2,
+     "y": 5,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "slash"
+     }
+    }
+   ],
+   "difficulty": {
+    "score": 55.2,
     "factors": {
      "par": 3,
      "firstMoves": 22,
-     "minimumSolutions": 6,
+     "minimumSolutions": 4,
      "prismNeeded": 0,
      "mixedLanterns": 0,
      "decoys": 1,
@@ -7260,7 +7276,7 @@
     "points": {
      "par": 30,
      "firstMoves": 13.4,
-     "minimumSolutions": 4.4,
+     "minimumSolutions": 5.8,
      "prismNeeded": 0,
      "mixedLanterns": 0,
      "decoys": 3,
@@ -7270,7 +7286,7 @@
     }
    },
    "attempts": 2,
-   "solveNodes": 250
+   "solveNodes": 238
   },
   {
    "day": 86,
