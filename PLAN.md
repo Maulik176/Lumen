@@ -131,6 +131,10 @@ Tap cycle (A9). Lead with lanterns and sky (W1).
 7. Placeholder nightfall on Lock in.
 8. A local puzzle source (day 1 from `content/puzzles.json`) so M3 does not depend on M5.
 
+**Status Nov 13:** built and uploaded (v0.0.1.10). Local run: full loop works, 60 fps on desktop.
+Includes the first-time hint line, visible inventory and par, "No pieces left", the Lock in prompt,
+nightfall with chimes and a result card (added to M3 at Maulik's request). Waiting on the phone test.
+
 **Files:** `src/client/game.html`, `src/client/game/{main,scene,island,beams,input,camera,state,hud}.ts`,
 `src/client/game.css`, remove template globe assets from `public/`.
 

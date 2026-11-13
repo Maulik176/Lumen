@@ -5,8 +5,8 @@ Vite). It is an entry for Reddit's Game of the Day hackathon; submission closes 
 
 ## Where things stand (update at the end of every milestone)
 
-**As of Fri Nov 13, 2026, early morning IST.** Milestones 1 and 2 done. Next: Milestone 3 (3D
-vertical slice).
+**As of Fri Nov 13, 2026, afternoon IST.** Milestones 1 and 2 done. Milestone 3 built and
+uploaded (v0.0.1.10); waiting for Maulik's phone test before it is called done.
 
 - App: `lumen-game` (the name `lumen` was taken). Listing: developers.reddit.com/apps/lumen-game.
   Owner account u/Dry_Promotion2506. Playtest subreddit `r/lumen_game_dev`. Launch subreddit
@@ -21,6 +21,16 @@ vertical slice).
   Every day is in its par and difficulty band and solves in under 0.3 s (bar was 2 s). Generated
   days are capped at `GENERATOR.maxSolveNodes`; the Island Builder check uses
   `SOLVER.builderNodeLimit` (about 2 s on a laptop, to be confirmed on the server in M6).
+- M3: `src/shared/play.ts` (rules of a play session), `src/client/game/` (Three.js island, HUD,
+  sound), `src/client/preview.*` (feed card), `/api/island`, `/api/lock-in`. Placeholder art.
+  Full loop works locally at 60 fps: hint, place, live light, "All lit" prompt, Lock in, nightfall,
+  lanterns bloom with chimes, result card. Test locally with `npm run debug`, then open
+  `http://localhost:5199/game.html?day=7`. 238 tests. Game bundle 145 KB gzipped (budget 450).
+  Not yet checked: real phone in the Reddit app, Android, 4x CPU slowdown.
+  Known rough edges for M4: mirrors are grey slabs, sky is a flat colour, no colour-blind glyphs,
+  prompt and result card cover the island's front row on short screens, lock-in time is the
+  client's own clock until M5.
+- Test posts: mod menu → "Post a Lumen island (testing)" asks for a day number.
 - Changing `CALENDAR.dayOne` or anything in `GENERATOR`/`DIFFICULTY` means `npm run gen` again and
   committing `content/puzzles.json`; `tests/content.test.ts` fails until you do.
 - The debug page is a developer tool, not the game. Maulik's playtest of it (Nov 13): Monday right
@@ -142,7 +152,7 @@ scripts/      gen, report (run with tsx)
 | `npm run build` | Vite build of client and server |
 | `npm run gen -- --from 1 --to 90` | regenerate `content/puzzles.json` |
 | `npm run report` | par and difficulty per weekday; `-- --show 12` prints a day; `-- --verify` re-solves and times all |
-| `npm run debug` | local 2D viewer for every day: par solution, difficulty factors, click to place pieces |
+| `npm run debug` | local server: `/debug.html` 2D viewer for every day; `/game.html?day=N` the real play screen with a local API |
 
 Node 22.12 or newer. The Reddit app on a real phone is the only test that counts for feel and
 performance; a desktop browser is for layout.
