@@ -92,6 +92,10 @@ on a second device, your flair changed, and a comment from your account under th
 6. `scripts/report.ts` → `npm run report` prints par, difficulty and rejection counts per weekday.
 7. `src/client/debug.html` (dev only): any day's board in 2D, par solution, difficulty breakdown, prev/next.
 
+**Status Nov 13: Milestone 2 complete.** 90 days generated; every weekday in its par and
+difficulty band; slowest day solves in 0.26 s; debug page via `npm run debug` (served locally,
+not shipped to Reddit). Days 1–14 still need Maulik's eye.
+
 **Files:** `src/shared/{generate,difficulty,names}.ts` + tests, `scripts/{gen,report}.ts`,
 `content/puzzles.json`, `src/client/debug.{html,ts,css}`, `package.json`.
 

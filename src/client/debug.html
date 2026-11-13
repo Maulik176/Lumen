@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Lumen debug</title>
+    <link rel="stylesheet" type="text/css" href="debug.css" />
+  </head>
+  <body>
+    <aside id="days"></aside>
+    <main>
+      <header>
+        <button id="prev" aria-label="Previous day">‹</button>
+        <h1 id="title"></h1>
+        <button id="next" aria-label="Next day">›</button>
+      </header>
+      <p id="meta"></p>
+      <div class="controls">
+        <button id="show-solution">Show par solution</button>
+        <button id="clear">Clear pieces</button>
+        <span id="status"></span>
+      </div>
+      <div id="board"></div>
+      <p class="hint">
+        Click a grass tile to cycle: mirror /, mirror \, prism (if the day has
+        one), empty.
+      </p>
+      <table id="factors"></table>
+    </main>
+    <script type="module" src="debug.ts"></script>
+  </body>
+</html>

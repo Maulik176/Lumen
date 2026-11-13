@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "lumen-debug",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "--config", "vite.debug.config.ts", "--no-open"],
+      "port": 5199
+    }
+  ]
+}

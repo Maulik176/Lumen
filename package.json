@@ -7,12 +7,15 @@
   "scripts": {
     "bench": "vitest run --config vitest.bench.config.ts",
     "build": "vite build",
+    "debug": "vite --config vite.debug.config.ts",
     "deploy": "npm run test:types && npm run lint && npm test && devvit upload",
     "dev": "devvit playtest",
+    "gen": "tsx scripts/gen.ts",
     "launch": "npm run deploy && devvit publish",
     "lint": "eslint 'src/**/*.{ts,tsx}'",
     "login": "devvit login",
     "prettier": "prettier --write .",
+    "report": "tsx scripts/report.ts",
     "test": "vitest run",
     "test:types": "tsc --build",
     "test:watch": "vitest"
@@ -35,6 +38,7 @@
     "eslint": "10.14.0",
     "globals": "17.14.0",
     "prettier": "3.9.10",
+    "tsx": "^4.23.15",
     "typescript": "6.0.3",
     "typescript-eslint": "8.72.2",
     "vite": "8.3.7",

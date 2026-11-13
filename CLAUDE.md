@@ -5,7 +5,8 @@ Vite). It is an entry for Reddit's Game of the Day hackathon; submission closes 
 
 ## Where things stand (update at the end of every milestone)
 
-**As of Thu Nov 12, 2026, night IST.** Milestone 1 done. Milestone 2 in progress.
+**As of Fri Nov 13, 2026, early morning IST.** Milestones 1 and 2 done. Next: Milestone 3 (3D
+vertical slice).
 
 - App: `lumen-game` (the name `lumen` was taken). Listing: developers.reddit.com/apps/lumen-game.
   Owner account u/Dry_Promotion2506. Playtest subreddit `r/lumen_game_dev`. Launch subreddit
@@ -13,11 +14,17 @@ Vite). It is an entry for Reddit's Game of the Day hackathon; submission closes 
 - `npx devvit login` expires within hours; a 401 from playtest means log in again. Claude cannot
   open reddit.com in its browser tools: Maulik does anything that needs the Reddit site.
 - Branch `spike/platform` holds the throwaway spike. Never merge it.
-- Done: engine in `src/shared` (tracer, exact solver, validator, RNG, text format), ten fixtures,
-  157 tests, `npm run bench`, `PLATFORM.md`.
-- Solver: exact; under 2 s through par 5 on open 9x9 islands, slower at par 6. Maulik: do not
-  optimise blind. Bar for end of M2: every generated day solves under 2 s; Island Builder server
-  check on a budget under 10 s.
+- M1: engine in `src/shared` (tracer, exact solver, validator, RNG, text format), ten fixtures,
+  `npm run bench`, `PLATFORM.md`.
+- M2: generator, difficulty model, names, calendar, `content/puzzles.json` (90 days from day one
+  = Tue Nov 24, 2026), `npm run gen`, `npm run report`, `npm run debug` (2D viewer). 197 tests.
+  Every day is in its par and difficulty band and solves in under 0.3 s (bar was 2 s). Generated
+  days are capped at `GENERATOR.maxSolveNodes`; the Island Builder check uses
+  `SOLVER.builderNodeLimit` (about 2 s on a laptop, to be confirmed on the server in M6).
+- Changing `CALENDAR.dayOne` or anything in `GENERATOR`/`DIFFICULTY` means `npm run gen` again and
+  committing `content/puzzles.json`; `tests/content.test.ts` fails until you do.
+- Open design note for Maulik: Monday islands have one lantern (one sun, mirrors only can light
+  only one). Option: Monday with two suns and two lanterns at par 2–3.
 
 **Decisions that override SPEC (full list: PROMPT.md section 7):**
 
@@ -65,12 +72,13 @@ in `HANDOFF.md` and ask Maulik.
 ## Layout
 
 ```
-src/shared/   pure engine: config, types, rng, board, trace, solve, generate, difficulty, validate, api types
+src/shared/   pure engine: config, types, rng, board, trace, solve, validate, calendar, generate,
+              difficulty, names, daily (stored island format), puzzle-text, api types
 src/client/   preview (inline, no Three.js), game/ (Three.js), archipelago, builder, trailer, debug
 src/server/   Hono app: /api/* for the client, /internal/* for scheduler, menu, triggers
 content/      puzzles.json (90 generated days), fixtures/ (hand-made, par worked out by hand), tutorial.json
 tests/        fixture tests, bench/ (speed reports)
-scripts/      gen, report
+scripts/      gen, report (run with tsx)
 ```
 
 ## Hard rules
@@ -128,8 +136,9 @@ scripts/      gen, report
 | `npm run test:types` | `tsc --build` |
 | `npm run lint` | ESLint |
 | `npm run build` | Vite build of client and server |
-| `npm run gen -- --from 1 --to 90` | regenerate `content/puzzles.json` (M2) |
-| `npm run report` | par and difficulty per weekday (M2) |
+| `npm run gen -- --from 1 --to 90` | regenerate `content/puzzles.json` |
+| `npm run report` | par and difficulty per weekday; `-- --show 12` prints a day; `-- --verify` re-solves and times all |
+| `npm run debug` | local 2D viewer for every day: par solution, difficulty factors, click to place pieces |
 
 Node 22.12 or newer. The Reddit app on a real phone is the only test that counts for feel and
 performance; a desktop browser is for layout.

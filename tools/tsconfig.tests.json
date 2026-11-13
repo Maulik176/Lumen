@@ -10,6 +10,7 @@
   },
   "include": [
     "../tests/**/*",
+    "../scripts/**/*",
     "../vitest.config.ts",
     "../vitest.bench.config.ts"
   ],
