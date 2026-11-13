@@ -220,7 +220,6 @@ async function start(): Promise<void> {
     pressing = true;
     downX = event.clientX;
     downY = event.clientY;
-    sound.unlock();
   });
   canvas.addEventListener('pointerup', (event) => {
     if (!pressing) return;
@@ -237,7 +236,7 @@ async function start(): Promise<void> {
   canvas.addEventListener('pointercancel', () => {
     pressing = false;
   });
-  root.addEventListener('pointerdown', () => sound.unlock());
+  // Sound wakes itself on every tap (finger up, not down: that is what iOS counts as a gesture).
 
   view.sync(state);
   hud.update(state);

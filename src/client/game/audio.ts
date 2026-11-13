@@ -1,13 +1,28 @@
 /**
  * Sound, all synthesised with WebAudio: no audio files. Nothing plays until the player has
  * tapped, there is a mute button, and the sound stops when the page is hidden.
+ *
+ * iOS rules this follows:
+ * - An AudioContext only starts inside a real gesture: a finger lifting (touchend, pointerup) or
+ *   a click. A finger landing (pointerdown, touchstart) does not count, so the context is created
+ *   and resumed on release, before the tap itself is handled.
+ * - Locking the phone or switching apps leaves the context "interrupted" or "suspended", and a
+ *   resume without a gesture is usually refused. So on returning to the page it tries once, and
+ *   if that does not take, the next tap resumes it. If even a tap cannot revive it, the context
+ *   is replaced with a fresh one.
+ * - A sound asked for while the context is still waking up is played once it is running, so the
+ *   very first tap is heard.
  */
 import { SOUND } from '../../shared/config';
 
 const MUTE_KEY = 'lumen.muted';
+/** Events that count as a user gesture for starting audio on iOS and elsewhere. */
+const GESTURES = ['pointerup', 'touchend', 'click', 'keydown'] as const;
+/** If a tap's resume has not brought the context to "running" within this long, replace it. */
+const REVIVE_MS = 400;
 
 export type Sound = {
-  /** Call on the first tap. Safe to call again. */
+  /** Start or wake the audio. Called from inside a gesture; safe to call any number of times. */
   unlock: () => void;
   click: () => void;
   /** Chime number `index` of the nightfall, rising in pitch. */
@@ -17,31 +32,140 @@ export type Sound = {
   toggleMute: () => boolean;
 };
 
-function readMuted(): boolean {
+/** The parts of the page this module listens to. Passed in so tests can stand in for them. */
+export type SoundHost = {
+  /** Where gestures are heard. Listeners are added in the capture phase, before any game code. */
+  gestures: Pick<EventTarget, 'addEventListener'>;
+  /** Where `visibilitychange` is heard, and whether the page is hidden now. */
+  page: Pick<EventTarget, 'addEventListener'> & { readonly hidden: boolean };
+  makeContext: () => AudioContext;
+  storage: Pick<Storage, 'getItem' | 'setItem'> | null;
+  /** Timers, so tests can run them by hand. */
+  later: (run: () => void, ms: number) => void;
+};
+
+/** localStorage, or null where the browser refuses access to it. */
+function pageStorage(): SoundHost['storage'] {
   try {
-    return localStorage.getItem(MUTE_KEY) === '1';
+    return window.localStorage;
   } catch {
-    return false;
+    return null;
   }
 }
 
-export function createSound(): Sound {
+function browserHost(): SoundHost {
+  const storage = pageStorage();
+  return {
+    gestures: window,
+    page: document,
+    makeContext: () => new AudioContext(),
+    storage,
+    later: (run, ms) => {
+      window.setTimeout(run, ms);
+    },
+  };
+}
+
+export function createSound(host: SoundHost = browserHost()): Sound {
   let context: AudioContext | null = null;
   let master: GainNode | null = null;
-  let muted = readMuted();
+  let muted = false;
+  try {
+    muted = host.storage?.getItem(MUTE_KEY) === '1';
+  } catch {
+    muted = false;
+  }
+  /** Sounds asked for while the context was waking up. Played once it runs. */
+  let waiting: (() => void)[] = [];
 
-  const ready = (): { context: AudioContext; master: GainNode } | null => {
-    if (
-      context === null ||
-      master === null ||
-      muted ||
-      context.state !== 'running'
-    )
-      return null;
-    return { context, master };
+  const running = (): boolean =>
+    context !== null && context.state === 'running';
+
+  const flush = (): void => {
+    if (!running()) return;
+    const queued = waiting;
+    waiting = [];
+    for (const play of queued) play();
   };
 
-  /** One decaying tone. */
+  const build = (): void => {
+    try {
+      context = host.makeContext();
+      master = context.createGain();
+      master.gain.value = SOUND.masterVolume;
+      master.connect(context.destination);
+      context.addEventListener('statechange', flush);
+    } catch {
+      context = null;
+      master = null;
+    }
+  };
+
+  /** Ask the context to run, and play anything that was waiting once it does. */
+  const wake = (): Promise<void> => {
+    if (context === null) return Promise.resolve();
+    if (context.state === 'running') {
+      flush();
+      return Promise.resolve();
+    }
+    return context.resume().then(flush, () => undefined);
+  };
+
+  /** One silent sample, played inside the gesture: the step that really unlocks audio on iOS. */
+  const prime = (): void => {
+    if (context === null || master === null) return;
+    try {
+      const buffer = context.createBuffer(1, 1, context.sampleRate);
+      const source = context.createBufferSource();
+      source.buffer = buffer;
+      source.connect(master);
+      source.start(0);
+    } catch {
+      // Priming is a nicety; the resume below is what matters.
+    }
+  };
+
+  const unlock = (): void => {
+    if (muted) return;
+    if (context === null) build();
+    if (context === null) return;
+    if (context.state === 'running') return;
+    prime();
+    void wake();
+    // A context that iOS has interrupted sometimes never comes back. Replace it; the next tap
+    // wakes the new one. Only ever for the context this tap tried to wake.
+    const tried = context;
+    host.later(() => {
+      if (muted || context !== tried || running()) return;
+      const stale = tried;
+      context = null;
+      master = null;
+      void stale.close().catch(() => undefined);
+      build();
+      prime();
+      void wake();
+    }, REVIVE_MS);
+  };
+
+  for (const type of GESTURES) {
+    host.gestures.addEventListener(type, unlock, {
+      capture: true,
+      passive: true,
+    });
+  }
+
+  host.page.addEventListener('visibilitychange', () => {
+    if (context === null) return;
+    if (host.page.hidden) {
+      waiting = [];
+      void context.suspend().catch(() => undefined);
+    } else if (!muted) {
+      // Usually refused without a gesture on iOS; if so, the next tap resumes it.
+      void wake();
+    }
+  });
+
+  /** One decaying tone. Queued if the context is still waking. */
   const tone = (
     hz: number,
     seconds: number,
@@ -49,44 +173,32 @@ export function createSound(): Sound {
     type: OscillatorType,
     delay = 0
   ): void => {
-    const audio = ready();
-    if (audio === null) return;
-    const start = audio.context.currentTime + delay;
-    const oscillator = audio.context.createOscillator();
-    const gain = audio.context.createGain();
-    oscillator.type = type;
-    oscillator.frequency.setValueAtTime(hz, start);
-    gain.gain.setValueAtTime(0.0001, start);
-    gain.gain.exponentialRampToValueAtTime(volume, start + 0.012);
-    gain.gain.exponentialRampToValueAtTime(0.0001, start + seconds);
-    oscillator.connect(gain);
-    gain.connect(audio.master);
-    oscillator.start(start);
-    oscillator.stop(start + seconds + 0.05);
+    if (muted || context === null || master === null) return;
+    const play = (): void => {
+      if (muted || context === null || master === null) return;
+      const start = context.currentTime + delay;
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(hz, start);
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(volume, start + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + seconds);
+      oscillator.connect(gain);
+      gain.connect(master);
+      oscillator.start(start);
+      oscillator.stop(start + seconds + 0.05);
+    };
+    if (running()) {
+      play();
+      return;
+    }
+    waiting.push(play);
+    void wake();
   };
 
-  document.addEventListener('visibilitychange', () => {
-    if (context === null) return;
-    if (document.hidden) void context.suspend();
-    else if (!muted) void context.resume();
-  });
-
   return {
-    unlock() {
-      if (context === null) {
-        try {
-          context = new AudioContext();
-          master = context.createGain();
-          master.gain.value = SOUND.masterVolume;
-          master.connect(context.destination);
-        } catch {
-          context = null;
-          master = null;
-          return;
-        }
-      }
-      if (!muted && context.state === 'suspended') void context.resume();
-    },
+    unlock,
     click() {
       tone(SOUND.clickHz, SOUND.clickSeconds, 0.5, 'triangle');
       tone(SOUND.clickHz * 0.5, SOUND.clickSeconds * 1.4, 0.3, 'sine');
@@ -120,13 +232,16 @@ export function createSound(): Sound {
     toggleMute() {
       muted = !muted;
       try {
-        localStorage.setItem(MUTE_KEY, muted ? '1' : '0');
+        host.storage?.setItem(MUTE_KEY, muted ? '1' : '0');
       } catch {
         // Storage can be unavailable; the choice then lasts for this visit only.
       }
-      if (context !== null) {
-        if (muted) void context.suspend();
-        else void context.resume();
+      if (muted) {
+        waiting = [];
+        if (context !== null) void context.suspend().catch(() => undefined);
+      } else {
+        // The mute button is itself a tap, so this resume is allowed.
+        unlock();
       }
       return muted;
     },

@@ -10,3 +10,4 @@ coverage
 .vite
 .idea
 .claude/settings.local.json
+.build-staging

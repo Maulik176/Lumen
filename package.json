@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "bench": "vitest run --config vitest.bench.config.ts",
-    "build": "vite build",
+    "build": "vite build && tsx scripts/build-check.ts",
+    "check:build": "tsx scripts/build-check.ts",
     "debug": "vite --config vite.debug.config.ts",
     "deploy": "npm run test:types && npm run lint && npm test && devvit upload",
     "dev": "devvit playtest",

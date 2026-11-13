@@ -175,3 +175,16 @@ phone will show them unless the setting is turned off for testing.
 | Small phone (360 x 640) expanded viewport | Layout floor | Milestone 3 |
 | Journeys receipts on a published version | Only then are events recorded | After publishing |
 | Realtime with many clients, message size and rate limits | Shared sky at scale | Milestone 5 |
+
+## Added Nov 13
+
+- `devvit playtest` uploads whenever its watched output folders change, with no wait for the
+  build to finish after the first one. Vite's `emptyOutDir` makes every rebuild start by deleting
+  the output, so an upload can catch an empty dist/client: the post then shows
+  "Not Found: failed to get webview assets ... preview.html" (seen on v0.0.1.14). Fixed by
+  building into a staging folder and publishing only checked builds (see CLAUDE.md).
+- `devvit upload` stops if `scripts.build` exits non-zero ("scripts.build failed"), so a check
+  appended to the build command blocks a bad upload.
+- iOS Safari only lets an AudioContext start or resume inside a touchend/pointerup/click, not a
+  pointerdown/touchstart; after the phone is locked the context is "interrupted" and needs a new
+  gesture.

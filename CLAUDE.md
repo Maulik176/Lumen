@@ -45,6 +45,15 @@ Next: Milestone 5 (server and Reddit layer).
   Left for later milestones: the feed card still has M3 styling (M7); the sky shows only the
   player's own lantern until the shared sky exists (M5); no sound changes since M3 (M7).
 - Test posts: mod menu → "Post a Lumen island (testing)" asks for a day number.
+- **Uploads are guarded (Nov 13).** v0.0.1.14 shipped without preview.html: Vite empties its
+  output folder at every rebuild and playtest uploads the instant dist/ changes. Now
+  `devvit.json` `scripts.dev` runs `scripts/dev-build.ts`: Vite writes to `.build-staging/`, and
+  only a build that passes `scripts/build-check.ts` is copied into dist/ (atomic renames, pages
+  last, nothing deleted). `scripts.build` (used by `devvit upload`) runs the same check and aborts
+  the upload on failure. Still: stop playtest when not uploading, so edits don't stream to Reddit.
+- **Audio on iOS (Nov 13):** sound wakes on finger-up/click (iOS ignores finger-down), sounds
+  asked for while waking are queued, the next tap after a lock screen resumes it, and a context
+  iOS has broken is replaced. Covered by `src/client/game/audio.test.ts`; needs a real iPhone check.
 - Changing `CALENDAR.dayOne` or anything in `GENERATOR`/`DIFFICULTY` means `npm run gen` again and
   committing `content/puzzles.json`; `tests/content.test.ts` fails until you do.
 - The debug page is a developer tool, not the game. Maulik's playtest of it (Nov 13): Monday right
@@ -192,7 +201,8 @@ scripts/      gen, report (run with tsx)
 | `npm run bench` | Solver speed report by par on open islands (not part of `npm test`) |
 | `npm run test:types` | `tsc --build` |
 | `npm run lint` | ESLint |
-| `npm run build` | Vite build of client and server |
+| `npm run build` | Vite build of client and server, then the build check (fails if a page or file is missing) |
+| `npm run check:build` | Check `dist/` alone: every entry page, the files it loads, the server bundle |
 | `npm run gen -- --from 1 --to 90` | regenerate `content/puzzles.json` |
 | `npm run report` | par and difficulty per weekday; `-- --show 12` prints a day; `-- --verify` re-solves and times all |
 | `npm run debug` | local server: `/debug.html` 2D viewer for every day; `/game.html?day=N` the real play screen with a local API |

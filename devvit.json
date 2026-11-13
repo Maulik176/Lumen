@@ -44,8 +44,8 @@
     "onAppUpgrade": "/internal/triggers/on-app-upgrade"
   },
   "scripts": {
-    "build": "vite build",
-    "dev": "vite build --watch"
+    "build": "vite build && tsx scripts/build-check.ts",
+    "dev": "tsx scripts/dev-build.ts"
   },
   "dev": {
     "subreddit": "lumen_game_dev"
