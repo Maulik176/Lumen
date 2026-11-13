@@ -167,6 +167,9 @@ allocations in the render loop (checked with the perf overlay stub).
 9. Perf overlay (dev): fps, frame time, draw calls, triangles.
 10. Judge pass against the anti-slop checklist.
 
+**Status Nov 13:** built and uploaded. Judge pass done locally at 430x701 and 360x460 (play,
+prompt, nightfall, release, result, calm mode, all five biomes). Waiting on the phone test.
+
 **Files:** `src/client/game/{sky,island,props,beams,lantern,nightfall,release,biomes,glyphs,perf}.ts`,
 `src/client/game/shaders/*`, `src/client/ui/*`, `src/client/assets/fonts/*` (+ licence), `config.ts`.
 

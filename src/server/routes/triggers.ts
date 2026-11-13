@@ -30,5 +30,5 @@ triggers.post('/on-app-install', async (c) =>
 
 /** One fresh post per milestone build; bump the marker when a new one is wanted. */
 triggers.post('/on-app-upgrade', async (c) =>
-  c.json<TriggerResponse>(await ensurePost('m3'), 200)
+  c.json<TriggerResponse>(await ensurePost('m4'), 200)
 );

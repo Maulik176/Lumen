@@ -266,15 +266,19 @@ export function createIslandView(
       const drift =
         Math.max(0, since - (calm ? RELEASE.calmRiseMs : RELEASE.riseMs)) /
         1000;
-      const lift = 1 + RELEASE.riseHeight * rise + drift * RELEASE.driftSpeed;
+      const lift = calm
+        ? 1 + RELEASE.calmRiseHeight * rise
+        : 1 + RELEASE.riseHeight * rise + drift * RELEASE.driftSpeed;
       const sway = calm
         ? 0
         : Math.sin((since / RELEASE.swayPeriodMs) * Math.PI * 2) *
           RELEASE.swayWidth *
           rise;
-      const appear = Math.min(1, since / 700);
-      // In calm mode the lantern leaves the picture by fading as it climbs.
-      const fade = calm ? appear * (1 - Math.max(0, rise - 0.7) / 0.3) : appear;
+      const appear = Math.min(1, since / (calm ? 1400 : 700));
+      // In calm mode the lantern stays in the picture and melts into the night at the end.
+      const fade = calm
+        ? appear * (1 - Math.max(0, rise - 0.78) / 0.22)
+        : appear;
       skyLantern.pose(lift - island.position.y, sway, 0.6 + 0.4 * rise, fade);
     }
 

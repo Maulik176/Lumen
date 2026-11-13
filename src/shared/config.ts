@@ -389,8 +389,12 @@ export const RELEASE = {
   /** Gentle sideways sway: width in tiles and period in milliseconds. */
   swayWidth: 0.25,
   swayPeriodMs: 3600,
-  /** Reduced motion: the camera stays put and the lantern fades up over this long. */
-  calmRiseMs: 4200,
+  /**
+   * Reduced motion: the camera stays put. The lantern climbs this far, slowly, staying in view
+   * above the island, then fades into the stars.
+   */
+  calmRiseMs: 6000,
+  calmRiseHeight: 3.4,
   /** Size of the snoovatar or glyph on the lantern, in tiles. */
   portraitSize: 0.62,
 } as const;

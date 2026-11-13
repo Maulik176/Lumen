@@ -5,9 +5,10 @@ Vite). It is an entry for Reddit's Game of the Day hackathon; submission closes 
 
 ## Where things stand (update at the end of every milestone)
 
-**As of Fri Nov 13, 2026, evening IST.** Milestones 1 and 2 done. Milestone 3 built and uploaded
-(v0.0.1.10); Maulik phone-tests it tonight and fixes from that are a **separate pass**.
-**Milestone 4 (final art and the signature moment) is in progress.** See "Milestone 4 brief" below.
+**As of Fri Nov 13, 2026, night IST.** Milestones 1 and 2 done. Milestone 3 built; Maulik's
+phone test of it is still to come and its fixes are a **separate pass**. **Milestone 4 (final art
+and the signature moment) is built, committed and uploaded**; it also waits on the phone.
+Next: Milestone 5 (server and Reddit layer).
 
 - App: `lumen-game` (the name `lumen` was taken). Listing: developers.reddit.com/apps/lumen-game.
   Owner account u/Dry_Promotion2506. Playtest subreddit `r/lumen_game_dev`. Launch subreddit
@@ -31,6 +32,18 @@ Vite). It is an entry for Reddit's Game of the Day hackathon; submission closes 
   Known rough edges for M4: mirrors are grey slabs, sky is a flat colour, no colour-blind glyphs,
   prompt and result card cover the island's front row on short screens, lock-in time is the
   client's own clock until M5.
+- M4: final look. `sky.ts` gradient dome, stars, far islets, clouds; `ground.ts` tiles on an earth
+  rim over a hanging rock, per-biome trees (pine, round, cactus), rim props, mist; `pieces.ts`
+  wooden-framed mirror, brass-capped prism, stone fixed mirror, sun crystal; `beams.ts` ribbon
+  shader (core laid over the scene, halo added, shimmer, one shape per colour per tile, sparkle
+  on a splitting prism); `lanterns.ts` paper globes with glow, light spill, colour band and shape
+  badge; `release.ts` sky lantern with snoovatar texture or a username seal; `hud.ts` paper UI,
+  Young Serif (OFL, bundled), hand-drawn icons; the island reframes so the prompt and result card
+  never cover it. Calm mode: no camera travel, slow fades, lantern rises in view and melts into
+  the stars. Measured locally: 57 draw calls, 6.7k triangles, game JS 153 KB gzipped. 251 tests.
+  Not yet checked on a phone; the preview pane throttles, so local fps numbers are not reliable.
+  Left for later milestones: the feed card still has M3 styling (M7); the sky shows only the
+  player's own lantern until the shared sky exists (M5); no sound changes since M3 (M7).
 - Test posts: mod menu → "Post a Lumen island (testing)" asks for a day number.
 - Changing `CALENDAR.dayOne` or anything in `GENERATOR`/`DIFFICULTY` means `npm run gen` again and
   committing `content/puzzles.json`; `tests/content.test.ts` fails until you do.
