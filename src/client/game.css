@@ -768,7 +768,7 @@ canvas {
 
 /* The main action spans the card; the quieter ones sit side by side under it. */
 .result-buttons > .button-main,
-.result-buttons > :only-child {
+.result-buttons > .wide {
   grid-column: 1 / -1;
 }
 

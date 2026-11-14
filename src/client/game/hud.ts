@@ -406,8 +406,19 @@ export function createHud(
         : backButton !== null
           ? [crowdButton, againButton, backButton]
           : [againButton, exploreButton];
-      resultButtons.replaceChildren(
-        ...shown.filter((node): node is HTMLButtonElement => node !== null)
+      const buttons = shown.filter(
+        (node): node is HTMLButtonElement => node !== null
+      );
+      resultButtons.replaceChildren(...buttons);
+      // Quiet buttons sit two to a row; an odd one out takes the whole row, never half of it.
+      const quiet = buttons.filter((node) =>
+        node.classList.contains('button-quiet')
+      );
+      quiet.forEach((node, index) =>
+        node.classList.toggle(
+          'wide',
+          quiet.length % 2 === 1 && index === quiet.length - 1
+        )
       );
       resultStreak.textContent = !outcome.ranked
         ? ''
