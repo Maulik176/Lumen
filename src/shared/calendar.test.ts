@@ -6,6 +6,8 @@ import {
   weekdayLabel,
   weekdayOfDay,
   weekOfDay,
+  warmUpDay,
+  weekdayOfDay as weekdayForWarmUp,
 } from './calendar';
 import { BIOMES, CALENDAR } from './config';
 
@@ -57,5 +59,24 @@ describe('calendar', () => {
 
   it('labels weekdays for titles', () => {
     expect(weekdayLabel('thursday')).toBe('Thursday');
+  });
+});
+
+describe('warmUpDay', () => {
+  it('offers the latest Monday or Tuesday, on Thursday to Saturday only', () => {
+    for (let day = 1; day <= 30; day++) {
+      const offered = warmUpDay(day);
+      const hard = ['thursday', 'friday', 'saturday'].includes(
+        weekdayForWarmUp(day)
+      );
+      if (!hard) expect(offered).toBeNull();
+      if (offered !== null) {
+        expect(offered).toBeLessThan(day);
+        expect(['monday', 'tuesday']).toContain(weekdayForWarmUp(offered));
+      }
+    }
+    // Day one is a Tuesday, so the first Thursday (day 3) warms up on day 1.
+    expect(warmUpDay(3)).toBe(1);
+    expect(warmUpDay(1)).toBeNull();
   });
 });

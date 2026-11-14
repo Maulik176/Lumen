@@ -6,7 +6,11 @@
 import { COPY, ONBOARD, UI, VIEW } from '../../shared/config';
 import { snapTile, startPlay, tapTile } from '../../shared/play';
 import { puzzleFromText } from '../../shared/puzzle-text';
-import { TUTORIAL, type TutorialHint } from '../../shared/tutorial';
+import {
+  TUTORIAL,
+  TUTORIAL_SOLO,
+  type TutorialHint,
+} from '../../shared/tutorial';
 import type { Sound } from './audio';
 import { createGhostHand } from './hand';
 import { wideView } from './hud';
@@ -42,7 +46,10 @@ export function runTutorial(
   return new Promise((finish) => {
     const bar = element('header', 'panel lesson');
     const dots = element('div', 'lesson-dots');
-    const dotList = TUTORIAL.map(() => dots.appendChild(element('i', '')));
+    // One dot per lesson, and one more for "Your turn".
+    const dotList = [...TUTORIAL, null].map(() =>
+      dots.appendChild(element('i', ''))
+    );
     const skip = element(
       'button',
       'button button-quiet lesson-skip',
@@ -71,7 +78,7 @@ export function runTutorial(
     const play = (index: number): void => {
       const step = TUTORIAL[index];
       if (step === undefined) {
-        end('done');
+        solo();
         return;
       }
       dotList.forEach((dot, at) => dot.classList.toggle('done', at < index));
@@ -153,6 +160,55 @@ export function runTutorial(
       };
       leave = cleanUp;
       refresh();
+    };
+
+    /** "Your turn": the same rules as the real game, with no hint and no hand. */
+    const solo = (): void => {
+      dotList.forEach((dot, at) =>
+        dot.classList.toggle('done', at < TUTORIAL.length)
+      );
+      const puzzle = puzzleFromText(TUTORIAL_SOLO);
+      const view = createIslandView(canvas, puzzle, {
+        biome: 'moss',
+        calm,
+        rider: { snoovatar: null, username: null },
+        teach: false,
+      });
+      let state = startPlay(puzzle);
+      let done = false;
+      line.textContent = COPY.tutorialSolo;
+      const frame = (): void => {
+        root.classList.toggle('wide', wideView());
+        view.resize(
+          window.innerWidth,
+          window.innerHeight,
+          bar.offsetHeight + VIEW.hintRoomPx + UI.gapPx * 3,
+          UI.gapPx * 2
+        );
+      };
+      const stopTaps = onTap(canvas, (clientX, clientY) => {
+        if (done) return;
+        const point = view.pick(clientX, clientY);
+        const tile = point === null ? null : snapTile(puzzle, point.x, point.y);
+        if (tile === null) return;
+        state = tapTile(state, tile.x, tile.y).state;
+        sound.click();
+        view.sync(state);
+        if (!state.light.solved) return;
+        done = true;
+        sound.chime(0);
+        dotList[TUTORIAL.length]?.classList.add('done');
+        window.setTimeout(() => end('done'), ONBOARD.tutorialNextMs);
+      });
+      window.addEventListener('resize', frame);
+      leave = (): void => {
+        stopTaps();
+        window.removeEventListener('resize', frame);
+        view.dispose();
+        leave = null;
+      };
+      view.sync(state);
+      frame();
     };
 
     play(0);

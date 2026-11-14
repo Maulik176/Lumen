@@ -16,6 +16,7 @@ import {
 } from '../../shared/api';
 import { COPY, PAST } from '../../shared/config';
 import type { DailyIsland } from '../../shared/daily';
+import { isRuleKind } from '../../shared/rules';
 import { flairText } from '../../shared/streak';
 import { islandForDay, lastDay } from '../core/content';
 import { refreshResultsComment, resultsComment } from '../core/post';
@@ -24,6 +25,7 @@ import { shareText } from '../../shared/share';
 import {
   currentDay,
   lockIn,
+  markRuleSeen,
   markTutorialDone,
   pastIslands,
   playerState,
@@ -328,4 +330,11 @@ api.post('/progress', async (c) => {
     fields['placements']
   ).catch(() => false);
   return c.json({ ok: saved });
+});
+
+api.post('/rule-seen', async (c) => {
+  const { rule } = await body(c.req);
+  if (isRuleKind(rule))
+    await markRuleSeen(store, await whoIsAsking(), rule).catch(() => undefined);
+  return c.json({ ok: true });
 });

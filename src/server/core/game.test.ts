@@ -5,6 +5,7 @@ import type { Placement } from '../../shared/types';
 import { islandForDay, lastDay } from './content';
 import {
   lockIn,
+  markRuleSeen,
   playerState,
   claimShare,
   pastIslands,
@@ -577,5 +578,21 @@ describe('an unfinished board', () => {
     await lockIn(store, ana, input(1, DAY_ONE + HOUR), effects);
     expect((await playerState(store, ana, 1, today)).progress).toBeNull();
     expect(await saveProgress(store, ana, today, some)).toBe(false);
+  });
+});
+
+describe('one-time rule cards', () => {
+  it('are remembered per player, and forgotten by the developer reset', async () => {
+    const { store } = setup();
+    expect((await playerState(store, ana, 1)).rulesSeen).toEqual([]);
+    await markRuleSeen(store, ana, 'water');
+    await markRuleSeen(store, ana, 'colour');
+    expect((await playerState(store, ana, 1)).rulesSeen).toEqual([
+      'water',
+      'colour',
+    ]);
+    expect((await playerState(store, ben, 1)).rulesSeen).toEqual([]);
+    await resetPlayer(store, ana, 1);
+    expect((await playerState(store, ana, 1)).rulesSeen).toEqual([]);
   });
 });

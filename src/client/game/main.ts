@@ -14,7 +14,7 @@ import {
   type SkyLantern,
   type SkyResponse,
 } from '../../shared/api';
-import type { Biome } from '../../shared/calendar';
+import { warmUpDay, type Biome } from '../../shared/calendar';
 import { BIOMES, COPY, VIEW } from '../../shared/config';
 import {
   hintFor,
@@ -31,6 +31,7 @@ import {
   type PlayStep,
 } from '../../shared/play';
 import { puzzleFromText } from '../../shared/puzzle-text';
+import { RULE_KINDS, rulesOn, type RuleKind } from '../../shared/rules';
 import { validatePlacements } from '../../shared/validate';
 import { rememberSolved } from '../card-cache';
 import { createSound, type Sound } from './audio';
@@ -38,6 +39,7 @@ import { createGhostHand } from './hand';
 import { createJourney, type Journey } from './journey';
 import { applyTheme, createHud, type HudActions } from './hud';
 import { boardSheet } from './board';
+import { askWarmUp, ruleCard } from './cards';
 import { crowdSheet, loadHeat } from './crowd';
 import { openArchipelago } from './archipelago';
 import type { Rider } from './release';
@@ -48,6 +50,7 @@ import { runTutorial } from './tutorial';
 
 const HINTS_KEY = 'lumen.hints.done';
 const TUTORIAL_KEY = 'lumen.tutorial.done';
+const RULE_KEY = 'lumen.rule.';
 
 const query = new URLSearchParams(location.search);
 
@@ -214,7 +217,13 @@ function openLayer(): {
   return { canvas, root, close: () => layer.remove() };
 }
 
-type Shared = { rider: Rider; sound: Sound; calm: boolean };
+type Shared = {
+  rider: Rider;
+  sound: Sound;
+  calm: boolean;
+  /** One-time rule cards already shown to this player, kept up to date as more are shown. */
+  rulesSeen: Set<RuleKind>;
+};
 
 type IslandOptions = {
   /** Tonight's island, or an earlier one opened for practice. */
@@ -506,6 +515,26 @@ function mountIsland(
   layout();
   if (tonight) journey.ready();
 
+  // One-time rule cards: anything on this island the player has never met, one card at a time.
+  const lessons =
+    state.phase === 'locked'
+      ? []
+      : rulesOn(island.rows).filter((kind) => !shared.rulesSeen.has(kind));
+  const nextLesson = (): void => {
+    const kind = lessons.shift();
+    if (kind === undefined) {
+      hud.hideSheet();
+      layout();
+      return;
+    }
+    shared.rulesSeen.add(kind);
+    store(RULE_KEY + kind);
+    tell('/api/rule-seen', { rule: kind });
+    hud.showSheet(ruleCard(kind, nextLesson));
+    layout();
+  };
+  if (lessons.length > 0) nextLesson();
+
   void joinSky(
     island.day,
     tonight,
@@ -602,7 +631,17 @@ async function start(): Promise<void> {
   const calm =
     query.get('calm') === '1' ||
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const shared: Shared = { rider, sound: createSound(), calm };
+  const shared: Shared = {
+    rider,
+    sound: createSound(),
+    calm,
+    // For a signed-in player the server remembers; the device's note is for everyone else.
+    rulesSeen: new Set(
+      me.loggedIn
+        ? me.rulesSeen
+        : RULE_KINDS.filter((kind) => stored(RULE_KEY + kind))
+    ),
+  };
 
   // Trailer mode, armed by a moderator from the menu: the island plays itself, once.
   if (loaded.trailer !== undefined) {
@@ -650,6 +689,30 @@ async function start(): Promise<void> {
     store(TUTORIAL_KEY);
     tell('/api/tutorial-done', {});
   }
+  // A newcomer arriving on one of the week's harder days is offered an easier island first.
+  // Tonight's clock has not started yet, so warming up costs nothing.
+  const easier = firstVisit ? warmUpDay(island.day) : null;
+  if (easier !== null && (await askWarmUp(root)) === 'warm') {
+    const warm = await loadIsland(String(easier));
+    if (warm !== null)
+      await new Promise<void>((resolve) => {
+        const layer = openLayer();
+        let practice: Mounted | null = null;
+        practice = mountIsland(layer.canvas, layer.root, warm, shared, {
+          mode: 'practice',
+          ranked: false,
+          hints: true,
+          hand: false,
+          journey: createJourney('archive', log),
+          back: () => {
+            practice?.dispose();
+            layer.close();
+            resolve();
+          },
+        });
+      });
+  }
+
   // The server's clock starts now, once today's island is the thing on screen.
   if (me.result === null) tell('/api/start', { day: island.day });
 

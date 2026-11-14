@@ -5,6 +5,7 @@ import type { Biome, Weekday } from './calendar';
 import type { LanternStyle } from './config';
 import type { DailyIsland } from './daily';
 import type { BeamColour, Inventory, Medal, Placement } from './types';
+import type { RuleKind } from './rules';
 import type { PlacementProblem } from './validate';
 
 /** What a player's device is told about an island. Never includes the solution. */
@@ -82,6 +83,8 @@ export type PlayerState = {
   placements: Placement[] | null;
   /** True once they have shared that result in the comments. */
   shared: boolean;
+  /** The one-time rule cards they have already been shown. */
+  rulesSeen: RuleKind[];
   /** An unfinished board they left on this island, to pick up again. Null once locked in. */
   progress: Placement[] | null;
 };

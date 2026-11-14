@@ -71,3 +71,18 @@ export function biomeOfDay(day: number): Biome {
 export function weekdayLabel(weekday: Weekday): string {
   return weekday.charAt(0).toUpperCase() + weekday.slice(1);
 }
+
+/**
+ * For a newcomer arriving on a hard day: the most recent easier island (a Monday or Tuesday)
+ * before `day`, or null when this is not a hard day or there is no such island yet.
+ */
+export function warmUpDay(day: number): number | null {
+  const today = weekdayOfDay(day);
+  if (today !== 'thursday' && today !== 'friday' && today !== 'saturday')
+    return null;
+  for (let earlier = day - 1; earlier >= 1 && earlier >= day - 7; earlier--) {
+    const weekday = weekdayOfDay(earlier);
+    if (weekday === 'tuesday' || weekday === 'monday') return earlier;
+  }
+  return null;
+}

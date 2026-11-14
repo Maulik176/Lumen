@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { startPlay, tapTile } from './play';
 import { puzzleFromText } from './puzzle-text';
 import { solve } from './solve';
-import { TUTORIAL } from './tutorial';
+import { TUTORIAL, TUTORIAL_SOLO } from './tutorial';
 
 describe('tutorial islands', () => {
   it('there are three: mirror, turn, prism', () => {
@@ -45,5 +45,16 @@ describe('tutorial islands', () => {
       inventory: { mirrors: 3, prisms: 0 },
     });
     expect(solve(mirrorsOnly).status).toBe('unsolvable');
+  });
+});
+
+describe('the "Your turn" island', () => {
+  it('needs one mirror, turned: the two things the lessons taught', () => {
+    const puzzle = puzzleFromText(TUTORIAL_SOLO);
+    expect(solve(puzzle)).toMatchObject({ status: 'solved', par: 1 });
+    let state = tapTile(startPlay(puzzle), 1, 1).state;
+    expect(state.light.solved).toBe(false);
+    state = tapTile(state, 1, 1).state;
+    expect(state.light.solved).toBe(true);
   });
 });

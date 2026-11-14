@@ -108,6 +108,19 @@ export const COPY = {
   tutorialTurn: 'Tap it again to turn it',
   tutorialPrism: 'A third tap makes a prism: it splits light',
   tutorialSkip: 'Skip',
+  /** The fourth tutorial island: no hints, no hand. */
+  tutorialSolo: 'Your turn',
+  /** One-time rule cards: one line each, the first time a player meets the thing. */
+  ruleFixed: 'Stone mirrors are fixed. They turn the light, but never move.',
+  ruleWater: 'Light crosses water. Pieces cannot stand on it.',
+  ruleColour: 'A coloured lantern needs light of its own colour.',
+  ruleMixed: 'A two-colour lantern needs both of its colours at once.',
+  gotIt: 'Got it',
+  /** A first-time player arriving on a hard day (Thursday to Saturday). */
+  warmUpAsk: 'Warm up on an easier island first?',
+  warmUpWhy: 'Tonight is one of the harder islands of the week.',
+  warmUpYes: 'Warm up first',
+  warmUpNo: 'Go straight to today',
   /** Shown briefly when the player taps empty grass with nothing left to place. */
   noPiecesLeft: 'No pieces left. Tap one to take it back.',
   /** Shown with a soft glow the moment every lantern is lit, before anything is submitted. */

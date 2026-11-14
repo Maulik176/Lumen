@@ -275,6 +275,7 @@ function localApi(): Plugin {
                   result: solved.get(day)?.result ?? null,
                   placements: solved.get(day)?.placements ?? null,
                   shared: false,
+                  rulesSeen: [],
                   progress: solved.has(day)
                     ? null
                     : (progress.get(day) ?? null),
@@ -312,6 +313,9 @@ function localApi(): Plugin {
         response.end(JSON.stringify(body));
       });
       server.middlewares.use('/api/start', (_request, response) =>
+        response.end('{"ok":true}')
+      );
+      server.middlewares.use('/api/rule-seen', (_request, response) =>
         response.end('{"ok":true}')
       );
       server.middlewares.use('/api/tutorial-done', (_request, response) =>

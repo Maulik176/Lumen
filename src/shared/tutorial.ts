@@ -45,3 +45,13 @@ export const TUTORIAL: readonly TutorialStep[] = [
     hints: ['mirror', 'turn', 'prism'],
   },
 ];
+
+/**
+ * The fourth island, "Your turn": no hint and no ghost hand. One mirror, turned once, lights it,
+ * and the player has to find where. About ten seconds.
+ */
+export const TUTORIAL_SOLO: PuzzleText = {
+  rows: ['....', '>...', '....', '.W..'],
+  inventory: { mirrors: 2, prisms: 0 },
+  sourceColours: [],
+};
