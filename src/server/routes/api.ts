@@ -334,7 +334,7 @@ api.post('/progress', async (c) => {
 
 api.post('/rule-seen', async (c) => {
   const { rule } = await body(c.req);
-  if (isRuleKind(rule))
+  if (isRuleKind(rule) || rule === 'sky')
     await markRuleSeen(store, await whoIsAsking(), rule).catch(() => undefined);
   return c.json({ ok: true });
 });

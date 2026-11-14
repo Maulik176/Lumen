@@ -178,6 +178,7 @@ export async function playerState(
       result: null,
       placements: null,
       shared: false,
+      skyNoteSeen: false,
       rulesSeen: [],
       progress: null,
     };
@@ -200,6 +201,7 @@ export async function playerState(
     result: readResult(stored),
     placements: island === undefined ? null : readPlacements(stored, island),
     shared: shared !== undefined,
+    skyNoteSeen: fields['rule:sky'] === '1',
     rulesSeen: RULE_KINDS.filter((kind) => fields[`rule:${kind}`] === '1'),
     progress:
       island === undefined || stored !== undefined || left === undefined
@@ -474,6 +476,7 @@ export async function resetPlayer(
     store.hSet(KEYS.user(player.userId), {
       tutorialDone: '0',
       ...Object.fromEntries(RULE_KINDS.map((kind) => [`rule:${kind}`, '0'])),
+      'rule:sky': '0',
       streak: String(NEW_STREAK.streak),
       lastDay: String(NEW_STREAK.lastDay),
       graceWeek: String(NEW_STREAK.graceWeek),
@@ -714,7 +717,7 @@ export async function saveProgress(
 export async function markRuleSeen(
   store: Store,
   player: Player,
-  kind: RuleKind
+  kind: RuleKind | 'sky'
 ): Promise<void> {
   if (player === null) return;
   await store.hSet(KEYS.user(player.userId), { [`rule:${kind}`]: '1' });

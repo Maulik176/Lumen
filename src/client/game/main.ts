@@ -15,7 +15,7 @@ import {
   type SkyResponse,
 } from '../../shared/api';
 import { warmUpDay, type Biome } from '../../shared/calendar';
-import { BIOMES, COPY, VIEW } from '../../shared/config';
+import { BIOMES, COPY, SKY, VIEW } from '../../shared/config';
 import {
   hintFor,
   keepRefining,
@@ -278,6 +278,8 @@ function mountIsland(
   };
 
   const { journey } = options;
+  const skyNoteSeen = (): boolean =>
+    me.loggedIn ? me.skyNoteSeen : stored(RULE_KEY + 'sky');
   const apply = (step: PlayStep): void => {
     state = step.state;
     journey.play(step.events);
@@ -348,6 +350,9 @@ function mountIsland(
     // The server ended this journey as completed; another go here would be a new one.
     journey.locked(tonight ? 'replay' : 'archive');
     apply(lockIn(state));
+    // A rule card still open has had its say: nothing may sit over the night or the result.
+    lessons.length = 0;
+    hud.hideSheet();
     if (tonight) store(HINTS_KEY);
     if (tonight && outcome.ranked) rememberSolved(island.day, outcome);
     if (tonight) forget(progressKey(island.day));
@@ -356,6 +361,12 @@ function mountIsland(
     sound.nightPad();
     await view.nightfall((index) => sound.chime(index));
     // Only a ranked solve sends a lantern to the sky; anything else is a faint one that fades.
+    // The first time ever, one line says what the sky of lanterns is.
+    if (outcome.ranked && !skyNoteSeen()) {
+      store(RULE_KEY + 'sky');
+      tell('/api/rule-seen', { rule: 'sky' });
+      hud.say(COPY.skyJoin, SKY.joinLineMs);
+    }
     await view.release(!outcome.ranked);
     hud.showResult(outcome);
     layout();
@@ -470,7 +481,10 @@ function mountIsland(
       const lantern = view.skyAt(clientX, clientY);
       if (lantern !== null)
         hud.nameTag(
-          COPY.skyName.replace('{name}', lantern.name),
+          (lantern.past ? COPY.skyNameLastNight : COPY.skyName).replace(
+            '{name}',
+            lantern.name
+          ),
           lantern.x,
           lantern.y
         );
@@ -540,7 +554,19 @@ function mountIsland(
     tonight,
     rider.username,
     (lanterns) => {
-      if (!disposed) view.setSky(lanterns);
+      if (disposed) return;
+      view.setSky(lanterns);
+      // A quiet night: last night's lanterns keep tonight's company, faintly.
+      if (tonight && lanterns.length < SKY.quietBelow && island.day > 1)
+        void joinSky(
+          island.day - 1,
+          false,
+          rider.username,
+          (earlier) => {
+            if (!disposed) view.setSky(earlier, true);
+          },
+          () => undefined
+        );
     },
     (lantern) => {
       if (disposed) return;

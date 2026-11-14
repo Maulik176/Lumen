@@ -40,6 +40,8 @@ const VERTEX = /* glsl */ `
   attribute float aSeed;
   attribute float aStyle;
   attribute float aBorn;
+  attribute float aFaint;
+  uniform float uFaint;
   uniform float uTime;
   uniform float uSize;
   uniform float uLow;
@@ -57,7 +59,7 @@ const VERTEX = /* glsl */ `
     float edge = smoothstep(0.0, 0.08, lift / span) * smoothstep(1.0, 0.9, lift / span);
     // A lantern that has just arrived glows brighter for a few seconds.
     float fresh = 1.0 + 1.6 * exp(-max(0.0, uTime - aBorn) * 0.6);
-    vAlpha = edge * mix(uDay, 1.0, uNight);
+    vAlpha = edge * mix(uDay, 1.0, uNight) * mix(1.0, uFaint, aFaint);
     vStyle = aStyle;
     gl_PointSize = uSize * (0.75 + 0.5 * aSeed) * min(fresh, 2.2);
     gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
@@ -123,7 +125,7 @@ type Portrait = {
 
 export type SkyField = {
   /** Replace the whole sky, for a player who has just arrived. */
-  set: (lanterns: readonly SkyLantern[]) => void;
+  set: (lanterns: readonly SkyLantern[], past?: boolean) => void;
   /** One more lantern, as it happens. */
   add: (lantern: SkyLantern) => void;
   /** `yaw` is the camera's turn around the island; the field of lanterns turns with it. */
@@ -145,7 +147,7 @@ export type SkyField = {
     y: number,
     reach: number,
     aspect: number
-  ) => { name: string; x: number; y: number } | null;
+  ) => { name: string; x: number; y: number; past: boolean } | null;
 };
 
 export function createSkyField(
@@ -171,6 +173,10 @@ export function createSkyField(
   geometry.setAttribute('aSeed', seedAttribute);
   geometry.setAttribute('aStyle', styleAttribute);
   geometry.setAttribute('aBorn', bornAttribute);
+  // 1 for a lantern from the night before, shown faintly on a quiet night.
+  const faint = new Float32Array(max);
+  const faintAttribute = new BufferAttribute(faint, 1);
+  geometry.setAttribute('aFaint', faintAttribute);
   geometry.setDrawRange(0, 0);
 
   const size: { value: number } = { value: SKY.pointSize };
@@ -183,6 +189,7 @@ export function createSkyField(
     uNight: { value: 0 },
     uDay: { value: SKY.dayOpacity },
     uWarm: { value: new Color(LOOK.lanternWarm) },
+    uFaint: { value: SKY.lastNightOpacity },
   };
   const material = keeper.keep(
     new ShaderMaterial({
@@ -293,7 +300,7 @@ export function createSkyField(
     image.src = lantern.a;
   };
 
-  const place = (lantern: SkyLantern, fresh: boolean): void => {
+  const place = (lantern: SkyLantern, fresh: boolean, past = false): void => {
     // The player's own entry (from /api/sky or the realtime echo) is never drawn here: their
     // lantern is the big one that rose from the island, labelled "You".
     if (names.has(lantern.u) || lantern.u === self) return;
@@ -317,12 +324,14 @@ export function createSkyField(
     styles[slot] = STYLE_CODE[lantern.s];
     slotNames[slot] = lantern.u;
     born[slot] = fresh ? nowSeconds : -100;
+    faint[slot] = past ? 1 : 0;
+    faintAttribute.needsUpdate = true;
     positionAttribute.needsUpdate = true;
     seedAttribute.needsUpdate = true;
     styleAttribute.needsUpdate = true;
     bornAttribute.needsUpdate = true;
     geometry.setDrawRange(0, Math.min(total, max));
-    givePortrait(lantern);
+    if (!past) givePortrait(lantern);
   };
 
   /** Where the shader draws a far lantern right now, in the field's own space. */
@@ -343,8 +352,8 @@ export function createSkyField(
   };
 
   return {
-    set(lanterns) {
-      for (const lantern of lanterns.slice(-max)) place(lantern, false);
+    set(lanterns, past = false) {
+      for (const lantern of lanterns.slice(-max)) place(lantern, false, past);
     },
     add(lantern) {
       place(lantern, true);
@@ -352,28 +361,29 @@ export function createSkyField(
     count: () => total,
     pick(camera, x, y, reach, aspect) {
       field.updateMatrixWorld();
-      let best: { name: string; x: number; y: number } | null = null;
+      let best: { name: string; x: number; y: number; past: boolean } | null =
+        null;
       let nearest = reach;
-      const consider = (name: string, grow: number): void => {
+      const consider = (name: string, grow: number, past: boolean): void => {
         field.localToWorld(spot).project(camera);
         if (spot.z > 1 || Math.abs(spot.x) > 1 || Math.abs(spot.y) > 1) return;
         const away = Math.hypot((spot.x - x) * aspect, spot.y - y) / grow;
         if (away >= nearest) return;
         nearest = away;
-        best = { name, x: spot.x, y: spot.y };
+        best = { name, x: spot.x, y: spot.y, past };
       };
       for (const portrait of portraits) {
         if (!portrait.group.visible || portrait.material.opacity < 0.2)
           continue;
         spot.copy(portrait.group.position);
-        consider(portrait.name, 1.6);
+        consider(portrait.name, 1.6, false);
       }
       const shown = Math.min(total, max);
       for (let slot = 0; slot < shown; slot++) {
         const name = slotNames[slot];
         if (name === undefined) continue;
         pointAt(slot, spot);
-        consider(name, 1);
+        consider(name, 1, faint[slot] === 1);
       }
       return best;
     },

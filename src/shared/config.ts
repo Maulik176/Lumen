@@ -148,6 +148,10 @@ export const COPY = {
   /** The small label on the player's own lantern, and the name shown when a lantern is tapped. */
   you: 'You',
   skyName: 'u/{name}',
+  /** The same, for a lantern from the night before, shown faintly on a quiet night. */
+  skyNameLastNight: 'u/{name} \u00b7 last night',
+  /** Shown once, as the player's first-ever lantern rises. */
+  skyJoin: "Your lantern joins everyone who lit tonight's island.",
   /** Top bar and feed card: runs the three first-light islands again. */
   howToPlay: 'How to play',
   /** Feed card: the whole game in one line. */
@@ -181,7 +185,7 @@ export const COPY = {
   allTimeRow: '{medals} nights at par',
   allTimeRowOne: '1 night at par',
   /** Result card: tints the island by where everyone put their pieces. */
-  crowd: 'See how everyone solved it',
+  crowd: 'Where did others place mirrors?',
   /** {percent} of solves at par. Tonight, and for an island from an earlier night. */
   crowdPar: '{percent}% hit par tonight',
   crowdParPast: '{percent}% hit par that night',
@@ -881,6 +885,14 @@ export const SKY = {
   lineGapMs: 1500,
   /** A tapped lantern shows its player's name for this long; a tap counts within this many pixels. */
   nameMs: 2000,
+  /**
+   * A quiet night: with fewer lanterns than this, last night's are shown too, at this share of
+   * full brightness and named "last night" when tapped. Real players only, never invented ones.
+   */
+  quietBelow: 10,
+  lastNightOpacity: 0.35,
+  /** How long the once-only line about the player's first lantern stays, in ms. */
+  joinLineMs: 5200,
   tapReachPx: 30,
   /** Seconds of other players' lanterns a late joiner's request may be cached for. */
   cacheSeconds: 5,

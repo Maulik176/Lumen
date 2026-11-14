@@ -68,6 +68,8 @@ export type Hud = {
   insets: () => { top: number; bottom: number; right: number };
   /** "u/name lit Moss Steps": shown briefly, never more than one at a time. */
   skyLine: (text: string) => void;
+  /** A line that shows even while everything else is hidden, for `ms` milliseconds. */
+  say: (text: string, ms: number) => void;
   /** Developer read-out, shown only with ?perf=1. */
   perf: (text: string) => void;
 };
@@ -501,6 +503,13 @@ export function createHud(
           (promptShown ? prompt.offsetHeight : bottom.offsetHeight) + gap * 2,
         right: 0,
       };
+    },
+
+    say(text, ms) {
+      skyUntil = performance.now() + ms;
+      skyLine.textContent = text;
+      skyLine.classList.add('visible');
+      window.setTimeout(() => skyLine.classList.remove('visible'), ms);
     },
 
     skyLine(text) {

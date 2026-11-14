@@ -275,6 +275,7 @@ function localApi(): Plugin {
                   result: solved.get(day)?.result ?? null,
                   placements: solved.get(day)?.placements ?? null,
                   shared: false,
+                  skyNoteSeen: false,
                   rulesSeen: [],
                   progress: solved.has(day)
                     ? null
@@ -290,7 +291,14 @@ function localApi(): Plugin {
         response.end(JSON.stringify(body));
       });
       // A stand-in sky for looking at the rendering locally: made-up test names, never shipped.
-      server.middlewares.use('/api/sky', (_request, response) => {
+      // Made-up test names. Day 6 is a quiet night (4 lanterns) so that last night's can be
+      // seen behind it; every other night has 140.
+      server.middlewares.use('/api/sky', (request, response) => {
+        const day = Number(
+          new URL(request.url ?? '', 'http://localhost').searchParams.get(
+            'day'
+          ) ?? '1'
+        );
         const styles = [
           'plain',
           'plain',
@@ -299,12 +307,13 @@ function localApi(): Plugin {
           'koi',
           'comet',
         ] as const;
+        const count = day === 6 ? 4 : 140;
         const body: SkyResponse = {
           ok: true,
-          day: 1,
-          count: 140,
-          lanterns: Array.from({ length: 140 }, (_, i) => ({
-            u: `test_${i}`,
+          day,
+          count,
+          lanterns: Array.from({ length: count }, (_, i) => ({
+            u: `test_${day}_${i}`,
             s: styles[i % styles.length] ?? 'plain',
             a: '',
           })),

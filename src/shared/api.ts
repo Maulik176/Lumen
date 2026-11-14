@@ -83,6 +83,8 @@ export type PlayerState = {
   placements: Placement[] | null;
   /** True once they have shared that result in the comments. */
   shared: boolean;
+  /** True once they have been told, on their first release, what the sky of lanterns is. */
+  skyNoteSeen: boolean;
   /** The one-time rule cards they have already been shown. */
   rulesSeen: RuleKind[];
   /** An unfinished board they left on this island, to pick up again. Null once locked in. */

@@ -90,7 +90,7 @@ export type IslandView = {
   skyAt: (
     clientX: number,
     clientY: number
-  ) => { name: string; x: number; y: number } | null;
+  ) => { name: string; x: number; y: number; past: boolean } | null;
   /** Where the player's own lantern is on screen right now, or null. The object is reused. */
   youAt: () => { x: number; y: number } | null;
   /** Back to dusk, for another go. */
@@ -108,7 +108,8 @@ export type IslandView = {
   /** Stop drawing while something covers the view, and carry on exactly where it was. */
   pause: (paused: boolean) => void;
   /** Everyone who lit tonight's island: the whole list on arrival, then each new one as it comes. */
-  setSky: (lanterns: readonly SkyLantern[]) => void;
+  /** `past`: lanterns from the night before, drawn faintly behind tonight's. */
+  setSky: (lanterns: readonly SkyLantern[], past?: boolean) => void;
   addSky: (lantern: SkyLantern) => void;
   /** Where a tile's centre is on the screen, in CSS pixels. For pointing at it. */
   screenOf: (x: number, y: number) => { x: number; y: number };
@@ -574,6 +575,7 @@ export function createIslandView(
       if (found === null) return null;
       return {
         name: found.name,
+        past: found.past,
         x: bounds.left + ((found.x + 1) / 2) * bounds.width,
         y: bounds.top + ((1 - found.y) / 2) * bounds.height,
       };
@@ -642,8 +644,8 @@ export function createIslandView(
       lanterns.reset();
     },
 
-    setSky(lanterns) {
-      skyField.set(lanterns);
+    setSky(lanterns, past) {
+      skyField.set(lanterns, past);
     },
 
     addSky(lantern) {
