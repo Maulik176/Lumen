@@ -7,6 +7,7 @@ import {
   type IslandResponse,
   type LockInRequest,
   type LockInResponse,
+  type LockInResult,
   type SkyLantern,
   type SkyResponse,
 } from '../../shared/api';
@@ -34,6 +35,38 @@ import { runTutorial } from './tutorial';
 
 const HINTS_KEY = 'lumen.hints.done';
 const TUTORIAL_KEY = 'lumen.tutorial.done';
+const REPLAY_KEY = 'lumen.tutorial.again';
+
+/** True once, right after the player asked for "How to play" and the page reloaded for it. */
+function tutorialAsked(): boolean {
+  if (document.documentElement.dataset['tutorial'] === '1') return true;
+  try {
+    const asked = sessionStorage.getItem(REPLAY_KEY) === '1';
+    sessionStorage.removeItem(REPLAY_KEY);
+    return asked;
+  } catch {
+    return false;
+  }
+}
+
+/** Run the three first-light islands again: the page starts over with the tutorial first. */
+function replayTutorial(): void {
+  try {
+    sessionStorage.setItem(REPLAY_KEY, '1');
+    location.reload();
+  } catch {
+    query.set('tutorial', '1');
+    location.search = query.toString();
+  }
+}
+
+function forget(key: string): void {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // Nothing was stored.
+  }
+}
 
 const query = new URLSearchParams(location.search);
 
@@ -173,10 +206,12 @@ async function start(): Promise<void> {
 
   // First visit: three small islands teach the light before today's island appears.
   // ?tutorial=1 forces it and ?tutorial=0 skips it, for testing.
-  const seenTutorial = me.tutorialDone || stored(TUTORIAL_KEY);
+  // For a signed-in player the server remembers; the device's own note is for everyone else.
+  const seenTutorial = me.loggedIn ? me.tutorialDone : stored(TUTORIAL_KEY);
+  const firstVisit = !seenTutorial && query.get('tutorial') !== '0';
   const wantTutorial =
-    query.get('tutorial') === '1' ||
-    (!seenTutorial && query.get('tutorial') !== '0');
+    query.get('tutorial') === '1' || tutorialAsked() || firstVisit;
+  if (firstVisit) forget(HINTS_KEY);
   if (wantTutorial) {
     await runTutorial(canvas, root, sound, calm);
     store(TUTORIAL_KEY);
@@ -196,6 +231,8 @@ async function start(): Promise<void> {
   /** True once the player has locked in and chosen to play again: later solves are unranked. */
   let replaying = false;
   let busy = false;
+  /** The player's real result for today, once there is one. A replay never replaces it. */
+  let todays: LockInResult | null = me.result;
 
   const layout = (): void => {
     const { top, bottom } = hud.insets();
@@ -244,8 +281,19 @@ async function start(): Promise<void> {
     layout();
     sound.nightPad();
     await view.nightfall((index) => sound.chime(index));
-    await view.release();
-    hud.showResult(outcome);
+    // A replay gets a faint practice lantern that fades; it joins no sky.
+    const replayed = !outcome.ranked && (replaying || todays !== null);
+    await view.release(replayed);
+    if (outcome.ranked) {
+      todays = outcome;
+      if (me.username !== null)
+        view.addSky({
+          u: me.username,
+          s: outcome.style,
+          a: cleanSnoovatar(rider.snoovatar),
+        });
+    }
+    hud.showResult(replayed && todays !== null ? todays : outcome, replayed);
     layout();
     busy = false;
     hud.setBusy(false);
@@ -261,6 +309,7 @@ async function start(): Promise<void> {
       toggleMute: () => sound.toggleMute(),
       lockIn: () => void commit(),
       keepRefining: () => apply(keepRefining(state)),
+      howToPlay: replayTutorial,
       playAgain: () => {
         hud.hideResult();
         hud.quiet(false);
@@ -280,9 +329,19 @@ async function start(): Promise<void> {
 
   // Sound wakes itself on every tap (finger up, not down: that is what iOS counts as a gesture).
   onTap(canvas, (clientX, clientY) => {
-    if (busy || state.phase === 'locked') return;
-    const tile = view.pick(clientX, clientY);
-    if (tile === null) return;
+    const tile =
+      busy || state.phase === 'locked' ? null : view.pick(clientX, clientY);
+    if (tile === null) {
+      // Not the island: perhaps a lantern in the sky. Its player's name shows for a moment.
+      const lantern = view.skyAt(clientX, clientY);
+      if (lantern !== null)
+        hud.nameTag(
+          COPY.skyName.replace('{name}', lantern.name),
+          lantern.x,
+          lantern.y
+        );
+      return;
+    }
     const step = tapTile(state, tile.x, tile.y);
     if (step.events.some((item) => item.type === 'not-placeable')) return;
     apply(step);
@@ -318,6 +377,13 @@ async function start(): Promise<void> {
       );
     }
   );
+
+  // The "You" label rides the player's own lantern.
+  const followYou = (): void => {
+    hud.you(view.youAt());
+    requestAnimationFrame(followYou);
+  };
+  requestAnimationFrame(followYou);
 
   // The display font changes the bars' height once it arrives.
   void document.fonts?.ready.then(layout);

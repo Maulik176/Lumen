@@ -28,6 +28,8 @@ export type Store = {
   zRemRangeByRank: (key: string, start: number, stop: number) => Promise<void>;
   zIncrBy: (key: string, member: string, by: number) => Promise<void>;
   expire: (key: string, seconds: number) => Promise<void>;
+  del: (key: string) => Promise<void>;
+  zRem: (key: string, member: string) => Promise<void>;
 };
 
 const later = (seconds: number): Date => new Date(Date.now() + seconds * 1000);
@@ -67,6 +69,12 @@ export const redisStore: Store = {
   },
   async expire(key, seconds) {
     await redis.expire(key, seconds);
+  },
+  async del(key) {
+    await redis.del(key);
+  },
+  async zRem(key, member) {
+    await redis.zRem(key, [member]);
   },
 };
 

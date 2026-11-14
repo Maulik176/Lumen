@@ -16,6 +16,9 @@ function byId(id: string): HTMLElement {
 const post = readPostData(context.postData);
 const play = byId('play');
 play.textContent = COPY.playButton;
+byId('goal').textContent = COPY.previewGoal;
+const how = byId('how');
+how.textContent = COPY.howToPlay;
 
 if (post !== null) {
   byId('kicker').textContent =
@@ -31,6 +34,13 @@ if (post !== null) {
 }
 
 // Expanded mode must be asked for directly inside the tap, never after waiting for anything.
+how.addEventListener('click', (event) => {
+  try {
+    requestExpandedMode(event, 'howto');
+  } catch (error) {
+    console.error(error);
+  }
+});
 play.addEventListener('click', (event) => {
   try {
     requestExpandedMode(event, 'game');

@@ -122,6 +122,7 @@ function localApi(): Plugin {
                   streak: 0,
                   style: 'plain',
                   percentile: 0,
+                  rank: 0,
                   skyCount: 140,
                 };
               }

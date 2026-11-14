@@ -38,8 +38,26 @@ body {
   text-shadow: 0 2px 12px rgba(30, 20, 60, 0.45);
 }
 .line {
-  margin: 0 0 18px;
+  margin: 0 0 4px;
   opacity: 0.95;
+}
+.goal {
+  margin: 0 0 14px;
+  font-size: 14px;
+  opacity: 0.85;
+}
+.how {
+  display: block;
+  margin: 8px auto 0;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 .play {
   min-height: 52px;
@@ -53,7 +71,7 @@ body {
   font-weight: 700;
 }
 .par {
-  margin: 12px 0 0;
+  margin: 2px 0 0;
   font-size: 13px;
   opacity: 0.8;
 }

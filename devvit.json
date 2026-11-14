@@ -11,6 +11,9 @@
       },
       "game": {
         "entry": "game.html"
+      },
+      "howto": {
+        "entry": "howto.html"
       }
     }
   },
@@ -33,6 +36,13 @@
         "location": "subreddit",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/post-day"
+      },
+      {
+        "label": "Reset my Lumen progress (dev)",
+        "description": "Playtest subreddit only: forget my tutorial and today's solve",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/reset-me"
       }
     ]
   },

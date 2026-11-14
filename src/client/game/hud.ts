@@ -5,7 +5,7 @@
  * The island is always framed in the space these leave free: `insets()` reports how much room
  * the interface is taking at the top and the bottom right now.
  */
-import type { LockInResponse, PublicIsland } from '../../shared/api';
+import type { LockInResult, PublicIsland } from '../../shared/api';
 import { COPY, SKY, UI, VIEW } from '../../shared/config';
 import {
   canLockIn,
@@ -24,6 +24,7 @@ export type HudActions = {
   lockIn: () => void;
   keepRefining: () => void;
   playAgain: () => void;
+  howToPlay: () => void;
 };
 
 export type Hud = {
@@ -35,7 +36,12 @@ export type Hud = {
   setMuted: (muted: boolean) => void;
   /** Hide everything but the island, for nightfall and the lantern's flight. */
   quiet: (quiet: boolean) => void;
-  showResult: (result: Extract<LockInResponse, { ok: true }>) => void;
+  /** `replayed`: this is the player's real result for today, shown again after a replay. */
+  showResult: (result: LockInResult, replayed: boolean) => void;
+  /** The small "You" label on the player's own lantern; null hides it. */
+  you: (spot: { x: number; y: number } | null) => void;
+  /** A tapped lantern's name, shown beside it for a moment. */
+  nameTag: (text: string, x: number, y: number) => void;
   hideResult: () => void;
   /** Room the interface is taking at the top and bottom, in pixels. */
   insets: () => { top: number; bottom: number };
@@ -156,7 +162,11 @@ export function createHud(
     element('span', 'par-label', 'par'),
     element('b', 'par-number', String(island.par))
   );
-  top.append(title, inventory, par);
+  const help = element('button', 'help-button', '?');
+  help.type = 'button';
+  help.setAttribute('aria-label', COPY.howToPlay);
+  help.addEventListener('click', actions.howToPlay);
+  top.append(title, inventory, par, help);
 
   // One line under the top bar: a first-time hint, or a short notice.
   const line = element('p', 'panel line');
@@ -205,6 +215,7 @@ export function createHud(
   const resultLine = element('p', 'result-line');
   const resultTime = element('p', 'result-time');
   const resultStreak = element('p', 'result-streak');
+  const resultNote = element('p', 'result-note');
   const resultFooter = element('p', 'result-footer', COPY.comeBack);
   const againButton = element('button', 'button button-quiet', COPY.playAgain);
   againButton.type = 'button';
@@ -214,6 +225,7 @@ export function createHud(
     resultLine,
     resultTime,
     resultStreak,
+    resultNote,
     againButton,
     resultFooter
   );
@@ -223,7 +235,21 @@ export function createHud(
   let skyUntil = 0;
   const perfLine = element('pre', 'perf');
 
-  root.append(top, line, prompt, bottom, result, skyLine, perfLine);
+  const youLabel = element('span', 'sky-tag sky-you', COPY.you);
+  const nameLabel = element('span', 'sky-tag');
+  let nameTimer = 0;
+
+  root.append(
+    youLabel,
+    nameLabel,
+    top,
+    line,
+    prompt,
+    bottom,
+    result,
+    skyLine,
+    perfLine
+  );
 
   let noticeUntil = 0;
   let noticeTimer = 0;
@@ -302,7 +328,7 @@ export function createHud(
       root.classList.toggle('quiet', quiet);
     },
 
-    showResult(outcome) {
+    showResult(outcome, replayed) {
       resultMedal.textContent = MEDAL_NAME[outcome.medal];
       resultMedal.dataset['medal'] = outcome.medal;
       resultLine.textContent =
@@ -312,9 +338,15 @@ export function createHud(
               pieces: outcome.pieces,
               par: outcome.par,
             });
-      resultTime.textContent = outcome.ranked
-        ? formatTime(outcome.elapsedMs)
-        : COPY.unranked;
+      resultTime.textContent = !outcome.ranked
+        ? COPY.unranked
+        : outcome.rank > 0
+          ? fill(COPY.rankLine, {
+              time: formatTime(outcome.elapsedMs),
+              rank: outcome.rank,
+            })
+          : formatTime(outcome.elapsedMs);
+      resultNote.textContent = replayed ? COPY.replayNote : '';
       resultStreak.textContent = !outcome.ranked
         ? ''
         : outcome.streak <= 1
@@ -352,6 +384,23 @@ export function createHud(
       skyLine.textContent = text;
       skyLine.classList.add('visible');
       window.setTimeout(() => skyLine.classList.remove('visible'), SKY.lineMs);
+    },
+
+    you(spot) {
+      youLabel.classList.toggle('visible', spot !== null);
+      if (spot !== null)
+        youLabel.style.transform = `translate(${spot.x.toFixed(1)}px, ${spot.y.toFixed(1)}px)`;
+    },
+
+    nameTag(text, x, y) {
+      nameLabel.textContent = text;
+      nameLabel.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+      nameLabel.classList.add('visible');
+      window.clearTimeout(nameTimer);
+      nameTimer = window.setTimeout(
+        () => nameLabel.classList.remove('visible'),
+        SKY.nameMs
+      );
     },
 
     perf(text) {

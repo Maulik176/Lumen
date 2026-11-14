@@ -38,6 +38,11 @@ Few screenshots, short reports.
   channel. 292 tests. **Not built, briefed in HANDOFF.md (6–9):** leaderboard UI, heatmap UI,
   share button, Journeys. **Not yet verified on Reddit:** two-account realtime, flair, cron,
   stickied comment.
+- **Nov 15 fixes after Maulik's test:** snoovatars sit on paper lanterns; own lantern has a "You"
+  label; tapping a lantern shows its name; replays send a faint practice lantern and the card
+  shows today's real result plus "This replay doesn't count."; rank on the card; "?" How to play
+  in the top bar and on the feed card (`howto` entry point); mod menu "Reset my Lumen progress
+  (dev)" on r/lumen_game_dev only. 293 tests. Details at the end of `HANDOFF.md`.
 - Snow biome has its own cooler daylight (`sunDay`/`sunDusk` per biome in `BIOME_LOOK`).
 - M4 phone test results were never filled in (the form came back blank). Still unknown on a real
   phone: snoovatar on the sky lantern, smoothness of the rise, clipping.

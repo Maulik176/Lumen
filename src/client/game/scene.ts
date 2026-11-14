@@ -25,6 +25,7 @@ import {
   CAMERA,
   ONBOARD,
   RELEASE,
+  SKY,
   VIEW,
 } from '../../shared/config';
 import type { SkyLantern } from '../../shared/api';
@@ -74,7 +75,15 @@ export type IslandView = {
   /** Night falls, then each lantern blooms in turn. Resolves when the last has bloomed. */
   nightfall: (onBloom: (index: number) => void) => Promise<void>;
   /** The player's sky lantern lifts off and the camera follows it up. Resolves when it is aloft. */
-  release: () => Promise<void>;
+  /** `practice`: a replay's faint lantern, which fades out and joins no sky. */
+  release: (practice: boolean) => Promise<void>;
+  /** A sky lantern under a tap: its player's name and where it is on screen. */
+  skyAt: (
+    clientX: number,
+    clientY: number
+  ) => { name: string; x: number; y: number } | null;
+  /** Where the player's own lantern is on screen right now, or null. The object is reused. */
+  youAt: () => { x: number; y: number } | null;
   /** Back to dusk, for another go. */
   dawn: () => void;
   /** Everyone who lit tonight's island: the whole list on arrival, then each new one as it comes. */
@@ -121,7 +130,12 @@ export function createIslandView(
   const sparkleMap = keeper.keep(sparkle(64));
 
   const sky = createSky(scene, look, blobMap, keeper);
-  const skyField = createSkyField(scene, glowMap, keeper);
+  const skyField = createSkyField(
+    scene,
+    glowMap,
+    keeper,
+    options.rider.username
+  );
 
   const hemisphere = new HemisphereLight(0xffffff, 0x8f8a78, 1);
   const sun = new DirectionalLight(0xffe6bd, 1.3);
@@ -172,6 +186,8 @@ export function createIslandView(
   let duskAtNightfall: number = VIEW.duskStart;
   /** -1 until the sky lantern lifts off. */
   let releaseAt = -1;
+  let practice = false;
+  const you = { x: 0, y: 0 };
   let yawFrom = 0;
   let yawTo = 0;
   let yawAt = -1;
@@ -206,11 +222,11 @@ export function createIslandView(
   };
 
   /** 0 before the sky lantern lifts, 1 once it is aloft. */
+  const riseSpan = (): number =>
+    practice ? RELEASE.practiceMs : calm ? RELEASE.calmRiseMs : RELEASE.riseMs;
   const riseNow = (): number => {
     if (releaseAt < 0) return 0;
-    return easeInOut(
-      (now - releaseAt) / (calm ? RELEASE.calmRiseMs : RELEASE.riseMs)
-    );
+    return easeInOut((now - releaseAt) / riseSpan());
   };
 
   const applyCamera = (): void => {
@@ -221,7 +237,7 @@ export function createIslandView(
     yawNow = yaw;
 
     // Calm mode never moves the camera: the lantern travels and the light changes instead.
-    const rise = calm ? 0 : riseNow();
+    const rise = calm || practice ? 0 : riseNow();
     const lanternHeight = 1 + RELEASE.riseHeight * rise;
     const targetY = 0.15 + (lanternHeight * 0.92 - 0.15) * rise;
     const pitchNow = pitch + (RELEASE_PITCH * DEGREES - pitch) * rise;
@@ -310,22 +326,23 @@ export function createIslandView(
     if (releaseAt >= 0) {
       const since = time - releaseAt;
       const rise = riseNow();
-      const drift =
-        Math.max(0, since - (calm ? RELEASE.calmRiseMs : RELEASE.riseMs)) /
-        1000;
-      const lift = calm
+      const still = calm || practice;
+      const drift = Math.max(0, since - riseSpan()) / 1000;
+      const lift = still
         ? 1 + RELEASE.calmRiseHeight * rise
         : 1 + RELEASE.riseHeight * rise + drift * RELEASE.driftSpeed;
-      const sway = calm
+      const sway = still
         ? 0
         : Math.sin((since / RELEASE.swayPeriodMs) * Math.PI * 2) *
           RELEASE.swayWidth *
           rise;
       const appear = Math.min(1, since / (calm ? 1400 : 700));
       // In calm mode the lantern stays in the picture and melts into the night at the end.
-      const fade = calm
-        ? appear * (1 - Math.max(0, rise - 0.78) / 0.22)
-        : appear;
+      const fade = practice
+        ? appear * (1 - rise) * RELEASE.practiceOpacity
+        : calm
+          ? appear * (1 - Math.max(0, rise - 0.78) / 0.22)
+          : appear;
       skyLantern.pose(lift - island.position.y, sway, 0.6 + 0.4 * rise, fade);
     }
 
@@ -470,19 +487,48 @@ export function createIslandView(
       });
     },
 
-    release() {
+    release(asPractice) {
+      practice = asPractice;
       releaseAt = now;
       return new Promise<void>((resolve) => {
-        window.setTimeout(
-          resolve,
-          (calm ? RELEASE.calmRiseMs : RELEASE.riseMs) + VIEW.resultDelayMs
-        );
+        window.setTimeout(resolve, riseSpan() + VIEW.resultDelayMs);
       });
+    },
+
+    skyAt(clientX, clientY) {
+      const bounds = canvas.getBoundingClientRect();
+      const found = skyField.pick(
+        camera,
+        ((clientX - bounds.left) / bounds.width) * 2 - 1,
+        1 - ((clientY - bounds.top) / bounds.height) * 2,
+        (SKY.tapReachPx / bounds.height) * 2,
+        bounds.width / bounds.height
+      );
+      if (found === null) return null;
+      return {
+        name: found.name,
+        x: bounds.left + ((found.x + 1) / 2) * bounds.width,
+        y: bounds.top + ((1 - found.y) / 2) * bounds.height,
+      };
+    },
+
+    youAt() {
+      if (skyLantern.group.visible && !practice) {
+        skyLantern.group.getWorldPosition(hit);
+        hit.y += 1.1;
+      } else if (!skyField.locateSelf(hit)) return null;
+      hit.project(camera);
+      if (hit.z > 1 || Math.abs(hit.x) > 1 || Math.abs(hit.y) > 1) return null;
+      const bounds = canvas.getBoundingClientRect();
+      you.x = bounds.left + ((hit.x + 1) / 2) * bounds.width;
+      you.y = bounds.top + ((1 - hit.y) / 2) * bounds.height;
+      return you;
     },
 
     dawn() {
       nightAt = -1;
       releaseAt = -1;
+      practice = false;
       allLit = false;
       skyLantern.hide();
       lanterns.reset();

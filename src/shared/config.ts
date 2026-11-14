@@ -109,13 +109,25 @@ export const COPY = {
   /** Result card: the streak line, and the note on a solve that does not count. */
   streakOne: 'First night of a new streak',
   streakMany: '{streak} nights in a row',
-  unranked: 'Unranked',
+  /** Result card, a solve that was never ranked (signed out, or an island from another night). */
+  unranked: 'Played for practice',
+  /** Result card, time and place on tonight's board. */
+  rankLine: '{time} · #{rank} tonight',
+  /** Result card after a replay: under the player's real result for today. */
+  replayNote: "This replay doesn't count.",
+  /** The small label on the player's own lantern, and the name shown when a lantern is tapped. */
+  you: 'You',
+  skyName: 'u/{name}',
+  /** Top bar and feed card: runs the three first-light islands again. */
+  howToPlay: 'How to play',
+  /** Feed card: the whole game in one line. */
+  previewGoal: 'Place mirrors. Bend the light into every lantern.',
   /** A quiet line when someone else's lantern rises. {name} is a username, {island} today's island. */
   skyLine: 'u/{name} lit {island}',
   /** Result card footer. */
   comeBack: 'Come back at nightfall tomorrow.',
   /** Result card: replay without ranking. */
-  playAgain: 'Play again, unranked',
+  playAgain: 'Play again for practice',
   /** If the island cannot be loaded. */
   loadFailed: 'The island is hidden in mist. Try again in a moment.',
   /** If Lock in cannot reach the server. */
@@ -439,8 +451,11 @@ export const RELEASE = {
    */
   calmRiseMs: 6000,
   calmRiseHeight: 3.4,
-  /** Size of the snoovatar or glyph on the lantern, in tiles. */
-  portraitSize: 0.62,
+  /** Height of the snoovatar or glyph printed on the lantern's paper, in tiles (the shade is 0.78). */
+  portraitSize: 0.4,
+  /** A replay's practice lantern: how long it rises before it is gone, and how faint it is. */
+  practiceMs: 2600,
+  practiceOpacity: 0.4,
 } as const;
 
 export const CALENDAR = {
@@ -723,6 +738,12 @@ export const SKY = {
   /** How long "u/name lit Moss Steps" stays on screen, and the least time between two of them. */
   lineMs: 3200,
   lineGapMs: 1500,
+  /** A tapped lantern shows its player's name for this long; a tap counts within this many pixels. */
+  nameMs: 2000,
+  tapReachPx: 30,
+  /** The player's own lantern among the far ones: this much larger and brighter. */
+  selfSize: 1.7,
+  selfGlow: 2.4,
   /** Seconds of other players' lanterns a late joiner's request may be cached for. */
   cacheSeconds: 5,
 } as const;
@@ -732,4 +753,10 @@ export const KEEP = {
   startSeconds: 2 * 86_400,
   submissionSeconds: 45 * 86_400,
   skySeconds: 45 * 86_400,
+} as const;
+
+/** Developer tools that exist only on the playtest subreddit. */
+export const DEV = {
+  /** "Reset my Lumen progress" works in this subreddit and nowhere else. */
+  resetSubreddit: 'lumen_game_dev',
 } as const;

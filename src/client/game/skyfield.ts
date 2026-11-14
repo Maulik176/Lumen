@@ -16,12 +16,14 @@ import {
   ShaderMaterial,
   Sprite,
   SpriteMaterial,
+  Vector3,
+  type Camera,
   type Scene,
   type Texture,
 } from 'three';
 import type { SkyLantern } from '../../shared/api';
 import { LOOK, SKY, type LanternStyle } from '../../shared/config';
-import type { Keeper } from './kit';
+import { css, type Keeper } from './kit';
 
 const STYLE_CODE: Record<LanternStyle, number> = {
   plain: 0,
@@ -45,9 +47,13 @@ const VERTEX = /* glsl */ `
   uniform float uSpeed;
   uniform float uNight;
   uniform float uDay;
+  uniform float uSelfSize;
   varying float vStyle;
   varying float vAlpha;
+  varying float vSelf;
   void main() {
+    // The player's own lantern is marked by adding 10 to its style.
+    vSelf = step(9.5, aStyle);
     float span = uHigh - uLow;
     float lift = mod(position.y - uLow + uTime * uSpeed * (0.6 + aSeed * 0.8), span);
     vec3 p = vec3(position.x + sin(uTime * 0.25 + aSeed * 40.0) * 0.6, uLow + lift, position.z);
@@ -56,20 +62,22 @@ const VERTEX = /* glsl */ `
     // A lantern that has just arrived glows brighter for a few seconds.
     float fresh = 1.0 + 1.6 * exp(-max(0.0, uTime - aBorn) * 0.6);
     vAlpha = edge * mix(uDay, 1.0, uNight);
-    vStyle = aStyle;
-    gl_PointSize = uSize * (0.75 + 0.5 * aSeed) * min(fresh, 2.2);
+    vStyle = aStyle - 10.0 * vSelf;
+    gl_PointSize = uSize * (0.75 + 0.5 * aSeed) * min(fresh, 2.2) * mix(1.0, uSelfSize, vSelf);
     gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
   }
 `;
 
 const FRAGMENT = /* glsl */ `
   uniform vec3 uWarm;
+  uniform float uSelfGlow;
   varying float vStyle;
   varying float vAlpha;
+  varying float vSelf;
   void main() {
     vec2 p = gl_PointCoord * 2.0 - 1.0;
     p.y = -p.y;
-    float glow = exp(-dot(p, p) * 3.2) * 0.55;
+    float glow = exp(-dot(p, p) * 3.2) * 0.55 * mix(1.0, uSelfGlow, vSelf);
     float body;
     vec3 colour = uWarm;
     if (vStyle < 0.5) {
@@ -133,14 +141,31 @@ export type SkyField = {
     yaw: number
   ) => void;
   count: () => number;
+  /**
+   * The lantern nearest a tap, if one is within reach. The tap and the answer are in the
+   * camera's own view coordinates (-1 to 1); `reach` is in the same units, measured vertically.
+   */
+  pick: (
+    camera: Camera,
+    x: number,
+    y: number,
+    reach: number,
+    aspect: number
+  ) => { name: string; x: number; y: number } | null;
+  /** Where the player's own lantern is in the world. False when it is not in the sky. */
+  locateSelf: (out: Vector3) => boolean;
 };
 
 export function createSkyField(
   scene: Scene,
   glowMap: Texture,
-  keeper: Keeper
+  keeper: Keeper,
+  /** The player's own name: their lantern is drawn larger and brighter. */
+  self: string | null
 ): SkyField {
   const max = SKY.maxLanterns;
+  const slotNames: string[] = [];
+  const spot = new Vector3();
   const positions = new Float32Array(max * 3);
   const seeds = new Float32Array(max);
   const styles = new Float32Array(max);
@@ -166,6 +191,8 @@ export function createSkyField(
     uNight: { value: 0 },
     uDay: { value: SKY.dayOpacity },
     uWarm: { value: new Color(LOOK.lanternWarm) },
+    uSelfSize: { value: SKY.selfSize },
+    uSelfGlow: { value: SKY.selfGlow },
   };
   const material = keeper.keep(
     new ShaderMaterial({
@@ -251,7 +278,22 @@ export function createSkyField(
       const x = (slot % ATLAS_COLUMNS) * CELL_WIDTH;
       const y = Math.floor(slot / ATLAS_COLUMNS) * CELL_HEIGHT;
       atlasPen.clearRect(x, y, CELL_WIDTH, CELL_HEIGHT);
-      atlasPen.drawImage(image, x, y, CELL_WIDTH, CELL_HEIGHT);
+      // A paper lantern first: a glowing shade, wider at the top, with a dark hoop underneath.
+      const shade = atlasPen.createLinearGradient(0, y + 8, 0, y + 118);
+      shade.addColorStop(0, css(LOOK.lanternPaper));
+      shade.addColorStop(1, css(LOOK.lanternWarm));
+      atlasPen.fillStyle = shade;
+      atlasPen.beginPath();
+      atlasPen.moveTo(x + 10, y + 30);
+      atlasPen.quadraticCurveTo(x + 48, y - 4, x + 86, y + 30);
+      atlasPen.lineTo(x + 72, y + 116);
+      atlasPen.lineTo(x + 24, y + 116);
+      atlasPen.closePath();
+      atlasPen.fill();
+      atlasPen.fillStyle = css(LOOK.woodDark);
+      atlasPen.fillRect(x + 22, y + 114, 52, 6);
+      // Then the rider, small, printed on the paper.
+      atlasPen.drawImage(image, x + 27, y + 46, 42, 56);
       atlas.needsUpdate = true;
       for (const other of portraits) other.map.needsUpdate = true;
       portrait.name = lantern.u;
@@ -280,7 +322,8 @@ export function createSkyField(
       : SKY.heightLow + hash(lantern.u, 4) * (SKY.heightHigh - SKY.heightLow);
     positions[slot * 3 + 2] = -depth;
     seeds[slot] = hash(lantern.u, 3);
-    styles[slot] = STYLE_CODE[lantern.s];
+    styles[slot] = STYLE_CODE[lantern.s] + (lantern.u === self ? 10 : 0);
+    slotNames[slot] = lantern.u;
     born[slot] = fresh ? nowSeconds : -100;
     positionAttribute.needsUpdate = true;
     seedAttribute.needsUpdate = true;
@@ -288,6 +331,23 @@ export function createSkyField(
     bornAttribute.needsUpdate = true;
     geometry.setDrawRange(0, Math.min(total, max));
     givePortrait(lantern);
+  };
+
+  /** Where the shader draws a far lantern right now, in the field's own space. */
+  const pointAt = (slot: number, out: Vector3): void => {
+    const seed = seeds[slot] ?? 0;
+    const time = uniforms.uTime.value;
+    const span = SKY.heightHigh - SKY.heightLow;
+    const travelled =
+      (positions[slot * 3 + 1] ?? 0) -
+      SKY.heightLow +
+      time * SKY.riseSpeed * (0.6 + seed * 0.8);
+    const lift = ((travelled % span) + span) % span;
+    out.set(
+      (positions[slot * 3] ?? 0) + Math.sin(time * 0.25 + seed * 40) * 0.6,
+      SKY.heightLow + lift,
+      positions[slot * 3 + 2] ?? 0
+    );
   };
 
   return {
@@ -298,6 +358,42 @@ export function createSkyField(
       place(lantern, true);
     },
     count: () => total,
+    pick(camera, x, y, reach, aspect) {
+      field.updateMatrixWorld();
+      let best: { name: string; x: number; y: number } | null = null;
+      let nearest = reach;
+      const consider = (name: string, grow: number): void => {
+        field.localToWorld(spot).project(camera);
+        if (spot.z > 1 || Math.abs(spot.x) > 1 || Math.abs(spot.y) > 1) return;
+        const away = Math.hypot((spot.x - x) * aspect, spot.y - y) / grow;
+        if (away >= nearest) return;
+        nearest = away;
+        best = { name, x: spot.x, y: spot.y };
+      };
+      for (const portrait of portraits) {
+        if (!portrait.group.visible || portrait.material.opacity < 0.2)
+          continue;
+        spot.copy(portrait.group.position);
+        consider(portrait.name, 1.6);
+      }
+      const shown = Math.min(total, max);
+      for (let slot = 0; slot < shown; slot++) {
+        const name = slotNames[slot];
+        if (name === undefined) continue;
+        pointAt(slot, spot);
+        consider(name, 1);
+      }
+      return best;
+    },
+    locateSelf(out) {
+      if (self === null) return false;
+      const slot = slotNames.indexOf(self);
+      if (slot < 0) return false;
+      field.updateMatrixWorld();
+      pointAt(slot, out);
+      field.localToWorld(out);
+      return true;
+    },
     update(timeMs, night, calm, pixelRatio, yaw) {
       field.rotation.y = yaw;
       nowSeconds = timeMs / 1000;

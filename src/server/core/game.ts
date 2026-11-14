@@ -99,6 +99,7 @@ function readResult(text: string | undefined): LockInResult | null {
     const r: Record<string, unknown> = { ...result };
     const { day, pieces, par, medal, elapsedMs, streak, percentile, skyCount } =
       r;
+    const rank = r['rank'];
     if (
       typeof day !== 'number' ||
       typeof pieces !== 'number' ||
@@ -119,6 +120,7 @@ function readResult(text: string | undefined): LockInResult | null {
       streak,
       style: styleFor(streak),
       percentile: typeof percentile === 'number' ? percentile : 0,
+      rank: typeof rank === 'number' ? rank : 0,
       skyCount: typeof skyCount === 'number' ? skyCount : 0,
     };
   } catch {
@@ -262,6 +264,7 @@ export async function lockIn(
       streak,
       style: styleFor(streak),
       percentile: 0,
+      rank: 0,
       skyCount: 0,
     },
   });
@@ -326,6 +329,7 @@ export async function lockIn(
     streak: after.streak,
     style,
     percentile,
+    rank: (rank ?? 0) + 1,
     skyCount: solves,
   };
   const clean: Placement[] = score.placements;
@@ -380,4 +384,46 @@ export async function lockIn(
 
   await effects.onRanked({ player, result, lantern }).catch(() => undefined);
   return { ok: true, result };
+}
+
+/**
+ * Developer tool: forget one player's tutorial and their solve of one day, as if they had never
+ * played it, so the first-time flow can be tested again. Their streak starts over too.
+ */
+export async function resetPlayer(
+  store: Store,
+  player: Player,
+  day: number
+): Promise<void> {
+  if (player === null) return;
+  const had =
+    (await store.get(KEYS.submission(day, player.userId))) !== undefined;
+  const sky = await store.zRange(KEYS.sky(day), 0, SKY.maxLanterns - 1);
+  const mine = sky.filter((entry) => {
+    try {
+      const value: unknown = JSON.parse(entry.member);
+      return (
+        typeof value === 'object' &&
+        value !== null &&
+        'u' in value &&
+        value.u === player.username
+      );
+    } catch {
+      return false;
+    }
+  });
+  await Promise.all([
+    store.del(KEYS.submission(day, player.userId)),
+    store.del(KEYS.submitLock(day, player.userId)),
+    store.del(KEYS.start(day, player.userId)),
+    store.zRem(KEYS.leaderboard(day), player.username),
+    ...mine.map((entry) => store.zRem(KEYS.sky(day), entry.member)),
+    store.hSet(KEYS.user(player.userId), {
+      tutorialDone: '0',
+      streak: String(NEW_STREAK.streak),
+      lastDay: String(NEW_STREAK.lastDay),
+      graceWeek: String(NEW_STREAK.graceWeek),
+    }),
+  ]);
+  if (had) await store.hIncrBy(KEYS.stats(day), 'solves', -1);
 }

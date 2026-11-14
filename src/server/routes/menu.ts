@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
 import type { UiResponse } from '@devvit/web/shared';
-import { context } from '@devvit/web/server';
-import { currentDay } from '../core/game';
+import { context, reddit } from '@devvit/web/server';
+import { DEV } from '../../shared/config';
+import { currentDay, resetPlayer } from '../core/game';
+import { redisStore } from '../core/store';
 import { lastDay } from '../core/content';
 import { ensureDailyPost } from '../core/post';
 
@@ -50,4 +52,31 @@ menu.post('/post-day', (c) => {
     },
     200
   );
+});
+
+/** Developer tool, playtest subreddit only: forget my tutorial and my solve of today's island. */
+menu.post('/reset-me', async (c) => {
+  if (context.subredditName !== DEV.resetSubreddit)
+    return c.json<UiResponse>(
+      { showToast: 'Only on the playtest subreddit' },
+      200
+    );
+  try {
+    const { userId } = context;
+    const username = await reddit.getCurrentUsername();
+    if (userId === undefined || username === undefined)
+      return c.json<UiResponse>({ showToast: 'Sign in first' }, 200);
+    await resetPlayer(
+      redisStore,
+      { userId, username },
+      currentDay(Date.now(), lastDay())
+    );
+    return c.json<UiResponse>(
+      { showToast: 'Reset. Reload the post to play as a first-timer.' },
+      200
+    );
+  } catch (error) {
+    console.error(`Error resetting progress: ${String(error)}`);
+    return c.json<UiResponse>({ showToast: 'Could not reset' }, 200);
+  }
 });

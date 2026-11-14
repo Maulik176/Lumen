@@ -591,3 +591,60 @@ canvas {
 .sky-line.visible {
   opacity: 0.92;
 }
+
+/* "How to play", at the end of the top bar. */
+.help-button {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  margin-left: 2px;
+  border: 1.5px solid var(--ink-soft);
+  border-radius: 50%;
+  background: none;
+  color: var(--ink);
+  font-family: var(--display);
+  font-size: 17px;
+  line-height: 1;
+}
+
+.help-button:active {
+  background: rgba(42, 34, 51, 0.1);
+}
+
+/* After a replay: under the real result. */
+.result-note {
+  margin: 0 0 12px;
+  font-size: 13.5px;
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+.result-note:empty {
+  display: none;
+}
+
+/* A name beside a lantern in the sky: "You" on the player's own, "u/name" on a tapped one. */
+.sky-tag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  margin: -30px 0 0 10px;
+  padding: 2px 9px;
+  border-radius: var(--radius);
+  background: var(--veil);
+  color: var(--light);
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 300ms ease;
+  pointer-events: none;
+}
+
+.sky-tag.visible {
+  opacity: 0.95;
+}
+
+.sky-you {
+  font-family: var(--display);
+  color: var(--amber);
+}

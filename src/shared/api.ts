@@ -92,6 +92,8 @@ export type LockInResult = {
   style: LanternStyle;
   /** Share of ranked players this result beat or equalled on pieces and time, 0 to 100. */
   percentile: number;
+  /** Place on tonight's board, 1 first. 0 when the solve is not ranked. */
+  rank: number;
   skyCount: number;
 };
 

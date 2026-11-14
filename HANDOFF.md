@@ -404,3 +404,27 @@ the "typical journey" table in `JOURNEY_MAP.md`; the Hono routes with a stubbed 
   `/api/island` and in every lock-in result.
 - Not verified on Reddit yet: realtime between two real accounts, flair after a real ranked
   solve, the cron firing at 00:00 UTC, and the stickied comment on a new daily post.
+
+---
+
+## Added Nov 15 (after Maulik's two-account test)
+
+- **Result card:** `LockInResult.rank` (1 = first tonight, 0 = not ranked) now comes from the
+  server and shows as "1:42 · #3 tonight". After a replay the card shows the player's real result
+  for today plus `COPY.replayNote`; a replay sends up a faint practice lantern
+  (`view.release(true)`) and writes nothing.
+- **Sky:** a snoovatar is always printed on a paper lantern (atlas cell drawn in `skyfield.ts`,
+  the player's own in `release.ts`). The player's lantern is larger and brighter and carries a
+  "You" label (`view.youAt()` → `hud.you()`); tapping any lantern shows its name for
+  `SKY.nameMs` (`view.skyAt()` → `hud.nameTag()`).
+- **How to play:** "?" in the top bar reloads into the tutorial; the feed card's "How to play"
+  opens the `howto` entry point (`howto.html` = `game.html` with `data-tutorial="1"`: keep the
+  two files identical apart from that attribute).
+- **Dev reset:** mod menu → "Reset my Lumen progress (dev)", works only in `DEV.resetSubreddit`.
+  For a signed-in player the server's `tutorialDone` now decides whether the tutorial runs.
+- **Brief 1 (feed card), add from the four example games Reddit names** (Hot and Cold, Color
+  Puzzle, Syllo, Pocket Grids): the card must say the goal in one line (now `COPY.previewGoal`),
+  show proof that others are playing ("1,284 lanterns lit tonight" from `skyCount`, fetched after
+  first paint), show the player's streak, and say "Resume" or show their medal on a return visit.
+- **Open question for Maulik (not built):** on desktop the game opens in Reddit's expanded
+  dialog. Playing inside the post would mean loading Three.js in the feed card, against rule 11.

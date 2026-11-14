@@ -8,6 +8,7 @@ import {
   playerState,
   rankedOpen,
   readSky,
+  resetPlayer,
   recordStart,
   type Effects,
   type LockInInput,
@@ -81,6 +82,14 @@ function memoryStore(): Store & { writes: () => number } {
       zset(key).set(member, (zset(key).get(member) ?? 0) + by);
     },
     async expire() {},
+    async del(key) {
+      writes++;
+      strings.delete(key);
+    },
+    async zRem(key, member) {
+      writes++;
+      zset(key).delete(member);
+    },
   };
 }
 
@@ -371,5 +380,31 @@ describe('lock in: the server decides', () => {
       onRanked: () => Promise.reject(new Error('reddit is down')),
     });
     expect(outcome).toMatchObject({ ok: true, result: { ranked: true } });
+  });
+});
+
+describe('resetPlayer (developer tool)', () => {
+  it('forgets the tutorial and the day, so the next solve is ranked again', async () => {
+    const { store, effects } = setup();
+    const today = island(1);
+    const input: LockInInput = {
+      island: today,
+      placements: today.solution,
+      snoovatar: '',
+      wantsRanked: true,
+      postDay: 1,
+      lastDay: lastDay(),
+      nowMs: DAY_ONE + HOUR,
+    };
+    await recordStart(store, ana, 1, DAY_ONE);
+    await lockIn(store, ana, input, effects);
+    await resetPlayer(store, ana, 1);
+    const state = await playerState(store, ana, 1);
+    expect(state.result).toBeNull();
+    expect(state.tutorialDone).toBe(false);
+    expect((await readSky(store, 1)).lanterns).toHaveLength(0);
+    const again = await lockIn(store, ana, input, effects);
+    expect(again.ok && again.result.ranked).toBe(true);
+    expect(again.ok && again.result.rank).toBe(1);
   });
 });

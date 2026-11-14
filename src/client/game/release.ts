@@ -179,8 +179,9 @@ export function createSkyLantern(
     new SpriteMaterial({ map: glyph, depthTest: false, transparent: true })
   );
   const portrait = new Sprite(portraitMaterial);
-  portrait.position.y = 0.52;
-  portrait.scale.set(RELEASE.portraitSize * 0.8, RELEASE.portraitSize * 0.8, 1);
+  // Low on the shade, so the lantern's paper and crown show all round it.
+  portrait.position.y = 0.44;
+  portrait.scale.set(RELEASE.portraitSize, RELEASE.portraitSize, 1);
   portrait.renderOrder = 8;
   group.add(portrait);
 
@@ -203,11 +204,12 @@ export function createSkyLantern(
       group.rotation.z = sway * 0.12;
       paper.opacity = fade;
       wood.opacity = fade;
-      paper.emissiveIntensity = 0.5 + glow * 1.3;
+      // Kept low enough that the paper shade still reads as a lantern, not a ball of light.
+      paper.emissiveIntensity = 0.35 + glow * 0.55;
       flameMaterial.opacity = fade * (0.7 + glow * 0.3);
       flame.scale.setScalar(0.5 + glow * 0.25);
-      haloMaterial.opacity = fade * glow * 0.75;
-      halo.scale.setScalar(1.6 + glow * 1.6);
+      haloMaterial.opacity = fade * glow * 0.32;
+      halo.scale.setScalar(1.8 + glow * 1.2);
       portraitMaterial.opacity = fade;
     },
     hide() {
