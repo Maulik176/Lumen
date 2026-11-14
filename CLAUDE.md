@@ -62,6 +62,17 @@ Few screenshots, short reports.
   pass (table in PLAN.md Milestone 7; **phone fps still unmeasured**). `scripts/shoot.mjs` is the
   headless-Chrome driver for local screenshots and scripted clicks. 313 tests;
   `tests/content.test.ts` has a 2-second timing check that can fail when the machine is busy.
+- **Nov 15, later (Fable): reviewer batch A–E, all built.** (A) Hint room is always reserved
+  (`VIEW.hintRoomPx`), so the island never shifts; `snapTile` in `play.ts` sends near-miss taps
+  to the nearest usable tile (`RULES.tapSnapTiles`). (B) Unfinished boards are saved
+  (`/api/progress`, `prog:{day}:{userId}`, plus localStorage) and restored with `resumeWith`.
+  (C) Tutorial has a fourth island "Your turn" (`TUTORIAL_SOLO`); one-time rule cards
+  (`shared/rules.ts`, `cards.ts`, user hash fields `rule:*`, `/api/rule-seen`); newcomers on
+  Thu–Sat are offered a warm-up island (`warmUpDay` in `calendar.ts`), and tonight's clock starts
+  only after it. (D) First-release line (`COPY.skyJoin`), crowd button renamed, last night's
+  lanterns shown faintly when fewer than `SKY.quietBelow` tonight. (E) The 2-second timing test
+  re-times a slow reading instead of failing on machine load. 323 tests. **Left for Monday:
+  M8 judge review and M9 handoff. Nothing in A–E is verified on Reddit yet.**
 - **Nov 15 fixes after Maulik's test:** snoovatars sit on paper lanterns; own lantern has a "You"
   label; tapping a lantern shows its name; unranked solves send a faint practice lantern; rank
   on the card; "?" How to play
