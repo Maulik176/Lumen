@@ -12,6 +12,7 @@
     "deploy": "npm run test:types && npm run lint && npm test && devvit upload",
     "dev": "devvit playtest",
     "gen": "tsx scripts/gen.ts",
+    "hero": "node scripts/hero.mjs",
     "launch": "npm run deploy && devvit publish",
     "lint": "eslint 'src/**/*.{ts,tsx}'",
     "login": "devvit login",

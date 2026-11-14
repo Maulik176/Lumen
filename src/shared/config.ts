@@ -77,6 +77,19 @@ export const COPY = {
   previewLineOne: 'One lantern waits in the dusk.',
   /** The one big button on the feed card. */
   playButton: 'Light the lanterns',
+  /** Feed card, top: number, weekday, par. */
+  cardKicker: 'Lumen #{day} \u00b7 {weekday} \u00b7 par {par}',
+  /** Feed card once the player has locked in: their night in one line, and the way back in. */
+  cardSolved: 'Lit \u00b7 {pieces} (par {par})',
+  cardRank: '#{rank} tonight',
+  cardSeeSky: "See tonight's sky",
+  cardNext: 'Next island in {time}',
+  /** Feed card: how many players have lit this island. */
+  cardSky: '{count} lanterns lit tonight',
+  cardSkyOne: '1 lantern lit tonight',
+  cardSkyNone: 'Be the first to light it tonight',
+  /** Read by screen readers for the small outline of today's island. */
+  cardOutline: "Today's island",
   /** First play only: shown until the first piece is placed. */
   hintPlace: 'Bend the light into the lantern',
   /** First play only: shown after the first piece, until a piece is turned. */
@@ -434,6 +447,9 @@ export const UI = {
   /** Text laid straight on the sky, with a dark veil behind it. */
   light: '#fbeed2',
   veil: 'rgba(30, 22, 50, 0.6)',
+  /** The night behind the feed card's words, solid and half-clear. */
+  night: '#1a1430',
+  nightSoft: 'rgba(26, 20, 48, 0.78)',
   /** Medal colours on paper. */
   medalLamplighter: '#a8530f',
   medalGlow: '#7a5a12',
@@ -806,6 +822,20 @@ export const HEAT = {
   fewSolves: 5,
   /** How long the camera takes to come down to the island, or go back up, in ms. */
   cameraMs: 1500,
+} as const;
+
+/** The feed card. */
+export const CARD = {
+  /**
+   * With nothing remembered on this device, the main button waits this long for the server to
+   * say whether the island is already solved, so "Light the lanterns" never flashes first.
+   */
+  holdMs: 450,
+  /** The countdown to the next island is redrawn this often. */
+  tickMs: 30_000,
+  /** Today's island outline: canvas size in CSS pixels. */
+  outlineWidth: 92,
+  outlineHeight: 62,
 } as const;
 
 /** Tonight's board and the all-time board. */

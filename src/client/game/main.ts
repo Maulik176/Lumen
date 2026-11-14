@@ -29,6 +29,7 @@ import {
   type PlayStep,
 } from '../../shared/play';
 import { puzzleFromText } from '../../shared/puzzle-text';
+import { rememberSolved } from '../card-cache';
 import { createSound, type Sound } from './audio';
 import { createGhostHand } from './hand';
 import { createJourney, type Journey } from './journey';
@@ -288,6 +289,7 @@ function mountIsland(
     journey.locked(tonight ? 'replay' : 'archive');
     apply(lockIn(state));
     if (tonight) store(HINTS_KEY);
+    if (tonight && outcome.ranked) rememberSolved(island.day, outcome);
     hud.quiet(true);
     layout();
     sound.nightPad();
@@ -458,6 +460,7 @@ function mountIsland(
     hud.quiet(true);
     hud.showResult(me.result);
     if (me.shared) hud.setShare('done');
+    rememberSolved(island.day, me.result);
   } else {
     view.sync(state);
     hud.update(state);

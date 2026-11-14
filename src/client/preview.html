@@ -7,14 +7,20 @@
     <link rel="stylesheet" type="text/css" href="preview.css" />
   </head>
   <body>
-    <main class="card">
+    <main class="card" id="card">
+      <img class="hero" id="hero" alt="" decoding="async" />
+      <div class="scrim"></div>
       <p class="kicker" id="kicker">Lumen</p>
-      <h1 class="name" id="name"></h1>
-      <p class="line" id="line"></p>
-      <p class="goal" id="goal"></p>
-      <button class="play" id="play" type="button"></button>
-      <button class="how" id="how" type="button"></button>
-      <p class="par" id="par"></p>
+      <canvas class="outline" id="outline" role="img"></canvas>
+      <div class="foot">
+        <h1 class="name" id="name"></h1>
+        <p class="line" id="line"></p>
+        <div class="actions">
+          <button class="play" id="play" type="button"></button>
+          <button class="how" id="how" type="button"></button>
+        </div>
+        <p class="crowd" id="crowd"></p>
+      </div>
     </main>
     <script type="module" src="preview.ts"></script>
   </body>

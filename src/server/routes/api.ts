@@ -6,6 +6,7 @@ import {
   toPublicIsland,
   type IslandResponse,
   type BoardResponse,
+  type CardResponse,
   type HeatResponse,
   type LockInResponse,
   type PastResponse,
@@ -267,4 +268,38 @@ api.post('/share', async (c) => {
     await releaseShare(store, player, island.day).catch(() => undefined);
     return c.json<ShareResponse>({ ok: false, reason: 'failed' });
   }
+});
+
+const MS_PER_DAY = 86_400_000;
+
+/** For the feed card, after it has painted from the post's own data. Small and quick. */
+api.get('/card', async (c) => {
+  const fromQuery = Number(c.req.query('day'));
+  const day = requestedDay(Number.isInteger(fromQuery) ? fromQuery : undefined);
+  const island = islandForDay(day);
+  if (island === undefined) return c.json({ ok: false }, 404);
+  const now = Date.now();
+  const [me, count] = await Promise.all([
+    playerState(store, await whoIsAsking(), day),
+    skyCount(store, day),
+  ]);
+  return c.json<CardResponse>({
+    ok: true,
+    post: toPostData(island),
+    skyCount: count,
+    nextInMs:
+      currentDay(now, lastDay()) === day
+        ? MS_PER_DAY - (now % MS_PER_DAY)
+        : null,
+    streak: me.streak,
+    result:
+      me.result === null
+        ? null
+        : {
+            pieces: me.result.pieces,
+            par: me.result.par,
+            rank: me.result.rank,
+            streak: me.result.streak,
+          },
+  });
 });

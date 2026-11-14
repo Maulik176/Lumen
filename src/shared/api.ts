@@ -27,6 +27,29 @@ export type PostData = {
   weekday: Weekday;
   par: number;
   lanterns: number;
+  /** The island's rows (see puzzle-text.ts), so the card can draw its outline. Newer posts only. */
+  rows?: string[];
+};
+
+/** What the feed card asks for after it has painted: the crowd, and the player's own night. */
+export type CardResponse = {
+  ok: true;
+  /** The post's own data again, for a card whose post carried none. */
+  post: PostData;
+  /** Ranked solves of this island so far. */
+  skyCount: number;
+  /** Milliseconds until the next island, or null when this post is not today's. */
+  nextInMs: number | null;
+  streak: number;
+  /** The player's ranked result here, if they have locked in. */
+  result: CardResult | null;
+};
+
+export type CardResult = {
+  pieces: number;
+  par: number;
+  rank: number;
+  streak: number;
 };
 
 /** One lantern in tonight's sky. Short names keep realtime messages and Redis small. */
@@ -200,6 +223,7 @@ export function toPostData(island: DailyIsland): PostData {
     weekday: island.weekday,
     par: island.par,
     lanterns,
+    rows: island.rows,
   };
 }
 
@@ -225,6 +249,13 @@ export function readPostData(value: unknown): PostData | null {
   if (typeof day !== 'number' || !Number.isInteger(day) || day < 1) return null;
   if (typeof name !== 'string' || weekday === undefined) return null;
   if (typeof par !== 'number' || typeof lanterns !== 'number') return null;
+  const rows = value['rows'];
+  if (
+    Array.isArray(rows) &&
+    rows.length > 0 &&
+    rows.every((row): row is string => typeof row === 'string')
+  )
+    return { day, name, weekday, par, lanterns, rows };
   return { day, name, weekday, par, lanterns };
 }
 

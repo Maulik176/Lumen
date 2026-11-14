@@ -1,0 +1,16 @@
+{
+  "name": "Yellow Dusk",
+  "note": "Not a daily island. The feed card's hero images are rendered from it (npm run hero), so no day's answer is ever shown on a card. Answer: prism at (3,3), \"/\" at (6,3), \"/\" at (3,0).",
+  "par": 3,
+  "inventory": { "mirrors": 3, "prisms": 1 },
+  "rows": [
+    "T.....Y",
+    ".#.~.T.",
+    "..T....",
+    ">...~~.",
+    ".T...#.",
+    "....~.T",
+    "#..B..T"
+  ],
+  "taps": [[3, 3, 3], [6, 3, 1], [3, 0, 1]]
+}

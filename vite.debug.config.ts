@@ -11,7 +11,9 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
 import {
+  toPostData,
   toPublicIsland,
+  type CardResponse,
   type BoardResponse,
   type HeatResponse,
   type IslandResponse,
@@ -21,7 +23,12 @@ import {
   type SkyResponse,
 } from './src/shared/api';
 import type { Placement } from './src/shared/types';
-import { puzzleOfDaily, readDailyFile } from './src/shared/daily';
+import { BIOMES } from './src/shared/config';
+import {
+  puzzleOfDaily,
+  readDailyFile,
+  type DailyIsland,
+} from './src/shared/daily';
 import { medalFor, scoreSubmission } from './src/shared/validate';
 
 function localApi(): Plugin {
@@ -34,6 +41,31 @@ function localApi(): Plugin {
         )
       )
     );
+  const heroIsland = (day: number): DailyIsland | undefined => {
+    const first = load().days[0];
+    const hero: unknown = JSON.parse(
+      readFileSync(join(import.meta.dirname, 'content', 'hero.json'), 'utf8')
+    );
+    if (first === undefined || typeof hero !== 'object' || hero === null)
+      return undefined;
+    const rows = 'rows' in hero ? hero.rows : undefined;
+    if (
+      !Array.isArray(rows) ||
+      !rows.every((row): row is string => typeof row === 'string')
+    )
+      return undefined;
+    return {
+      ...first,
+      day,
+      biome: BIOMES[day - 900] ?? 'moss',
+      name: 'Yellow Dusk',
+      rows,
+      inventory: { mirrors: 3, prisms: 1 },
+      sourceColours: [],
+      par: 3,
+      solution: [],
+    };
+  };
   /** Lock ins remembered by day, standing in for Redis. */
   const solved = new Map<
     number,
@@ -42,6 +74,36 @@ function localApi(): Plugin {
   return {
     name: 'lumen-local-api',
     configureServer(server) {
+      server.middlewares.use('/api/card', (request, response) => {
+        const day = Number(
+          new URL(request.url ?? '', 'http://localhost').searchParams.get(
+            'day'
+          ) ?? '1'
+        );
+        const island = load().days[day - 1];
+        const result = solved.get(day)?.result;
+        const body: CardResponse | { ok: false } =
+          island === undefined
+            ? { ok: false }
+            : {
+                ok: true,
+                post: toPostData(island),
+                skyCount: 140,
+                nextInMs: 5 * 3_600_000 + 12 * 60_000,
+                streak: result?.streak ?? 0,
+                result:
+                  result === undefined
+                    ? null
+                    : {
+                        pieces: result.pieces,
+                        par: result.par,
+                        rank: result.rank,
+                        streak: result.streak,
+                      },
+              };
+        response.setHeader('content-type', 'application/json');
+        response.end(JSON.stringify(body));
+      });
       server.middlewares.use('/api/forget', (_request, response) => {
         solved.clear();
         response.end('{"ok":true}');
@@ -151,7 +213,11 @@ function localApi(): Plugin {
             'day'
           ) ?? '1'
         );
-        const island = load().days[day - 1];
+        // Days 900 to 904 are the hand-made hero island, one per biome (see scripts/hero.mjs).
+        const island =
+          day >= 900 && day < 900 + BIOMES.length
+            ? heroIsland(day)
+            : load().days[day - 1];
         const body: IslandResponse =
           island === undefined
             ? { ok: false, reason: 'not-found' }
