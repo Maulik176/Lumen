@@ -15,6 +15,7 @@ import {
   readLeaderboard,
   readSky,
   resetPlayer,
+  saveProgress,
   recordStart,
   type Effects,
   type LockInInput,
@@ -558,5 +559,23 @@ describe('share to comments', () => {
     expect((await playerState(store, ana, 1)).shared).toBe(true);
     await releaseShare(store, { userId: 't2_ana' }, 1);
     expect((await claimShare(store, ana, 1)).ok).toBe(true);
+  });
+});
+
+describe('an unfinished board', () => {
+  it('comes back on reopening, and is gone after Lock in', async () => {
+    const { store, effects, input } = setup();
+    const today = island(1);
+    const some = today.solution.slice(0, 1);
+    expect(await saveProgress(store, ana, today, some)).toBe(true);
+    expect((await playerState(store, ana, 1, today)).progress).toEqual(some);
+    expect(await saveProgress(store, ana, today, [{ x: -1, y: 0 }])).toBe(
+      false
+    );
+    expect(await saveProgress(store, null, today, some)).toBe(false);
+    await recordStart(store, ana, 1, DAY_ONE);
+    await lockIn(store, ana, input(1, DAY_ONE + HOUR), effects);
+    expect((await playerState(store, ana, 1, today)).progress).toBeNull();
+    expect(await saveProgress(store, ana, today, some)).toBe(false);
   });
 });

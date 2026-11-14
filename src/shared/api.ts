@@ -82,6 +82,8 @@ export type PlayerState = {
   placements: Placement[] | null;
   /** True once they have shared that result in the comments. */
   shared: boolean;
+  /** An unfinished board they left on this island, to pick up again. Null once locked in. */
+  progress: Placement[] | null;
 };
 
 export type ShareResponse =

@@ -35,6 +35,7 @@ import {
   rankedOpen,
   readSky,
   recordStart,
+  saveProgress,
   skyCount,
   type Effects,
   type Player,
@@ -312,4 +313,19 @@ api.get('/card', async (c) => {
             streak: me.result.streak,
           },
   });
+});
+
+/** The unfinished board, saved a moment after each change. Only for the post's own island. */
+api.post('/progress', async (c) => {
+  const fields = await body(c.req);
+  const island = islandForDay(requestedDay(fields['day']));
+  if (island === undefined || postDay() !== island.day)
+    return c.json({ ok: false });
+  const saved = await saveProgress(
+    store,
+    await whoIsAsking(),
+    island,
+    fields['placements']
+  ).catch(() => false);
+  return c.json({ ok: saved });
 });

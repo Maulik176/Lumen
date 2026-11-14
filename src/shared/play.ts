@@ -269,6 +269,18 @@ export function lockedWith(puzzle: Puzzle, placements: Placement[]): PlayState {
   };
 }
 
+/** A board picked up where it was left: the pieces back in place, still free to change. */
+export function resumeWith(puzzle: Puzzle, placements: Placement[]): PlayState {
+  const fresh = startPlay(puzzle);
+  if (placements.length === 0) return fresh;
+  return settle(
+    { ...fresh, everPlaced: true, everTurned: true },
+    placements,
+    [],
+    false
+  ).state;
+}
+
 /** Which first-time hint to show, if any. */
 export function hintFor(state: PlayState): 'place' | 'turn' | 'prism' | null {
   if (state.phase !== 'playing' || state.light.solved) return null;

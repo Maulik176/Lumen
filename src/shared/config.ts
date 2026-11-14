@@ -263,6 +263,8 @@ export const VIEW = {
    * or not a line is showing: the island must never move when a hint comes or goes.
    */
   hintRoomPx: 36,
+  /** An unfinished board is saved this long after the last change, in ms. */
+  saveAfterMs: 900,
   /**
    * A view at least this wide and this much wider than tall (a laptop) gets the landscape
    * layout: bars centred at `wideBarPx`, and the result card and lists in a column on the right,
@@ -875,6 +877,8 @@ export const SKY = {
 export const KEEP = {
   startSeconds: 2 * 86_400,
   submissionSeconds: 45 * 86_400,
+  /** An unfinished board is kept this long, so a post reopened the same night picks up where it was. */
+  progressSeconds: 2 * 86_400,
   skySeconds: 45 * 86_400,
 } as const;
 

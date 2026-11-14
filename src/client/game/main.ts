@@ -15,13 +15,14 @@ import {
   type SkyResponse,
 } from '../../shared/api';
 import type { Biome } from '../../shared/calendar';
-import { BIOMES, COPY } from '../../shared/config';
+import { BIOMES, COPY, VIEW } from '../../shared/config';
 import {
   hintFor,
   keepRefining,
   lockedWith,
   lockIn,
   reset,
+  resumeWith,
   snapTile,
   startPlay,
   tapTile,
@@ -30,6 +31,7 @@ import {
   type PlayStep,
 } from '../../shared/play';
 import { puzzleFromText } from '../../shared/puzzle-text';
+import { validatePlacements } from '../../shared/validate';
 import { rememberSolved } from '../card-cache';
 import { createSound, type Sound } from './audio';
 import { createGhostHand } from './hand';
@@ -76,6 +78,20 @@ function forget(key: string): void {
     localStorage.removeItem(key);
   } catch {
     // Nothing was stored.
+  }
+}
+
+const progressKey = (day: number): string => `lumen.progress.${day}`;
+
+/** The unfinished board this device remembers for a day, unchecked. */
+function localProgress(day: number): unknown {
+  try {
+    const value: unknown = JSON.parse(
+      localStorage.getItem(progressKey(day)) ?? 'null'
+    );
+    return value;
+  } catch {
+    return null;
   }
 }
 
@@ -271,6 +287,36 @@ function mountIsland(
     hud.update(state);
     layout();
     pointHand();
+    saveSoon();
+  };
+
+  // An unfinished board on tonight's island is saved a moment after each change, and at once
+  // when the page is hidden, so reopening the post picks up exactly where it was.
+  let saveTimer = 0;
+  const saveNow = (): void => {
+    window.clearTimeout(saveTimer);
+    saveTimer = 0;
+    if (!tonight || state.phase === 'locked' || me.result !== null) return;
+    // Kept on the device too: the only copy a signed-out player has.
+    try {
+      localStorage.setItem(
+        progressKey(island.day),
+        JSON.stringify(state.placements)
+      );
+    } catch {
+      // The server's copy is enough.
+    }
+    void fetch('/api/progress', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      keepalive: true,
+      body: JSON.stringify({ day: island.day, placements: state.placements }),
+    }).catch(() => undefined);
+  };
+  const saveSoon = (): void => {
+    if (!tonight || state.phase === 'locked') return;
+    window.clearTimeout(saveTimer);
+    saveTimer = window.setTimeout(saveNow, VIEW.saveAfterMs);
   };
 
   const commit = async (): Promise<void> => {
@@ -295,6 +341,7 @@ function mountIsland(
     apply(lockIn(state));
     if (tonight) store(HINTS_KEY);
     if (tonight && outcome.ranked) rememberSolved(island.day, outcome);
+    if (tonight) forget(progressKey(island.day));
     hud.quiet(true);
     layout();
     sound.nightPad();
@@ -397,7 +444,9 @@ function mountIsland(
   window.addEventListener('resize', layout);
   // Leaving before Lock in ends the journey as abandoned.
   const hidden = (): void => {
-    if (document.visibilityState === 'hidden' && !paused) journey.leave();
+    if (document.visibilityState !== 'hidden') return;
+    if (saveTimer !== 0) saveNow();
+    if (!paused) journey.leave();
   };
   document.addEventListener('visibilitychange', hidden);
 
@@ -448,6 +497,9 @@ function mountIsland(
     if (me.shared) hud.setShare('done');
     rememberSolved(island.day, me.result);
   } else {
+    const left = tonight ? (me.progress ?? localProgress(island.day)) : null;
+    const check = left === null ? null : validatePlacements(puzzle, left);
+    if (check?.ok === true) state = resumeWith(puzzle, check.placements);
     view.sync(state);
     hud.update(state);
   }

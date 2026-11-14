@@ -177,12 +177,16 @@ export async function playerState(
       result: null,
       placements: null,
       shared: false,
+      progress: null,
     };
   }
-  const [fields, stored, shared] = await Promise.all([
+  const [fields, stored, shared, left] = await Promise.all([
     store.hGetAll(KEYS.user(player.userId)),
     store.get(KEYS.submission(day, player.userId)),
     store.get(KEYS.shared(day, player.userId)),
+    island === undefined
+      ? undefined
+      : store.get(KEYS.progress(day, player.userId)),
   ]);
   const streak = readStreak(fields);
   return {
@@ -194,6 +198,10 @@ export async function playerState(
     result: readResult(stored),
     placements: island === undefined ? null : readPlacements(stored, island),
     shared: shared !== undefined,
+    progress:
+      island === undefined || stored !== undefined || left === undefined
+        ? null
+        : readPlacements(`{"placements":${left}}`, island),
   };
 }
 
@@ -392,6 +400,8 @@ export async function lockIn(
       username: player.username,
     }),
     store.zAdd(KEYS.sky(island.day), JSON.stringify(lantern), nowMs),
+    // The island is finished: there is no unfinished board to come back to.
+    store.del(KEYS.progress(island.day, player.userId)),
   ];
   if (lantern.a !== '')
     writes.push(store.hSet(KEYS.avatars, { [player.username]: lantern.a }));
@@ -671,4 +681,27 @@ export async function releaseShare(
   day: number
 ): Promise<void> {
   await store.del(KEYS.shared(day, player.userId));
+}
+
+/**
+ * Remember an unfinished board, so reopening the post restores it. Only pieces that could
+ * really be on the island are kept, and nothing is kept once the player has locked in.
+ */
+export async function saveProgress(
+  store: Store,
+  player: Player,
+  island: DailyIsland,
+  placements: unknown
+): Promise<boolean> {
+  if (player === null) return false;
+  const check = validatePlacements(puzzleOfDaily(island), placements);
+  if (!check.ok) return false;
+  const done = await store.get(KEYS.submission(island.day, player.userId));
+  if (done !== undefined) return false;
+  await store.set(
+    KEYS.progress(island.day, player.userId),
+    JSON.stringify(check.placements),
+    KEEP.progressSeconds
+  );
+  return true;
 }

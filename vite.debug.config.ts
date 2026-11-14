@@ -29,7 +29,11 @@ import {
   readDailyFile,
   type DailyIsland,
 } from './src/shared/daily';
-import { medalFor, scoreSubmission } from './src/shared/validate';
+import {
+  medalFor,
+  scoreSubmission,
+  validatePlacements,
+} from './src/shared/validate';
 
 function localApi(): Plugin {
   const load = () =>
@@ -71,6 +75,8 @@ function localApi(): Plugin {
     number,
     { result: LockInResult; placements: Placement[] }
   >();
+  /** Unfinished boards by day. */
+  const progress = new Map<number, Placement[]>();
   return {
     name: 'lumen-local-api',
     configureServer(server) {
@@ -104,8 +110,37 @@ function localApi(): Plugin {
         response.setHeader('content-type', 'application/json');
         response.end(JSON.stringify(body));
       });
+      server.middlewares.use('/api/progress', (request, response) => {
+        let text = '';
+        request.on('data', (chunk: Buffer) => {
+          text += chunk.toString();
+        });
+        request.on('end', () => {
+          try {
+            const parsed: unknown = JSON.parse(text);
+            const fields: Record<string, unknown> =
+              typeof parsed === 'object' && parsed !== null
+                ? { ...parsed }
+                : {};
+            const island = load().days[Number(fields['day']) - 1];
+            const check =
+              island === undefined
+                ? undefined
+                : validatePlacements(
+                    puzzleOfDaily(island),
+                    fields['placements']
+                  );
+            if (island !== undefined && check?.ok === true)
+              progress.set(island.day, check.placements);
+          } catch {
+            // Nothing saved.
+          }
+          response.end('{"ok":true}');
+        });
+      });
       server.middlewares.use('/api/forget', (_request, response) => {
         solved.clear();
+        progress.clear();
         response.end('{"ok":true}');
       });
       // Made-up test names, as in the sky stand-in. The player is 'you'.
@@ -240,6 +275,9 @@ function localApi(): Plugin {
                   result: solved.get(day)?.result ?? null,
                   placements: solved.get(day)?.placements ?? null,
                   shared: false,
+                  progress: solved.has(day)
+                    ? null
+                    : (progress.get(day) ?? null),
                 },
                 rankedOpen: false,
                 skyCount: 140,

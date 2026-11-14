@@ -8,6 +8,7 @@ import {
   lockedWith,
   piecesLeft,
   reset,
+  resumeWith,
   snapTile,
   startPlay,
   tapTile,
@@ -337,5 +338,19 @@ describe('snapTile', () => {
     expect(snapTile(puzzle, -0.3, 2.5)).toBeNull();
     expect(snapTile(puzzle, 0.5, -0.3)).toEqual({ x: 0, y: 0 });
     expect(snapTile(puzzle, 0.5, -0.8)).toBeNull();
+  });
+});
+
+describe('resumeWith', () => {
+  it('puts the pieces back, lit as they were, and still playable', () => {
+    const puzzle = island();
+    const state = resumeWith(puzzle, [
+      { x: 3, y: 2, piece: { kind: 'mirror', orientation: 'slash' } },
+    ]);
+    expect(state.light.solved).toBe(true);
+    expect(state.phase).toBe('prompt');
+    expect(canLockIn(state)).toBe(true);
+    expect(undo(state).state).toBe(state);
+    expect(resumeWith(puzzle, []).phase).toBe('playing');
   });
 });
