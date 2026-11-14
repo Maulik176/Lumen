@@ -95,6 +95,8 @@ export const KEYS = {
   user: (userId: string) => `user:${userId}`,
   /** Set once a player has shared a day's result: the counter is the one-share lock. */
   shared: (day: number, userId: string) => `shared:${day}:${userId}`,
+  /** Set for a few minutes when a moderator arms trailer mode for themselves. */
+  trailer: (userId: string) => `trailer:${userId}`,
   /** Hash: username -> snoovatar address, for drawing boards without one read per row. */
   avatars: 'avatars',
   postForDay: (day: number) => `post:day:${day}`,

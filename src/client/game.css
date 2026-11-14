@@ -1067,3 +1067,49 @@ button.result-time:enabled {
   top: 40%;
   text-align: center;
 }
+
+/* Trailer mode: nothing on screen but the island, then the title. */
+.trailer-begin {
+  position: absolute;
+  left: 50%;
+  bottom: 12%;
+  margin: 0;
+  padding: 6px 16px;
+  border-radius: var(--radius);
+  background: var(--veil);
+  color: var(--light);
+  transform: translateX(-50%);
+}
+
+.trailer-title {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  color: var(--light);
+  background: radial-gradient(
+    closest-side,
+    rgba(12, 10, 36, 0.55),
+    transparent
+  );
+  opacity: 0;
+  transition: opacity 2200ms ease;
+}
+
+.trailer-title.shown {
+  opacity: 1;
+}
+
+.trailer-name {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 64px;
+  line-height: 1;
+}
+
+.trailer-line {
+  margin: 10px 0 0;
+  font-size: 17px;
+}

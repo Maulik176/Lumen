@@ -40,6 +40,7 @@ import { openArchipelago } from './archipelago';
 import type { Rider } from './release';
 import { createIslandView } from './scene';
 import { onTap } from './taps';
+import { runTrailer } from './trailer';
 import { runTutorial } from './tutorial';
 
 const HINTS_KEY = 'lumen.hints.done';
@@ -81,10 +82,12 @@ type Loaded = Extract<IslandResponse, { ok: true }>;
 
 async function loadIsland(day: string | null): Promise<Loaded | null> {
   try {
+    // ?trailer=1 is honoured only by the local test server; Reddit's decides for itself.
+    const trailer = query.get('trailer') === '1' ? '&trailer=1' : '';
     const response = await fetch(
       day === null
         ? '/api/island'
-        : `/api/island?day=${encodeURIComponent(day)}`
+        : `/api/island?day=${encodeURIComponent(day)}${trailer}`
     );
     const body: IslandResponse = await response.json();
     return body.ok ? body : null;
@@ -545,6 +548,26 @@ async function start(): Promise<void> {
     query.get('calm') === '1' ||
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const shared: Shared = { rider, sound: createSound(), calm };
+
+  // Trailer mode, armed by a moderator from the menu: the island plays itself, once.
+  if (loaded.trailer !== undefined) {
+    const lanterns: SkyLantern[] = [];
+    await joinSky(
+      island.day,
+      false,
+      null,
+      (list) => lanterns.push(...list),
+      () => undefined
+    );
+    await runTrailer(canvas, root, island, loaded.trailer.solution, {
+      biome: island.biome,
+      calm,
+      rider,
+      sound: shared.sound,
+      sky: lanterns,
+    });
+    return;
+  }
 
   // First visit: three small islands teach the light before today's island appears.
   // ?tutorial=1 forces it and ?tutorial=0 skips it, for testing. The feed card's "How to play"

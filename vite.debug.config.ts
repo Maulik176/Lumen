@@ -217,11 +217,9 @@ function localApi(): Plugin {
         response.end(JSON.stringify(body));
       });
       server.middlewares.use('/api/island', (request, response) => {
-        const day = Number(
-          new URL(request.url ?? '', 'http://localhost').searchParams.get(
-            'day'
-          ) ?? '1'
-        );
+        const asked = new URL(request.url ?? '', 'http://localhost')
+          .searchParams;
+        const day = Number(asked.get('day') ?? '1');
         // Days 900 to 904 are the hand-made hero island, one per biome (see scripts/hero.mjs).
         const island =
           day >= 900 && day < 900 + BIOMES.length
@@ -245,6 +243,9 @@ function localApi(): Plugin {
                 },
                 rankedOpen: false,
                 skyCount: 140,
+                ...(asked.get('trailer') === '1'
+                  ? { trailer: { solution: island.solution } }
+                  : {}),
               };
         response.setHeader('content-type', 'application/json');
         response.end(JSON.stringify(body));

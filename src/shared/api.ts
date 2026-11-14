@@ -165,6 +165,11 @@ export type IslandResponse =
       /** True when a solve of this island today would count for boards and streaks. */
       rankedOpen: boolean;
       skyCount: number;
+      /**
+       * Trailer mode: present only for a moderator who has just armed it from the menu. It
+       * carries the island's answer, so it is never sent to anyone else.
+       */
+      trailer?: { solution: Placement[] };
     }
   | { ok: false; reason: 'not-found' };
 

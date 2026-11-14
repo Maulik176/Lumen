@@ -1,9 +1,9 @@
 import { Hono } from 'hono';
 import type { UiResponse } from '@devvit/web/shared';
 import { context, reddit } from '@devvit/web/server';
-import { DEV } from '../../shared/config';
+import { DEV, TRAILER } from '../../shared/config';
 import { currentDay, resetPlayer } from '../core/game';
-import { redisStore } from '../core/store';
+import { KEYS, redisStore } from '../core/store';
 import { lastDay } from '../core/content';
 import { ensureDailyPost } from '../core/post';
 
@@ -79,4 +79,19 @@ menu.post('/reset-me', async (c) => {
     console.error(`Error resetting progress: ${String(error)}`);
     return c.json<UiResponse>({ showToast: 'Could not reset' }, 200);
   }
+});
+
+/**
+ * Trailer mode for the demo video. The menu item is for moderators only; it arms the trailer
+ * for the moderator who tapped it, and the next time they open the game it plays once.
+ */
+menu.post('/trailer', async (c) => {
+  const { userId } = context;
+  if (userId === undefined)
+    return c.json<UiResponse>({ showToast: 'Sign in first' }, 200);
+  await redisStore.set(KEYS.trailer(userId), '1', TRAILER.armedSeconds);
+  return c.json<UiResponse>(
+    { showToast: 'Trailer armed. Open the game within 10 minutes.' },
+    200
+  );
 });

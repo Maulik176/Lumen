@@ -43,6 +43,13 @@
         "location": "subreddit",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/reset-me"
+      },
+      {
+        "label": "Play the Lumen trailer (once)",
+        "description": "For the demo video: the next time you open the game it plays itself",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/trailer"
       }
     ]
   },

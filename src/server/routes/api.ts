@@ -39,7 +39,7 @@ import {
   type Effects,
   type Player,
 } from '../core/game';
-import { redisStore as store } from '../core/store';
+import { KEYS, redisStore as store } from '../core/store';
 
 export const api = new Hono();
 
@@ -116,12 +116,19 @@ api.get('/island', async (c) => {
     postDay() === day &&
     rankedOpen(day, Date.now(), lastDay(), undefined) &&
     me.result === null;
+  // Trailer mode plays once for the moderator who armed it; the flag is used up here.
+  let armed = false;
+  if (player !== null) {
+    armed = (await store.get(KEYS.trailer(player.userId))) !== undefined;
+    if (armed) await store.del(KEYS.trailer(player.userId));
+  }
   return c.json<IslandResponse>({
     ok: true,
     island: toPublicIsland(island),
     me,
     rankedOpen: open && me.loggedIn,
     skyCount: count,
+    ...(armed ? { trailer: { solution: island.solution } } : {}),
   });
 });
 

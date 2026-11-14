@@ -141,6 +141,10 @@ export const COPY = {
   playAgain: 'Play again for practice',
   /** Result card: opens the list of earlier islands, where practice lives. */
   explore: 'Explore past islands',
+  /** Trailer mode (moderators only, for the demo video). */
+  trailerStart: 'Tap to begin',
+  trailerTitle: 'Lumen',
+  trailerLine: 'A new island every night.',
   /** The Archipelago: the night map of past islands. */
   mapTitle: 'Archipelago',
   mapHint: 'Islands glow by how many lit them',
@@ -924,6 +928,21 @@ export const MAP = {
   /** Stars per 700 px of map height, and one slow rise and fall of an island in ms. */
   starsPerScreen: 150,
   floatMs: 6000,
+} as const;
+
+/** Trailer mode: one unattended take for the demo video. Times in milliseconds. */
+export const TRAILER = {
+  /** After the first tap: the camera turns once, then the first piece goes down. */
+  rotateAtMs: 900,
+  startMs: 3000,
+  /** From one piece to the next, and between the taps that turn one piece. */
+  stepMs: 800,
+  tapGapMs: 260,
+  /** Held on the lit island before night, and on the sky before the title. */
+  litHoldMs: 1400,
+  skyHoldMs: 4000,
+  /** A moderator who arms the trailer has this many seconds to open the game. */
+  armedSeconds: 600,
 } as const;
 
 /** Developer tools that exist only on the playtest subreddit. */
