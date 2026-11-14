@@ -22,6 +22,7 @@ import {
   lockedWith,
   lockIn,
   reset,
+  snapTile,
   startPlay,
   tapTile,
   undo,
@@ -402,8 +403,10 @@ function mountIsland(
 
   // Sound wakes itself on every tap (finger up, not down: that is what iOS counts as a gesture).
   const stopTaps = onTap(canvas, (clientX, clientY) => {
-    const tile =
+    const point =
       busy || state.phase === 'locked' ? null : view.pick(clientX, clientY);
+    // A near miss still counts: the tap goes to the nearest tile that can take a piece.
+    const tile = point === null ? null : snapTile(puzzle, point.x, point.y);
     if (tile === null) {
       // Not the island: perhaps a lantern in the sky. Its player's name shows for a moment.
       const lantern = view.skyAt(clientX, clientY);

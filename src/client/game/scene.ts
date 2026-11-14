@@ -36,13 +36,7 @@ import type { Biome } from '../../shared/calendar';
 import type { PlayState } from '../../shared/play';
 import type { Puzzle } from '../../shared/types';
 import { createBeams } from './beams';
-import {
-  cameraPosition,
-  easeInOut,
-  fitDistance,
-  tileAt,
-  tileCentre,
-} from './fit';
+import { cameraPosition, easeInOut, fitDistance, tileCentre } from './fit';
 import { createGround, RIM } from './ground';
 import { createKeeper, rays, softDisc, sparkle } from './kit';
 import { createLanterns } from './lanterns';
@@ -80,7 +74,10 @@ export type IslandView = {
   ) => void;
   /** Redraw pieces, light and lanterns from the play state. */
   sync: (state: PlayState) => void;
-  /** The tile under a point on the screen, or null. */
+  /**
+   * Where a point on the screen falls on the island, in tiles from its top left corner
+   * (fractions included, and beyond the edges too), or null when it misses the ground plane.
+   */
   pick: (clientX: number, clientY: number) => { x: number; y: number } | null;
   /** Turn the view a quarter turn. */
   rotate: () => void;
@@ -521,7 +518,7 @@ export function createIslandView(
       );
       raycaster.setFromCamera(pointer, camera);
       if (raycaster.ray.intersectPlane(pickPlane, hit) === null) return null;
-      return tileAt(hit.x, hit.z, width, height);
+      return { x: hit.x + width / 2, y: hit.z + height / 2 };
     },
 
     rotate() {

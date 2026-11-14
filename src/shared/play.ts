@@ -96,6 +96,37 @@ export function isPlaceable(puzzle: Puzzle, x: number, y: number): boolean {
   );
 }
 
+/**
+ * The tile a tap means. `fx`, `fy` are where the tap fell on the island, in tiles from its top
+ * left corner (so 2.5, 0.5 is the middle of tile 2,0). A tap on a usable tile is that tile; a
+ * tap on anything else goes to the nearest usable tile within `RULES.tapSnapTiles`, or nowhere.
+ */
+export function snapTile(
+  puzzle: Puzzle,
+  fx: number,
+  fy: number
+): { x: number; y: number } | null {
+  const hereX = Math.floor(fx);
+  const hereY = Math.floor(fy);
+  if (isPlaceable(puzzle, hereX, hereY)) return { x: hereX, y: hereY };
+  let best: { x: number; y: number } | null = null;
+  let nearest: number = RULES.tapSnapTiles;
+  for (let y = hereY - 1; y <= hereY + 1; y++) {
+    for (let x = hereX - 1; x <= hereX + 1; x++) {
+      if (!isPlaceable(puzzle, x, y)) continue;
+      // Distance from the tap to the tile's nearest edge.
+      const away = Math.hypot(
+        Math.max(x - fx, 0, fx - (x + 1)),
+        Math.max(y - fy, 0, fy - (y + 1))
+      );
+      if (away >= nearest) continue;
+      nearest = away;
+      best = { x, y };
+    }
+  }
+  return best;
+}
+
 /** Apply a new arrangement and work out what the light did. */
 function settle(
   state: PlayState,

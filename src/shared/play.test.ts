@@ -8,6 +8,7 @@ import {
   lockedWith,
   piecesLeft,
   reset,
+  snapTile,
   startPlay,
   tapTile,
   undo,
@@ -316,5 +317,25 @@ describe('lockedWith', () => {
     expect(state.light.solved).toBe(true);
     expect(tapTile(state, 3, 2).state).toBe(state);
     expect(canLockIn(state)).toBe(false);
+  });
+});
+
+describe('snapTile', () => {
+  // Row 1 is ". # . ~ . ." and row 0 has a lantern at x = 3.
+  const puzzle = island();
+  it('keeps a tap that lands on a usable tile', () => {
+    expect(snapTile(puzzle, 0.5, 1.5)).toEqual({ x: 0, y: 1 });
+  });
+  it('moves a tap on a rock or lantern to the nearest usable tile within reach', () => {
+    expect(snapTile(puzzle, 1.2, 1.5)).toEqual({ x: 0, y: 1 });
+    expect(snapTile(puzzle, 1.8, 1.5)).toEqual({ x: 2, y: 1 });
+    expect(snapTile(puzzle, 3.1, 0.5)).toEqual({ x: 2, y: 0 });
+    expect(snapTile(puzzle, 3.5, 0.8)).toBeNull();
+    expect(snapTile(puzzle, 1.5, 1.5)).toBeNull();
+  });
+  it('takes a tap just off the edge, and ignores one far off', () => {
+    expect(snapTile(puzzle, -0.3, 2.5)).toBeNull();
+    expect(snapTile(puzzle, 0.5, -0.3)).toEqual({ x: 0, y: 0 });
+    expect(snapTile(puzzle, 0.5, -0.8)).toBeNull();
   });
 });

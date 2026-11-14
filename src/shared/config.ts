@@ -55,6 +55,12 @@ export const SCORING = {
 
 export const RULES = {
   /**
+   * A tap that lands on a tile nothing can be done with (rock, water, a lantern, or just off the
+   * island's edge) goes to the nearest usable tile if one is within this many tiles. On a 360 px
+   * phone an 8x8 island's tiles are about 36 px wide; this makes them easier to hit.
+   */
+  tapSnapTiles: 0.45,
+  /**
    * false (decided Nov 12, PROMPT section 7, A1): lighting every lantern locks nothing. The
    * player sees the "all lit" line and chooses Lock in or Keep refining. Lock in is the single
    * ranked submission and starts nightfall. The timer runs until Lock in.
@@ -95,12 +101,12 @@ export const COPY = {
   /** First play only: shown after the first piece, until a piece is turned. */
   hintTurn: 'Tap it again to turn it',
   /** First play only, on days with a prism: shown once a mirror has been turned. */
-  hintPrism: 'A third tap makes a prism: it splits white light in three',
+  hintPrism: 'A third tap makes a prism',
   /** Tutorial: the three small islands a first-time player meets. Title, then one hint each. */
   tutorialTitle: 'First light',
   tutorialMirror: 'Bend the light into the lantern',
   tutorialTurn: 'Tap it again to turn it',
-  tutorialPrism: 'A third tap makes a prism. It splits white light',
+  tutorialPrism: 'A third tap makes a prism: it splits light',
   tutorialSkip: 'Skip',
   /** Shown briefly when the player taps empty grass with nothing left to place. */
   noPiecesLeft: 'No pieces left. Tap one to take it back.',
@@ -252,6 +258,11 @@ export const VIEW = {
   resultDelayMs: 900,
   /** How long "No pieces left" stays on screen. */
   noticeMs: 2200,
+  /**
+   * Room always kept under the top bar for the one-line hint or notice, in CSS pixels, whether
+   * or not a line is showing: the island must never move when a hint comes or goes.
+   */
+  hintRoomPx: 36,
   /**
    * A view at least this wide and this much wider than tall (a laptop) gets the landscape
    * layout: bars centred at `wideBarPx`, and the result card and lists in a column on the right,

@@ -3,8 +3,8 @@
  * The sun pulses, the light travels and stops short, the lantern waits, and a ghost hand taps
  * the tile that matters. Skippable at any moment.
  */
-import { COPY, ONBOARD, UI } from '../../shared/config';
-import { startPlay, tapTile } from '../../shared/play';
+import { COPY, ONBOARD, UI, VIEW } from '../../shared/config';
+import { snapTile, startPlay, tapTile } from '../../shared/play';
 import { puzzleFromText } from '../../shared/puzzle-text';
 import { TUTORIAL, type TutorialHint } from '../../shared/tutorial';
 import type { Sound } from './audio';
@@ -91,7 +91,7 @@ export function runTutorial(
         view.resize(
           window.innerWidth,
           window.innerHeight,
-          bar.offsetHeight + line.offsetHeight + UI.gapPx * 3,
+          bar.offsetHeight + VIEW.hintRoomPx + UI.gapPx * 3,
           UI.gapPx * 2
         );
       };
@@ -110,7 +110,8 @@ export function runTutorial(
 
       const stopTaps = onTap(canvas, (clientX, clientY) => {
         if (done) return;
-        const tile = view.pick(clientX, clientY);
+        const point = view.pick(clientX, clientY);
+        const tile = point === null ? null : snapTile(puzzle, point.x, point.y);
         // Only the tile the lesson is about answers, so nothing can go wrong in ten seconds.
         if (tile === null || tile.x !== step.tap.x || tile.y !== step.tap.y)
           return;

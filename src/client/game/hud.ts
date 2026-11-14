@@ -494,11 +494,9 @@ export function createHud(
       if (resultShown)
         return { top: gap, bottom: result.offsetHeight + gap * 2, right: 0 };
       if (hushed) return { top: gap, bottom: gap, right: 0 };
-      const lineRoom = line.classList.contains('visible')
-        ? line.offsetHeight + gap
-        : gap;
+      // The hint line's room is kept whether a line shows or not, so the island never shifts.
       return {
-        top: top.offsetHeight + gap + lineRoom,
+        top: top.offsetHeight + gap * 2 + VIEW.hintRoomPx,
         bottom:
           (promptShown ? prompt.offsetHeight : bottom.offsetHeight) + gap * 2,
         right: 0,
