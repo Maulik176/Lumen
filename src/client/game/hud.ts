@@ -33,6 +33,8 @@ export type HudActions = {
   board?: () => void;
   /** Result card: where everyone put their pieces. Only after a solve that allows it. */
   crowd?: () => void;
+  /** Result card, ranked and signed in: post the result as the player's own comment. */
+  share?: () => void;
 };
 
 export type Hud = {
@@ -52,6 +54,8 @@ export type Hud = {
   /** A list in the result card's place; `hideSheet` returns to the card. */
   showSheet: (content: HTMLElement) => void;
   hideSheet: () => void;
+  /** The share button's state: ready, posting, posted, or failed (ready again, with a note). */
+  setShare: (state: 'idle' | 'busy' | 'done' | 'failed') => void;
   /** The small "You" label on the player's own lantern; null hides it. */
   you: (spot: { x: number; y: number } | null) => void;
   /** A tapped lantern's name, shown beside it for a moment. */
@@ -260,6 +264,8 @@ export function createHud(
   const againButton = button(COPY.playAgain, 'quiet', actions.playAgain);
   const exploreButton = button(COPY.explore, 'quiet', actions.explore);
   const crowdButton = button(COPY.crowd, 'main', actions.crowd);
+  const shareButton = button(COPY.share, 'quiet', actions.share);
+  let footerTimer = 0;
   const backButton = button(COPY.backToTonight, 'quiet', actions.back);
   result.append(
     resultMedal,
@@ -396,7 +402,7 @@ export function createHud(
       // A ranked result is final; anything else can be played again.
       // Tonight's crowd opens after a ranked solve; an earlier night's is open after any solve.
       const shown = outcome.ranked
-        ? [crowdButton, exploreButton]
+        ? [crowdButton, shareButton, exploreButton]
         : backButton !== null
           ? [crowdButton, againButton, backButton]
           : [againButton, exploreButton];
@@ -415,6 +421,23 @@ export function createHud(
     hideResult() {
       resultShown = false;
       root.classList.remove('resulting');
+    },
+
+    setShare(state) {
+      if (shareButton === null) return;
+      shareButton.disabled = state === 'busy' || state === 'done';
+      shareButton.textContent =
+        state === 'busy'
+          ? COPY.sharing
+          : state === 'done'
+            ? COPY.shared
+            : COPY.share;
+      if (state !== 'failed') return;
+      resultFooter.textContent = COPY.shareFailed;
+      window.clearTimeout(footerTimer);
+      footerTimer = window.setTimeout(() => {
+        resultFooter.textContent = COPY.comeBack;
+      }, VIEW.noticeMs * 2);
     },
 
     showSheet(content) {

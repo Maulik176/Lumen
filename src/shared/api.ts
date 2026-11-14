@@ -57,7 +57,16 @@ export type PlayerState = {
   result: LockInResult | null;
   /** The pieces of that result, to show the island as they left it. */
   placements: Placement[] | null;
+  /** True once they have shared that result in the comments. */
+  shared: boolean;
 };
+
+export type ShareResponse =
+  | { ok: true }
+  | {
+      ok: false;
+      reason: 'signed-out' | 'nothing-to-share' | 'already-shared' | 'failed';
+    };
 
 /** One earlier island, for "Explore past islands". */
 export type PastIsland = {

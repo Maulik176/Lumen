@@ -166,6 +166,7 @@ function localApi(): Plugin {
                   tutorialDone: false,
                   result: solved.get(day)?.result ?? null,
                   placements: solved.get(day)?.placements ?? null,
+                  shared: false,
                 },
                 rankedOpen: false,
                 skyCount: 140,

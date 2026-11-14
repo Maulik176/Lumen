@@ -8,18 +8,24 @@ import {
   type HeatResponse,
   type LockInResponse,
   type PastResponse,
+  type ShareResponse,
+  toPostData,
   type SkyResponse,
 } from '../../shared/api';
 import { COPY, PAST } from '../../shared/config';
 import type { DailyIsland } from '../../shared/daily';
 import { flairText } from '../../shared/streak';
 import { islandForDay, lastDay } from '../core/content';
+import { resultsComment } from '../core/post';
+import { shareText } from '../../shared/share';
 import {
   currentDay,
   lockIn,
   markTutorialDone,
   pastIslands,
   playerState,
+  claimShare,
+  releaseShare,
   readAllTime,
   readHeat,
   readLeaderboard,
@@ -215,4 +221,36 @@ api.get('/heatmap', async (c) => {
     parHits: heat.parHits,
     parSolution: heat.parSolution,
   });
+});
+
+/**
+ * Share to comments: the player's ranked result for this post's island, posted as their own
+ * reply under the post's results comment. Only ever on their explicit tap, and only once.
+ */
+api.post('/share', async (c) => {
+  const day = postDay();
+  const postId = context.postId;
+  const player = await whoIsAsking();
+  const island = day === undefined ? undefined : islandForDay(day);
+  if (island === undefined || postId === undefined)
+    return c.json<ShareResponse>({ ok: false, reason: 'nothing-to-share' });
+  const claim = await claimShare(store, player, island.day);
+  if (!claim.ok || player === null)
+    return c.json<ShareResponse>({
+      ok: false,
+      reason: claim.ok ? 'signed-out' : claim.reason,
+    });
+  try {
+    const parent = await resultsComment(postId, island.day);
+    await reddit.submitComment({
+      id: parent,
+      text: shareText(claim.result, toPostData(island).lanterns),
+      runAs: 'USER',
+    });
+    return c.json<ShareResponse>({ ok: true });
+  } catch (error) {
+    console.error(`Share failed: ${String(error)}`);
+    await releaseShare(store, player, island.day).catch(() => undefined);
+    return c.json<ShareResponse>({ ok: false, reason: 'failed' });
+  }
 });

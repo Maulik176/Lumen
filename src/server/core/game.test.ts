@@ -6,8 +6,10 @@ import { islandForDay, lastDay } from './content';
 import {
   lockIn,
   playerState,
+  claimShare,
   pastIslands,
   rankedOpen,
+  releaseShare,
   readAllTime,
   readHeat,
   readLeaderboard,
@@ -532,5 +534,27 @@ describe('where everyone built', () => {
     if (!heat.ok) throw new Error('should be open');
     expect(heat.parSolution).toEqual(island(1).solution);
     expect(heat.tiles.every((count) => count === 0)).toBe(true);
+  });
+});
+
+describe('share to comments', () => {
+  it('needs a ranked result, and takes one share per night unless posting failed', async () => {
+    const { store, effects, input } = setup();
+    expect((await claimShare(store, null, 1)).ok).toBe(false);
+    expect(await claimShare(store, ana, 1)).toEqual({
+      ok: false,
+      reason: 'nothing-to-share',
+    });
+    await recordStart(store, ana, 1, DAY_ONE);
+    await lockIn(store, ana, input(1, DAY_ONE + HOUR), effects);
+    const first = await claimShare(store, ana, 1);
+    expect(first.ok && first.result.ranked).toBe(true);
+    expect(await claimShare(store, ana, 1)).toEqual({
+      ok: false,
+      reason: 'already-shared',
+    });
+    expect((await playerState(store, ana, 1)).shared).toBe(true);
+    await releaseShare(store, { userId: 't2_ana' }, 1);
+    expect((await claimShare(store, ana, 1)).ok).toBe(true);
   });
 });

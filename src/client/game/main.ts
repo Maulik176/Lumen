@@ -10,6 +10,7 @@ import {
   type LockInRequest,
   type LockInResponse,
   type PastResponse,
+  type ShareResponse,
   type SkyLantern,
   type SkyResponse,
 } from '../../shared/api';
@@ -325,6 +326,20 @@ function mountIsland(
     layout();
   };
 
+  const share = async (): Promise<void> => {
+    hud.setShare('busy');
+    let answer: ShareResponse = { ok: false, reason: 'failed' };
+    try {
+      const response = await fetch('/api/share', { method: 'POST' });
+      answer = await response.json();
+    } catch {
+      // Shown as a failure; the button is ready again.
+    }
+    hud.setShare(
+      answer.ok || answer.reason === 'already-shared' ? 'done' : 'failed'
+    );
+  };
+
   const showCrowd = async (): Promise<void> => {
     const heat = await loadHeat(island.day);
     const own = state;
@@ -375,6 +390,8 @@ function mountIsland(
     actions.explore = () => void showPast();
   if (tonight) actions.board = showBoard;
   actions.crowd = () => void showCrowd();
+  // Sharing is the player's own comment: only signed in, and only on its own tap.
+  if (tonight && me.loggedIn) actions.share = () => void share();
 
   const hud = createHud(root, island, actions, options.hints);
   hud.setMuted(sound.isMuted());
@@ -422,6 +439,7 @@ function mountIsland(
     hud.update(state);
     hud.quiet(true);
     hud.showResult(me.result);
+    if (me.shared) hud.setShare('done');
   } else {
     view.sync(state);
     hud.update(state);

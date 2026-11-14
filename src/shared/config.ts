@@ -170,6 +170,16 @@ export const COPY = {
   builderTooComplex: 'Too complex to verify. Try removing a piece.',
   /** Share button failure. Never blocks play. */
   shareFailed: 'Could not post. Try again from the Reddit app.',
+  /** Result card, after a ranked solve: posts the result as the player's own comment. */
+  share: 'Share to comments',
+  /** The app's stickied comment on each post, which shared results reply to. */
+  resultsComment: 'Lumen #{day} results',
+  sharing: 'Posting\u2026',
+  shared: 'Shared in the comments',
+  /** The comment itself. Emoji are allowed here: it is a Reddit comment, not game UI. */
+  shareLine:
+    'Lumen #{day} \u00b7 {lanterns} \u00b7 {pieces} (par {par}) \u00b7 \u23f1 {time}',
+  shareStreak: '{medal} \u00b7 \ud83d\udd25 {streak}-night streak',
 } as const;
 
 /** The camera that looks at the island. Angles in degrees, times in milliseconds. */

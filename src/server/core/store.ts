@@ -93,6 +93,8 @@ export const KEYS = {
   stats: (day: number) => `stats:${day}`,
   sky: (day: number) => `sky:${day}`,
   user: (userId: string) => `user:${userId}`,
+  /** Set once a player has shared a day's result: the counter is the one-share lock. */
+  shared: (day: number, userId: string) => `shared:${day}:${userId}`,
   /** Hash: username -> snoovatar address, for drawing boards without one read per row. */
   avatars: 'avatars',
   postForDay: (day: number) => `post:day:${day}`,

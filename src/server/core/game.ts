@@ -176,11 +176,13 @@ export async function playerState(
       tutorialDone: false,
       result: null,
       placements: null,
+      shared: false,
     };
   }
-  const [fields, stored] = await Promise.all([
+  const [fields, stored, shared] = await Promise.all([
     store.hGetAll(KEYS.user(player.userId)),
     store.get(KEYS.submission(day, player.userId)),
+    store.get(KEYS.shared(day, player.userId)),
   ]);
   const streak = readStreak(fields);
   return {
@@ -191,6 +193,7 @@ export async function playerState(
     tutorialDone: fields['tutorialDone'] === '1',
     result: readResult(stored),
     placements: island === undefined ? null : readPlacements(stored, island),
+    shared: shared !== undefined,
   };
 }
 
@@ -629,4 +632,38 @@ export async function readHeat(
     parHits: Number(stats['parHits'] ?? 0) || 0,
     parSolution: over ? island.solution : null,
   };
+}
+
+export type ShareClaim =
+  | { ok: true; result: LockInResult }
+  | { ok: false; reason: 'signed-out' | 'nothing-to-share' | 'already-shared' };
+
+/**
+ * May this player share their result for this day? Only a ranked result, and only once: the
+ * first caller takes the share. If posting then fails, `releaseShare` gives it back.
+ */
+export async function claimShare(
+  store: Store,
+  player: Player,
+  day: number
+): Promise<ShareClaim> {
+  if (player === null) return { ok: false, reason: 'signed-out' };
+  const result = readResult(
+    await store.get(KEYS.submission(day, player.userId))
+  );
+  if (result === null) return { ok: false, reason: 'nothing-to-share' };
+  const first =
+    (await store.count(
+      KEYS.shared(day, player.userId),
+      KEEP.submissionSeconds
+    )) === 1;
+  return first ? { ok: true, result } : { ok: false, reason: 'already-shared' };
+}
+
+export async function releaseShare(
+  store: Store,
+  player: { userId: string },
+  day: number
+): Promise<void> {
+  await store.del(KEYS.shared(day, player.userId));
 }

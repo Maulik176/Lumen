@@ -273,12 +273,13 @@ export function createIslandView(
     const [x, y, z] = cameraPosition(distanceNow, pitchNow, yaw);
     camera.position.set(x, y + targetY, z);
     camera.lookAt(0, targetY, 0);
-    // The picture is shifted to sit between the bars; once aloft the sky fills the whole view.
+    // The picture is shifted to sit in the space the interface leaves: the island while
+    // playing, the lantern above the result card once aloft.
     camera.setViewOffset(
       viewWidth,
       viewHeight,
       0,
-      offsetY * (1 - rise),
+      offsetY,
       viewWidth,
       viewHeight
     );

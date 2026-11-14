@@ -64,7 +64,8 @@
     "redis": true,
     "realtime": true,
     "reddit": {
-      "enable": true
+      "enable": true,
+      "asUser": ["SUBMIT_COMMENT"]
     }
   },
   "scheduler": {

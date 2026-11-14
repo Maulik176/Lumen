@@ -27,20 +27,34 @@ export async function createIslandPost(day: number): Promise<string> {
     postData: toPostData(island),
   });
   await store.set(KEYS.dayOfPost(post.id), String(day));
-
-  // One stickied comment from the app; players' shared results go under it as replies.
-  try {
-    const sticky = await reddit.submitComment({
-      id: post.id,
-      text: `Lumen #${day} results`,
-      runAs: 'APP',
-    });
-    await sticky.distinguish(true);
-    await store.set(KEYS.stickyOfPost(post.id), sticky.id);
-  } catch (error) {
-    console.error(`Results comment failed for day ${day}: ${String(error)}`);
-  }
+  await resultsComment(post.id, day).catch((error: unknown) =>
+    console.error(`Results comment failed for day ${day}: ${String(error)}`)
+  );
   return post.id;
+}
+
+/**
+ * The post's one stickied comment from the app; players' shared results go under it as
+ * replies. Made with the post, or now if the post is older than that. Returns its id.
+ */
+export async function resultsComment(
+  postId: `t3_${string}`,
+  day: number
+): Promise<`t1_${string}`> {
+  const known = await store.get(KEYS.stickyOfPost(postId));
+  if (known !== undefined && isCommentId(known)) return known;
+  const sticky = await reddit.submitComment({
+    id: postId,
+    text: COPY.resultsComment.replace('{day}', String(day)),
+    runAs: 'APP',
+  });
+  await sticky.distinguish(true);
+  await store.set(KEYS.stickyOfPost(postId), sticky.id);
+  return sticky.id;
+}
+
+function isCommentId(id: string): id is `t1_${string}` {
+  return id.startsWith('t1_');
 }
 
 /** The post for a day, creating it if it does not exist yet. Returns its id. */
