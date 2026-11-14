@@ -36,7 +36,7 @@ import { createJourney, type Journey } from './journey';
 import { applyTheme, createHud, type HudActions } from './hud';
 import { boardSheet } from './board';
 import { crowdSheet, loadHeat } from './crowd';
-import { pastSheet } from './past';
+import { openArchipelago } from './archipelago';
 import type { Rider } from './release';
 import { createIslandView } from './scene';
 import { onTap } from './taps';
@@ -206,7 +206,8 @@ type IslandOptions = {
   /** This island's Devvit Journey. */
   journey: Journey;
   howToPlay?: () => void;
-  openPast?: (day: number) => void;
+  /** Opens the Archipelago map of past islands. */
+  explore?: () => void;
   back?: () => void;
 };
 
@@ -302,27 +303,6 @@ function mountIsland(
     hud.setBusy(false);
   };
 
-  const showPast = async (): Promise<void> => {
-    const openPast = options.openPast;
-    if (openPast === undefined) return;
-    const past = await loadPast(island.day);
-    hud.showSheet(
-      pastSheet(
-        past?.islands ?? null,
-        (day) => {
-          hud.hideSheet();
-          layout();
-          openPast(day);
-        },
-        () => {
-          hud.hideSheet();
-          layout();
-        }
-      )
-    );
-    layout();
-  };
-
   const showBoard = (): void => {
     hud.showSheet(
       boardSheet(
@@ -401,8 +381,8 @@ function mountIsland(
   };
   if (options.howToPlay !== undefined) actions.howToPlay = options.howToPlay;
   if (options.back !== undefined) actions.back = options.back;
-  if (options.openPast !== undefined && island.day > 1)
-    actions.explore = () => void showPast();
+  if (options.explore !== undefined && island.day > 1)
+    actions.explore = options.explore;
   if (tonight) actions.board = showBoard;
   actions.crowd = () => void showCrowd();
   // Sharing is the player's own comment: only signed in, and only on its own tap.
@@ -616,13 +596,36 @@ async function start(): Promise<void> {
     layerOpen = false;
   };
 
-  /** A past island, for practice, over tonight's. */
+  /** The Archipelago: the night map of past islands, over tonight's. */
+  const openMap = async (): Promise<void> => {
+    if (layerOpen) return;
+    layerOpen = true;
+    tonight?.pause(true);
+    const past = await loadPast(island.day);
+    const map = openArchipelago(
+      past?.islands ?? null,
+      calm,
+      (day) => {
+        map.close();
+        layerOpen = false;
+        void openPast(day);
+      },
+      () => {
+        map.close();
+        tonight?.pause(false);
+        layerOpen = false;
+      }
+    );
+  };
+
+  /** A past island, for practice. Leaving it returns to the map. */
   const openPast = async (day: number): Promise<void> => {
     if (layerOpen) return;
     layerOpen = true;
     const past = await loadIsland(String(day));
     if (past === null) {
       layerOpen = false;
+      void openMap();
       return;
     }
     tonight?.pause(true);
@@ -637,8 +640,8 @@ async function start(): Promise<void> {
       back: () => {
         practice?.dispose();
         layer.close();
-        tonight?.pause(false);
         layerOpen = false;
+        void openMap();
       },
     });
   };
@@ -650,7 +653,7 @@ async function start(): Promise<void> {
     hand: handOn,
     journey,
     howToPlay: () => void howToPlay(),
-    openPast: (day) => void openPast(day),
+    explore: () => void openMap(),
   });
 }
 

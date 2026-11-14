@@ -100,6 +100,10 @@ export type PastIsland = {
   par: number;
   /** The player's medal on its night, if they played it then. */
   medal: Medal | null;
+  /** Its rows of text, for drawing it on the map. */
+  rows: string[];
+  /** How many players lit it. */
+  solves: number;
 };
 
 export type PastResponse = { ok: true; islands: PastIsland[] };

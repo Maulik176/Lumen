@@ -201,7 +201,16 @@ function localApi(): Plugin {
               weekday: island.weekday,
               biome: island.biome,
               par: island.par,
-              medal: solved.get(island.day)?.result.medal ?? null,
+              // Seeded so the map can be looked at: a medal on some days, a made-up crowd on all.
+              medal:
+                solved.get(island.day)?.result.medal ??
+                (island.day % 3 === 0
+                  ? 'lamplighter'
+                  : island.day % 4 === 0
+                    ? 'glow'
+                    : null),
+              rows: island.rows,
+              solves: (island.day * 137) % 420,
             })),
         };
         response.setHeader('content-type', 'application/json');

@@ -141,7 +141,11 @@ export const COPY = {
   playAgain: 'Play again for practice',
   /** Result card: opens the list of earlier islands, where practice lives. */
   explore: 'Explore past islands',
-  pastTitle: 'Past islands',
+  /** The Archipelago: the night map of past islands. */
+  mapTitle: 'Archipelago',
+  mapHint: 'Islands glow by how many lit them',
+  mapDetail: '#{day} \u00b7 {weekday} \u00b7 {count} lit',
+  mapUnlit: 'Not yet lit',
   pastEmpty: 'Earlier islands will gather here.',
   /** Tonight's board, opened from the time and place on the result card. */
   boardTitle: "Tonight's board",
@@ -897,9 +901,29 @@ export const LEADERBOARD = {
   top: 10,
 } as const;
 
-/** "Explore past islands": how many earlier islands the list shows, newest first. */
+/** "Explore past islands": how many earlier islands the map shows, newest first. */
 export const PAST = {
   max: 30,
+} as const;
+
+/** The Archipelago map. Sizes in CSS pixels. */
+export const MAP = {
+  /** Where the first island floats, and the distance down to each next one. */
+  topPx: 150,
+  rowPx: 168,
+  /** The map is never wider than this; islands wind this share of its width either side. */
+  maxWidthPx: 560,
+  sway: 0.24,
+  /** Each island's picture. */
+  islandWidthPx: 132,
+  islandHeightPx: 104,
+  /** The glow behind an island: its width at no solves and at the most, and its least opacity. */
+  glowMinPx: 110,
+  glowMaxPx: 250,
+  glowMin: 0.18,
+  /** Stars per 700 px of map height, and one slow rise and fall of an island in ms. */
+  starsPerScreen: 150,
+  floatMs: 6000,
 } as const;
 
 /** Developer tools that exist only on the playtest subreddit. */

@@ -429,6 +429,8 @@ describe('a solved island, reopened', () => {
     expect(past.map((entry) => entry.day)).toEqual([2, 1]);
     expect(past[0]?.medal).toBeNull();
     expect(past[1]?.medal).toBe('lamplighter');
+    expect(past[1]?.solves).toBe(1);
+    expect(past[0]?.rows).toEqual(island(2).rows);
     expect((await pastIslands(store, null, [island(1)]))[0]?.medal).toBeNull();
   });
 });

@@ -16,6 +16,7 @@ import {
 import { biomeOfDay, weekdayLabel, type Biome } from '../shared/calendar';
 import { CARD, COPY, UI } from '../shared/config';
 import { recallSolved, rememberSolved } from './card-cache';
+import { drawIslandOutline } from './outline';
 
 /** Rendered from the real 3D scene by `npm run hero`. Only the one in use is downloaded. */
 const HERO: Record<Biome, string> = {
@@ -69,87 +70,6 @@ const line = byId('line');
 const crowd = byId('crowd');
 how.textContent = COPY.howToPlay;
 
-/**
- * Today's island in outline, seen from the same corner as the game: land as pale tiles, water
- * as gaps, a spark for each sun and a lantern for each lantern (lit once the player has solved it).
- */
-function drawOutline(rows: readonly string[], lit: boolean): void {
-  const canvas = document.getElementById('outline');
-  if (!(canvas instanceof HTMLCanvasElement)) return;
-  const ratio = Math.min(3, window.devicePixelRatio || 1);
-  canvas.style.width = `${CARD.outlineWidth}px`;
-  canvas.style.height = `${CARD.outlineHeight}px`;
-  canvas.width = CARD.outlineWidth * ratio;
-  canvas.height = CARD.outlineHeight * ratio;
-  canvas.setAttribute('aria-label', COPY.cardOutline);
-  const pen = canvas.getContext('2d');
-  if (pen === null) return;
-  pen.scale(ratio, ratio);
-  const height = rows.length;
-  const width = rows[0]?.length ?? 0;
-  if (width === 0) return;
-  // Each tile is a flat diamond; the whole island is fitted inside the canvas with a margin.
-  const half = Math.min(
-    (CARD.outlineWidth - 14) / (width + height),
-    ((CARD.outlineHeight - 16) / (width + height)) * 2
-  );
-  const rise = half / 2;
-  const left = CARD.outlineWidth / 2 + ((height - width) * half) / 2;
-  const top = (CARD.outlineHeight - (width + height) * rise) / 2 + 2;
-  const at = (x: number, y: number): [number, number] => [
-    left + (x - y) * half,
-    top + (x + y) * rise,
-  ];
-  const lights: { x: number; y: number; sun: boolean }[] = [];
-  rows.forEach((row, y) => {
-    [...row].forEach((tile, x) => {
-      const [cx, cy] = at(x, y);
-      if (tile !== '~') {
-        pen.beginPath();
-        pen.moveTo(cx, cy);
-        pen.lineTo(cx + half, cy + rise);
-        pen.lineTo(cx, cy + rise * 2);
-        pen.lineTo(cx - half, cy + rise);
-        pen.closePath();
-        pen.globalAlpha =
-          tile === '#' || tile === 'T' ? 0.5 : (x + y) % 2 ? 0.8 : 0.9;
-        pen.fillStyle = UI.light;
-        pen.fill();
-      }
-      if ('WRGBMCY'.includes(tile)) lights.push({ x, y, sun: false });
-      if ('^>v<'.includes(tile)) lights.push({ x, y, sun: true });
-    });
-  });
-  for (const light of lights) {
-    const [cx, top0] = at(light.x, light.y);
-    const cy = top0 + rise - 1;
-    pen.globalAlpha = 1;
-    if (light.sun) {
-      pen.fillStyle = UI.paper;
-      pen.beginPath();
-      pen.arc(cx, cy, 2.1, 0, Math.PI * 2);
-      pen.fill();
-      continue;
-    }
-    if (lit) {
-      const glow = pen.createRadialGradient(cx, cy, 0, cx, cy, 8);
-      glow.addColorStop(0, UI.amber);
-      glow.addColorStop(1, 'transparent');
-      pen.fillStyle = glow;
-      pen.globalAlpha = 0.9;
-      pen.fillRect(cx - 8, cy - 8, 16, 16);
-      pen.globalAlpha = 1;
-    }
-    pen.beginPath();
-    pen.arc(cx, cy, 2.9, 0, Math.PI * 2);
-    pen.fillStyle = lit ? UI.amber : UI.ink;
-    pen.fill();
-    pen.lineWidth = 1.3;
-    pen.strokeStyle = UI.amber;
-    pen.stroke();
-  }
-}
-
 function hoursAndMinutes(ms: number): string {
   const minutes = Math.max(0, Math.ceil(ms / 60_000));
   const hours = Math.floor(minutes / 60);
@@ -191,7 +111,15 @@ function paint(): void {
       hero.src = HERO[biomeOfDay(post.day)];
     }
   }
-  if (post.rows !== undefined) drawOutline(post.rows, solved !== null);
+  const outline = document.getElementById('outline');
+  if (post.rows !== undefined && outline instanceof HTMLCanvasElement) {
+    outline.setAttribute('aria-label', COPY.cardOutline);
+    drawIslandOutline(outline, post.rows, {
+      width: CARD.outlineWidth,
+      height: CARD.outlineHeight,
+      lit: solved !== null,
+    });
+  }
 
   card.classList.toggle('solved', solved !== null);
   play.classList.toggle('waiting', !known);

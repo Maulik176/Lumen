@@ -483,6 +483,9 @@ export async function pastIslands(
           )?.medal ?? null)
     )
   );
+  const solves = await Promise.all(
+    islands.map((island) => skyCount(store, island.day))
+  );
   return islands.map((island, index) => ({
     day: island.day,
     name: island.name,
@@ -490,6 +493,8 @@ export async function pastIslands(
     biome: island.biome,
     par: island.par,
     medal: medals[index] ?? null,
+    rows: island.rows,
+    solves: solves[index] ?? 0,
   }));
 }
 
