@@ -22,7 +22,7 @@ import {
   type BufferGeometry,
   type Texture,
 } from 'three';
-import { HEAT, type BiomeLook } from '../../shared/config';
+import { ART, HEAT, type BiomeLook } from '../../shared/config';
 import type { Puzzle } from '../../shared/types';
 import { tileCentre } from './fit';
 import { at, merge, noise, paint, place, type Keeper } from './kit';
@@ -36,6 +36,7 @@ const scale = new Vector3();
 const turn = new Quaternion();
 const up = new Vector3(0, 1, 0);
 const colour = new Color();
+const other = new Color();
 
 function treeGeometry(look: BiomeLook): BufferGeometry {
   if (look.tree === 'pine') {
@@ -137,11 +138,13 @@ export function createGround(
   );
 
   // --- Tiles. The box is painted lighter on top than on its sides, then tinted per tile. -----
-  const tileBox = new BoxGeometry(0.94, 0.34, 0.94).toNonIndexed();
+  // Tiles meet edge to edge: no grid lines. Each differs a little from its neighbours in height
+  // and tone, which is all that marks the squares.
+  const tileBox = new BoxGeometry(1, 0.5, 1).toNonIndexed();
   const tileNormals = tileBox.getAttribute('normal');
   const tilePaint = new Float32Array(tileNormals.count * 3);
   for (let i = 0; i < tileNormals.count; i++) {
-    const shade = tileNormals.getY(i) > 0.5 ? 1 : 0.7;
+    const shade = tileNormals.getY(i) > 0.5 ? 1 : 0.78;
     tilePaint[i * 3] = shade;
     tilePaint[i * 3 + 1] = shade;
     tilePaint[i * 3 + 2] = shade;
@@ -157,15 +160,23 @@ export function createGround(
     const y = Math.floor(tile / width);
     const [worldX, worldZ] = tileCentre(x, y, width, height);
     const ground = puzzle.terrain[tile] ?? 'grass';
-    const lift = ground === 'water' ? 0 : (noise(tile, 1) - 0.5) * 0.035;
-    position.set(worldX, tileTop(ground) - 0.17 + lift, worldZ);
+    const lift = ground === 'water' ? 0 : (noise(tile, 1) - 0.5) * ART.tileLift;
+    position.set(
+      worldX,
+      tileTop(ground) - 0.25 - ART.tileLift / 2 + lift,
+      worldZ
+    );
     matrix.compose(position, turn.identity(), scale.set(1, 1, 1));
     tiles.setMatrixAt(tile, matrix);
     if (ground === 'water') colour.setHex(look.water);
     else
       colour
-        .setHex(x % 2 === y % 2 ? look.groundA : look.groundB)
-        .multiplyScalar(0.97 + noise(tile, 2) * 0.06);
+        .setHex(look.groundA)
+        .lerp(
+          other.setHex(look.groundB),
+          0.5 + (x % 2 === y % 2 ? -0.5 : 0.5) * ART.chequer
+        )
+        .multiplyScalar(1 + (noise(tile, 2) - 0.5) * 2 * ART.tileShade);
     tiles.setColorAt(tile, colour);
     if (ground === 'rock') rockTiles.push(tile);
     if (ground === 'tree') treeTiles.push(tile);
@@ -220,9 +231,17 @@ export function createGround(
   const deep = -0.56 - span * 0.36;
   const base = keeper.keep(
     merge([
+      // A turf ledge around the tiles, then bare earth under it: an island's edge, not a tray's.
       place(
-        paint(new BoxGeometry(rimWidth, 0.3, rimDepth), look.rim),
-        at(0, -0.29, 0)
+        paint(new BoxGeometry(rimWidth, 0.16, rimDepth), look.groundSide, 1.12),
+        at(0, -0.2, 0)
+      ),
+      place(
+        paint(
+          new BoxGeometry(rimWidth - 0.14, 0.22, rimDepth - 0.14),
+          look.rim
+        ),
+        at(0, -0.37, 0)
       ),
       slab(span * 0.99, span * 0.72, 0.34, -0.61, 0.92),
       slab(span * 0.72, span * 0.3, span * 0.36, -0.78 - span * 0.18, 0.8),
@@ -252,7 +271,74 @@ export function createGround(
       ),
     ])
   );
+  // The rock pales toward the mist as it goes down, so the island has no hard underside.
+  const basePaint = base.getAttribute('color');
+  const basePoints = base.getAttribute('position');
+  const mistTone = new Color(look.mist);
+  const lowest = deep - span * 0.45;
+  for (let i = 0; i < basePoints.count; i++) {
+    const depth = Math.min(
+      1,
+      Math.max(0, (basePoints.getY(i) + 0.5) / (lowest + 0.5))
+    );
+    colour
+      .setRGB(basePaint.getX(i), basePaint.getY(i), basePaint.getZ(i))
+      .lerp(mistTone, depth * ART.undersideFade);
+    basePaint.setXYZ(i, colour.r, colour.g, colour.b);
+  }
   group.add(new Mesh(base, lit));
+
+  // --- Small islets floating near the island: a grass cap on a point of rock. -----------------
+  const isletGeometry = keeper.keep(
+    merge([
+      place(
+        paint(new CylinderGeometry(1, 0.9, 0.2, 7), look.groundA),
+        at(0, -0.1, 0)
+      ),
+      place(
+        paint(new CylinderGeometry(0.9, 0.62, 0.3, 7), look.rim),
+        at(0, -0.35, 0)
+      ),
+      place(
+        paint(new ConeGeometry(0.62, 1.5, 7), look.underside, 0.85),
+        new Matrix4().makeRotationX(Math.PI).setPosition(0, -1.25, 0)
+      ),
+      place(
+        paint(new DodecahedronGeometry(0.2), look.rock),
+        at(0.35, 0.1, 0.2)
+      ),
+    ])
+  );
+  const islets = new InstancedMesh(isletGeometry, lit, ART.islets);
+  const isletTrees = new InstancedMesh(
+    keeper.keep(treeGeometry(look)),
+    lit,
+    ART.islets
+  );
+  for (let i = 0; i < ART.islets; i++) {
+    // One toward each corner, where they never stand between the camera and the tiles.
+    const around = Math.PI / 4 + (i * Math.PI) / 2 + (noise(i, 71) - 0.5) * 0.5;
+    const away = span * 0.72 + 1.3 + noise(i, 72) * 1.6;
+    const size = 0.55 + noise(i, 73) * 0.6;
+    position.set(
+      Math.cos(around) * away,
+      -1 - noise(i, 74) * 2.4,
+      Math.sin(around) * away
+    );
+    turn.setFromAxisAngle(up, noise(i, 75) * Math.PI * 2);
+    islets.setMatrixAt(
+      i,
+      matrix.compose(position, turn, scale.set(size, size, size))
+    );
+    // A tree on most of them, sized to its islet.
+    const tree = noise(i, 76) < 0.75 ? size * 0.8 : 0;
+    position.x -= size * 0.2;
+    isletTrees.setMatrixAt(
+      i,
+      matrix.compose(position, turn, scale.set(tree, tree, tree))
+    );
+  }
+  group.add(islets, isletTrees);
 
   // --- Rocks and trees stand on their own tiles, never on a tile the player can use. ----------
   if (rockTiles.length > 0) {
@@ -413,7 +499,11 @@ export function createGround(
   const mist = new Sprite(mistMaterial);
   mist.position.set(0, deep - span * 0.3, 0);
   mist.scale.set(span * 2.4, span * 1.3, 1);
-  group.add(mist);
+  // A second, higher bank wraps the rock where it narrows.
+  const bank = new Sprite(mistMaterial);
+  bank.position.set(0, deep + span * 0.05, 0);
+  bank.scale.set(span * 1.5, span * 0.7, 1);
+  group.add(mist, bank);
   const mistBase = new Color(look.mist);
 
   return {

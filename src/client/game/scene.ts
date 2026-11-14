@@ -16,11 +16,13 @@ import {
   Raycaster,
   Scene,
   type Sprite,
+  type SpriteMaterial,
   Vector2,
   Vector3,
   WebGLRenderer,
 } from 'three';
 import {
+  ART,
   BIOME_LOOK,
   CAMERA,
   HEAT,
@@ -42,7 +44,7 @@ import {
   tileCentre,
 } from './fit';
 import { createGround, RIM } from './ground';
-import { createKeeper, softDisc, sparkle } from './kit';
+import { createKeeper, rays, softDisc, sparkle } from './kit';
 import { createLanterns } from './lanterns';
 import { createPieceKit } from './pieces';
 import { createSkyLantern, type Rider } from './release';
@@ -173,8 +175,8 @@ export function createIslandView(
   const ground = createGround(puzzle, look, blobMap, keeper);
   island.add(ground.group);
 
-  const kit = createPieceKit(glowMap, keeper);
-  const crystals: { crystal: Mesh; halo: Sprite }[] = [];
+  const kit = createPieceKit(glowMap, keeper.keep(rays()), keeper);
+  const crystals: { crystal: Mesh; halo: Sprite; rays: SpriteMaterial }[] = [];
   for (const source of puzzle.sources) {
     const [x, z] = tileCentre(source.x, source.y, width, height);
     const sunCrystal = kit.sunCrystal(source.colour);
@@ -350,9 +352,19 @@ export function createIslandView(
         1.55 * (1 + ONBOARD.sunPulse * pulse),
         1 + ONBOARD.sunPulse * pulse
       );
+      // Every sun breathes slowly and its rays turn; calm mode holds them still.
+      const breath = calm
+        ? 0.5
+        : 0.5 + 0.5 * Math.sin((time / ART.sunPulseMs) * Math.PI * 2);
       sunCrystal.halo.scale.setScalar(
-        1.35 + (teaching ? 0.5 + 0.5 * pulse : 0)
+        ART.sunHalo * (0.92 + 0.16 * breath) +
+          (teaching ? 0.5 + 0.5 * pulse : 0)
       );
+      sunCrystal.rays.rotation = calm
+        ? 0
+        : (time / ART.sunTurnMs) * Math.PI * 2;
+      sunCrystal.rays.opacity =
+        ART.sunRayOpacity * (0.6 + 0.4 * breath) * (1 - 0.45 * night);
     }
     lanterns.update(time, delta, allLit, nightAt >= 0, teaching);
     beams.update(time, night, calm);

@@ -19,7 +19,7 @@ import {
   type BufferGeometry,
   type Texture,
 } from 'three';
-import { LOOK, ONBOARD, VIEW } from '../../shared/config';
+import { ART, LOOK, ONBOARD, VIEW } from '../../shared/config';
 import type { LanternColour, Puzzle } from '../../shared/types';
 import { tileCentre } from './fit';
 import { at, merge, paint, place, type Keeper } from './kit';
@@ -186,8 +186,9 @@ export function createLanterns(
         })
       );
       const sprite = new Sprite(badge);
-      sprite.position.y = 1.16;
-      sprite.scale.set(0.9, 0.45, 1);
+      // The badge keeps its own size and sits just above the (larger) lantern.
+      sprite.position.y = 0.92 + 0.26 / ART.lanternScale;
+      sprite.scale.set(0.9 / ART.lanternScale, 0.45 / ART.lanternScale, 1);
       sprite.renderOrder = 5;
       one.add(sprite);
     }
@@ -269,7 +270,7 @@ export function createLanterns(
           if (t >= 1) view.popAt = -1;
           else pop = 1 + (VIEW.lanternPopScale - 1) * Math.sin(t * Math.PI);
         }
-        view.group.scale.setScalar(pop);
+        view.group.scale.setScalar(pop * ART.lanternScale);
       });
     },
   };

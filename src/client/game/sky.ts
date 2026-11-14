@@ -28,7 +28,7 @@ import {
   type Scene,
   type Texture,
 } from 'three';
-import { LOOK, type BiomeLook } from '../../shared/config';
+import { ART, LOOK, type BiomeLook } from '../../shared/config';
 import { at, merge, noise, paint, place, type Keeper } from './kit';
 
 const STAR_COUNT = 900;
@@ -46,16 +46,56 @@ const VERTEX = /* glsl */ `
 const FRAGMENT = /* glsl */ `
   uniform vec3 uTop;
   uniform vec3 uHorizon;
+  uniform vec3 uDeep;
   uniform float uGlow;
+  uniform float uNight;
+  uniform float uTime;
+  uniform float uWisps;
+  uniform float uDeepSky;
+  uniform float uMilky;
   varying vec3 vDirection;
+
+  float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+  }
+  float soft(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    return mix(
+      mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x),
+      mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x),
+      f.y
+    );
+  }
+  float cloud(vec2 p) {
+    return 0.6 * soft(p) + 0.3 * soft(p * 2.1 + 3.7) + 0.1 * soft(p * 4.3 + 9.1);
+  }
+
   void main() {
+    vec3 d = normalize(vDirection);
     // Two stretches: the low sky the camera sees while playing, and the high sky it turns to
     // when it follows the lantern up. Both keep a visible gradient.
-    float height = 0.55 * smoothstep(-0.98, -0.3, vDirection.y) + 0.45 * smoothstep(-0.3, 0.75, vDirection.y);
+    float height = 0.55 * smoothstep(-0.98, -0.3, d.y) + 0.45 * smoothstep(-0.3, 0.75, d.y);
     vec3 colour = mix(uHorizon, uTop, height);
-    // A warm band low in the sky, strongest at dusk.
-    float band = exp(-pow((vDirection.y + 0.9) * 3.2, 2.0));
+    // Below the island the sky falls away into a deeper tone: the island floats over a depth.
+    colour = mix(colour, uDeep, smoothstep(-0.5, -1.0, d.y) * uDeepSky);
+    // A warm band where the play view meets the horizon, strongest at dusk.
+    float bandAt = (d.y + 0.5) * 3.4;
+    float band = exp(-bandAt * bandAt);
     colour += uHorizon * band * uGlow;
+    // Thin, slow wisps of cloud, lit by day and a faint veil by night.
+    vec2 plane = d.xz / (1.25 + abs(d.y));
+    float wisp = smoothstep(0.5, 0.86, cloud(plane * vec2(3.2, 6.4) + uTime * 0.006));
+    colour = mix(colour, mix(uHorizon, vec3(1.0), 0.4), wisp * uWisps * (1.0 - 0.75 * uNight));
+    // Night: a milky-way band slanting across the sky, clumped by the same soft noise, and a
+    // violet lift near the horizon so the dark has depth.
+    float laneAt = dot(d, normalize(vec3(0.6, 0.8, 0.0))) * 3.4;
+    float lane = exp(-laneAt * laneAt);
+    float dust = cloud(d.xz * 5.0 + d.y * 3.0);
+    vec3 milky = (vec3(0.3, 0.34, 0.6) + vec3(0.5, 0.32, 0.26) * dust) * lane * (0.35 + dust);
+    colour += milky * uNight * uMilky;
+    colour += vec3(0.11, 0.06, 0.17) * uNight * exp(-d.y * d.y * 5.76) * 0.55;
     gl_FragColor = vec4(colour, 1.0);
   }
 `;
@@ -97,6 +137,9 @@ export function createSky(
   const white = new Color(0xffffff);
 
   const glow = { value: 0 };
+  const deep = new Color();
+  const nightAmount = { value: 0 };
+  const skyTime = { value: 0 };
   const material = keeper.keep(
     new ShaderMaterial({
       vertexShader: VERTEX,
@@ -105,6 +148,12 @@ export function createSky(
         uTop: { value: top },
         uHorizon: { value: horizon },
         uGlow: glow,
+        uDeep: { value: deep },
+        uNight: nightAmount,
+        uTime: skyTime,
+        uWisps: { value: ART.wisps },
+        uDeepSky: { value: ART.deepSky },
+        uMilky: { value: ART.milkyWay },
       },
       side: BackSide,
       depthWrite: false,
@@ -151,7 +200,48 @@ export function createSky(
     stars.push(starMaterial);
   }
 
-  // Far-off floating rocks, tinted toward the sky so they sit back.
+  // Extra faint stars along the milky-way band (the same slant as in the shader).
+  {
+    const normal = new Vector3(0.6, 0.8, 0).normalize();
+    const across = new Vector3(0, 0, 1);
+    const along = new Vector3().crossVectors(normal, across).normalize();
+    const positions = new Float32Array(ART.bandStars * 3);
+    const spot = new Vector3();
+    for (let i = 0; i < ART.bandStars; i++) {
+      const turn = noise(i, 51) * Math.PI * 2;
+      // Two random numbers added: most stars near the middle of the band, a few further out.
+      const off = (noise(i, 52) + noise(i, 53) - 1) * 0.34;
+      spot
+        .copy(across)
+        .multiplyScalar(Math.cos(turn))
+        .addScaledVector(along, Math.sin(turn))
+        .addScaledVector(normal, off)
+        .normalize()
+        .multiplyScalar(260);
+      positions[i * 3] = spot.x;
+      positions[i * 3 + 1] = spot.y;
+      positions[i * 3 + 2] = spot.z;
+    }
+    const geometry = keeper.keep(new BufferGeometry());
+    geometry.setAttribute('position', new BufferAttribute(positions, 3));
+    const bandMaterial = keeper.keep(
+      new PointsMaterial({
+        color: LOOK.star,
+        size: 1.2,
+        sizeAttenuation: false,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        depthTest: false,
+      })
+    );
+    const points = new Points(geometry, bandMaterial);
+    points.renderOrder = -9;
+    points.frustumCulled = false;
+    scene.add(points);
+    stars.push(bandMaterial);
+  }
+
   // Far-off islets: a flat green top over a point of rock, tinted toward the sky so they sit back.
   const isletGeometry = keeper.keep(
     merge([
@@ -223,10 +313,17 @@ export function createSky(
     update(dusk, timeMs, calm) {
       blend(top, tops, dusk);
       blend(horizon, horizons, dusk);
-      glow.value = 0.18 * (1 - Math.abs(dusk - 0.5) * 2);
+      glow.value = 0.22 * (1 - Math.abs(dusk - 0.5) * 2);
       const night = Math.max(0, (dusk - 0.55) / 0.45);
+      // The depth below the island: the upper sky's colour, darker.
+      deep
+        .copy(horizon)
+        .lerp(top, 0.7)
+        .multiplyScalar(0.8 - 0.25 * night);
+      nightAmount.value = night;
+      skyTime.value = calm ? 0 : timeMs / 1000;
       stars.forEach((star, index) => {
-        star.opacity = night * (index === 0 ? 0.85 : 1);
+        star.opacity = night * (index === 0 ? 0.85 : index === 1 ? 1 : 0.6);
       });
       // A veil of sky colour over the islets: they fade with distance and darken at night.
       rockColour

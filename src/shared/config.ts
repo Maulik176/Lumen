@@ -477,6 +477,36 @@ export const UI = {
   tapPx: 44,
 } as const;
 
+/**
+ * The island as a floating diorama rather than a board: soft ground with no grid lines, rock
+ * fading into mist underneath, small islets nearby, glowing suns, and a deep sky.
+ */
+export const ART = {
+  /** How much of the two ground tones' difference survives (0 = one tone, 1 = full chequer). */
+  chequer: 0.22,
+  /** Each tile is this much lighter or darker than its neighbours at most, and this much higher or lower (tiles). */
+  tileShade: 0.1,
+  tileLift: 0.09,
+  /** Lanterns are drawn this many times their modelled size. */
+  lanternScale: 1.45,
+  /** Sun crystals: halo size in tiles, ray size, one slow pulse in ms, one turn of the rays in ms. */
+  sunHalo: 1.7,
+  sunRays: 3.1,
+  sunPulseMs: 2800,
+  sunTurnMs: 46_000,
+  sunRayOpacity: 0.5,
+  /** The rock under the island fades toward the mist colour this much at its lowest point. */
+  undersideFade: 0.78,
+  /** Small islets floating near the island, at its corners and below it. */
+  islets: 4,
+  /** Night sky: brightness of the milky-way band, and how many extra faint stars lie along it. */
+  milkyWay: 0.5,
+  bandStars: 700,
+  /** Day and dusk sky: strength of the thin cloud wisps, and of the darkening below the island. */
+  wisps: 0.2,
+  deepSky: 0.7,
+} as const;
+
 /** First-time teaching: the goal shown before any words. Times in milliseconds. */
 export const ONBOARD = {
   /** How fast light visibly travels when it first appears, in tiles per second. */

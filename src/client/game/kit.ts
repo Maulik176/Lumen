@@ -158,6 +158,33 @@ export function sparkle(size = 64): CanvasTexture {
   return new CanvasTexture(canvas);
 }
 
+/** Thin rays of light around a bright point, long and short by turns, fading outward. */
+export function rays(size = 128, count = 14): CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const pen = canvas.getContext('2d');
+  if (pen !== null) {
+    const half = size / 2;
+    pen.translate(half, half);
+    for (let ray = 0; ray < count; ray++) {
+      const reach = half * (ray % 2 === 0 ? 0.98 : 0.6 + noise(ray, 61) * 0.2);
+      const fade = pen.createLinearGradient(0, 0, 0, -reach);
+      fade.addColorStop(0, 'rgba(255,255,255,0.9)');
+      fade.addColorStop(1, 'rgba(255,255,255,0)');
+      pen.fillStyle = fade;
+      pen.beginPath();
+      pen.moveTo(-half * 0.035, 0);
+      pen.lineTo(0, -reach);
+      pen.lineTo(half * 0.035, 0);
+      pen.closePath();
+      pen.fill();
+      pen.rotate((Math.PI * 2) / count);
+    }
+  }
+  return new CanvasTexture(canvas);
+}
+
 /** Remove an object and everything under it from its parent. Geometry is disposed elsewhere. */
 export function detach(object: Object3D): void {
   object.parent?.remove(object);

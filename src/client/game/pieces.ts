@@ -15,7 +15,7 @@ import {
   type BufferGeometry,
   type Texture,
 } from 'three';
-import { LOOK } from '../../shared/config';
+import { ART, LOOK } from '../../shared/config';
 import type { BeamColour, MirrorOrientation } from '../../shared/types';
 import { at, merge, paint, place, type Keeper } from './kit';
 
@@ -34,6 +34,8 @@ export type PieceKit = {
     group: Group;
     crystal: Mesh;
     halo: Sprite;
+    /** Thin rays around the crystal, turned and pulsed by the scene. */
+    rays: SpriteMaterial;
   };
 };
 
@@ -70,7 +72,11 @@ function frameGeometry(
   return merge(parts);
 }
 
-export function createPieceKit(glow: Texture, keeper: Keeper): PieceKit {
+export function createPieceKit(
+  glow: Texture,
+  rayMap: Texture,
+  keeper: Keeper
+): PieceKit {
   const painted = keeper.keep(
     new MeshStandardMaterial({
       vertexColors: true,
@@ -192,9 +198,21 @@ export function createPieceKit(glow: Texture, keeper: Keeper): PieceKit {
       );
       const halo = new Sprite(haloMaterial);
       halo.position.y = 0.56;
-      halo.scale.setScalar(1.35);
-      group.add(new Mesh(plinth, painted), crystal, halo);
-      return { group, crystal, halo };
+      halo.scale.setScalar(ART.sunHalo);
+      const rays = keeper.keep(
+        new SpriteMaterial({
+          map: rayMap,
+          color: BEAM_HEX[colour],
+          blending: AdditiveBlending,
+          depthWrite: false,
+          opacity: ART.sunRayOpacity,
+        })
+      );
+      const burst = new Sprite(rays);
+      burst.position.y = 0.56;
+      burst.scale.setScalar(ART.sunRays);
+      group.add(new Mesh(plinth, painted), crystal, halo, burst);
+      return { group, crystal, halo, rays };
     },
   };
 }
