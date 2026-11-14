@@ -78,11 +78,17 @@ export const COPY = {
   /** The one big button on the feed card. */
   playButton: 'Light the lanterns',
   /** First play only: shown until the first piece is placed. */
-  hintPlace: 'Tap the grass to place a mirror',
+  hintPlace: 'Bend the light into the lantern',
   /** First play only: shown after the first piece, until a piece is turned. */
   hintTurn: 'Tap it again to turn it',
   /** First play only, on days with a prism: shown once a mirror has been turned. */
   hintPrism: 'A third tap makes a prism: it splits white light in three',
+  /** Tutorial: the three small islands a first-time player meets. Title, then one hint each. */
+  tutorialTitle: 'First light',
+  tutorialMirror: 'Bend the light into the lantern',
+  tutorialTurn: 'Tap it again to turn it',
+  tutorialPrism: 'A third tap makes a prism. It splits white light',
+  tutorialSkip: 'Skip',
   /** Shown briefly when the player taps empty grass with nothing left to place. */
   noPiecesLeft: 'No pieces left. Tap one to take it back.',
   /** Shown with a soft glow the moment every lantern is lit, before anything is submitted. */
@@ -249,6 +255,9 @@ export type BiomeLook = {
   tuft: Hex;
   /** The mist the underside fades into. */
   mist: Hex;
+  /** Colour of the daylight in the afternoon and at dusk. Snow uses a cooler light. */
+  sunDay: Hex;
+  sunDusk: Hex;
 };
 
 export const BIOME_LOOK: Record<(typeof BIOMES)[number], BiomeLook> = {
@@ -269,10 +278,12 @@ export const BIOME_LOOK: Record<(typeof BIOMES)[number], BiomeLook> = {
     trunk: 0x6b4a32,
     tuft: 0x97c86c,
     mist: 0xf3d6b0,
+    sunDay: 0xffe6bd,
+    sunDusk: 0xff9d6b,
   },
   snow: {
-    skyTop: [0xc9dcec, 0x56589a, 0x0a0d28],
-    skyHorizon: [0xf7ead9, 0xf0a48c, 0x27305e],
+    skyTop: [0xc3d9ee, 0x56589a, 0x0a0d28],
+    skyHorizon: [0xeef3f8, 0xeeb0a8, 0x27305e],
     groundA: 0xf1f5f8,
     groundB: 0xe3ebf1,
     groundSide: 0xb4c3d0,
@@ -287,6 +298,8 @@ export const BIOME_LOOK: Record<(typeof BIOMES)[number], BiomeLook> = {
     trunk: 0x5a4636,
     tuft: 0xffffff,
     mist: 0xe8eef6,
+    sunDay: 0xf3f7ff,
+    sunDusk: 0xf6c4c8,
   },
   blossom: {
     skyTop: [0xf4c6a0, 0x7a4a8e, 0x100a26],
@@ -305,6 +318,8 @@ export const BIOME_LOOK: Record<(typeof BIOMES)[number], BiomeLook> = {
     trunk: 0x6b4a3a,
     tuft: 0xf8c2d5,
     mist: 0xfbdcd6,
+    sunDay: 0xffe6c8,
+    sunDusk: 0xff9d86,
   },
   dune: {
     skyTop: [0xf5c474, 0x7b487a, 0x120b22],
@@ -323,6 +338,8 @@ export const BIOME_LOOK: Record<(typeof BIOMES)[number], BiomeLook> = {
     trunk: 0x5c9c64,
     tuft: 0xcfb26c,
     mist: 0xf8dcae,
+    sunDay: 0xffe2ae,
+    sunDusk: 0xff9458,
   },
   autumn: {
     skyTop: [0xf0b672, 0x6c4280, 0x0e0a22],
@@ -341,6 +358,8 @@ export const BIOME_LOOK: Record<(typeof BIOMES)[number], BiomeLook> = {
     trunk: 0x5a3e2c,
     tuft: 0xe28c3a,
     mist: 0xf4cfa2,
+    sunDay: 0xffe0b0,
+    sunDusk: 0xff9460,
   },
 };
 
@@ -367,6 +386,25 @@ export const UI = {
   gapPx: 10,
   /** Smallest tap target, in CSS pixels. */
   tapPx: 44,
+} as const;
+
+/** First-time teaching: the goal shown before any words. Times in milliseconds. */
+export const ONBOARD = {
+  /** How fast light visibly travels when it first appears, in tiles per second. */
+  introLightSpeed: 4.5,
+  /** How fast it travels after a piece is placed or turned. Quick, but seen. */
+  playLightSpeed: 16,
+  /** The sun crystal's pulse while the player has not placed anything: size and period. */
+  sunPulse: 0.16,
+  sunPulseMs: 1500,
+  /** An unlit lantern's slow breathing while it waits: brightness and period. */
+  lanternBreath: 0.22,
+  lanternBreathMs: 2600,
+  /** The ghost hand: one tap takes this long, with this pause before the next. */
+  handTapMs: 620,
+  handPauseMs: 900,
+  /** Wait this long after a tutorial island is lit before the next one arrives. */
+  tutorialNextMs: 1500,
 } as const;
 
 /** Which shape stands for which colour, for players who cannot tell the colours apart. */

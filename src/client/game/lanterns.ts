@@ -19,7 +19,7 @@ import {
   type BufferGeometry,
   type Texture,
 } from 'three';
-import { LOOK, VIEW } from '../../shared/config';
+import { LOOK, ONBOARD, VIEW } from '../../shared/config';
 import type { LanternColour, Puzzle } from '../../shared/types';
 import { tileCentre } from './fit';
 import { at, merge, paint, place, type Keeper } from './kit';
@@ -60,11 +60,13 @@ export type Lanterns = {
   bloom: (index: number, timeMs: number) => void;
   /** Back to unlit, for another go. */
   reset: () => void;
+  /** `beckon`: unlit lanterns breathe softly, to show they are what the light is for. */
   update: (
     timeMs: number,
     deltaMs: number,
     allLit: boolean,
-    night: boolean
+    night: boolean,
+    beckon: boolean
   ) => void;
 };
 
@@ -230,7 +232,7 @@ export function createLanterns(
         view.popAt = -1;
       }
     },
-    update(timeMs, deltaMs, allLit, night) {
+    update(timeMs, deltaMs, allLit, night, beckon) {
       // Calm mode eases more slowly: the glow itself is the animation.
       const ease = 1 - Math.exp(-deltaMs / (calm ? 420 : 150));
       views.forEach((view, index) => {
@@ -239,7 +241,18 @@ export function createLanterns(
           allLit && !night && !calm
             ? 0.07 * Math.sin(timeMs / 430 + index * 1.7)
             : 0;
-        const level = Math.max(0, view.level + breathe);
+        const waiting =
+          beckon && view.target === 0
+            ? ONBOARD.lanternBreath *
+              (calm
+                ? 0.6
+                : 0.5 +
+                  0.5 *
+                    Math.sin(
+                      (timeMs / ONBOARD.lanternBreathMs) * Math.PI * 2 + index
+                    ))
+            : 0;
+        const level = Math.max(0, view.level + breathe + waiting);
         // Unlit paper still catches the day: a faint warmth keeps it reading as paper, not wood.
         view.paper.emissive
           .copy(paperGlow)

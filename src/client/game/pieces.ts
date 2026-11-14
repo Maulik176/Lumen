@@ -30,7 +30,11 @@ export type PieceKit = {
   mirror: (orientation: MirrorOrientation) => Group;
   prism: () => Group;
   fixedMirror: (orientation: MirrorOrientation) => Group;
-  sunCrystal: (colour: BeamColour) => Group;
+  sunCrystal: (colour: BeamColour) => {
+    group: Group;
+    crystal: Mesh;
+    halo: Sprite;
+  };
 };
 
 /** A standing frame: two posts, a top bar and a foot, around a pane 0.84 wide and 0.5 tall. */
@@ -190,8 +194,7 @@ export function createPieceKit(glow: Texture, keeper: Keeper): PieceKit {
       halo.position.y = 0.56;
       halo.scale.setScalar(1.35);
       group.add(new Mesh(plinth, painted), crystal, halo);
-      group.userData['crystal'] = crystal;
-      return group;
+      return { group, crystal, halo };
     },
   };
 }

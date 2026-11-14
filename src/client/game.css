@@ -441,3 +441,121 @@ canvas {
       transform 1ms;
   }
 }
+
+/* The ghost hand: shows a tap, never takes one. Its fingertip sits on the point it is given. */
+.ghost-hand {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 350ms ease;
+  z-index: 3;
+}
+
+.ghost-hand.visible {
+  opacity: 1;
+}
+
+.ghost-hand svg {
+  position: absolute;
+  left: -19px;
+  top: -4px;
+  width: 52px;
+  height: 57px;
+  fill: var(--paper);
+  stroke: var(--ink);
+  stroke-width: 1.7;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 3px 5px rgba(30, 22, 50, 0.35));
+  transform-origin: 16px 6px;
+}
+
+.ghost-ring {
+  position: absolute;
+  left: -16px;
+  top: -16px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2.5px solid var(--paper);
+  opacity: 0;
+}
+
+.ghost-hand.tapping svg {
+  animation: hand-press var(--tap-ms, 620ms) ease;
+}
+
+.ghost-hand.tapping .ghost-ring {
+  animation: hand-ring var(--tap-ms, 620ms) ease-out;
+}
+
+@keyframes hand-press {
+  0%,
+  100% {
+    transform: translateY(10px) scale(1);
+  }
+  40% {
+    transform: translateY(0) scale(0.93);
+  }
+  60% {
+    transform: translateY(0) scale(0.93);
+  }
+}
+
+@keyframes hand-ring {
+  35% {
+    opacity: 0.95;
+    transform: scale(0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
+/* Tutorial: a title, how far along, and Skip. */
+.lesson {
+  left: var(--gap);
+  right: var(--gap);
+  top: var(--gap);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 50px;
+  padding: 0 6px 0 14px;
+}
+
+.lesson-title {
+  font-family: var(--display);
+  font-size: 17px;
+}
+
+.lesson-dots {
+  display: flex;
+  gap: 7px;
+}
+
+.lesson-dots i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px var(--ink-soft);
+}
+
+.lesson-dots i.done {
+  background: var(--amber);
+  box-shadow: inset 0 0 0 1.5px var(--ink);
+}
+
+.lesson-skip {
+  min-width: 64px;
+  box-shadow: none;
+  color: var(--ink-soft);
+}
+
+#hud.leaving > * {
+  opacity: 0;
+}

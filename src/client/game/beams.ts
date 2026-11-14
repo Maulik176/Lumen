@@ -61,6 +61,7 @@ const FRAGMENT = /* glsl */ `
   uniform float uTime;
   uniform float uWidth;
   uniform float uNight;
+  uniform float uReveal;
   varying vec2 vUv;
 
   float triangle(vec2 p, float r) {
@@ -79,6 +80,9 @@ const FRAGMENT = /* glsl */ `
     float shimmer = 0.86 + 0.14 * sin(along * 5.5 - uTime * 3.2);
     // Soft ends, so a run never starts or stops with a hard edge.
     float ends = smoothstep(0.0, 0.12, along) * smoothstep(0.0, 0.12, uLength - along);
+    // Light travels: only the part it has reached so far is drawn, with a bright head.
+    ends *= smoothstep(uReveal + 0.02, uReveal - 0.22, along);
+    float head = exp(-pow((along - uReveal) * 4.5, 2.0)) * step(uReveal, uLength + 0.3);
 
     // The core is laid over the scene so a red beam stays red on bright grass; the halo is added
     // on top as light. (Blend: source + destination x (1 - source alpha).)
@@ -86,6 +90,7 @@ const FRAGMENT = /* glsl */ `
     vec3 coreColour = mix(uColour, vec3(1.0), mix(0.12, 0.6, white));
     float coreAlpha = core * ends * mix(0.94, 1.0, shimmer);
     vec3 glow = uColour * halo * (0.42 + 0.3 * uNight) * shimmer * ends;
+    glow += mix(uColour, vec3(1.0), 0.5) * head * (1.0 - across) * 0.9;
 
     // The colour's shape, once per tile, in white with a dark edge so it reads on any ground.
     if (uShape > 0.5) {
@@ -108,6 +113,11 @@ const FRAGMENT = /* glsl */ `
 
 type Ribbon = {
   mesh: Mesh;
+  reveal: { value: number };
+  /** When this run starts to appear (ms since the last change) and how fast, in tiles/second. */
+  beginMs: number;
+  speed: number;
+  key: string;
   colour: { value: Color };
   length: { value: number };
   shape: { value: number };
@@ -120,7 +130,10 @@ export type Beams = {
     segments: readonly BeamSegment[],
     placements: readonly Placement[],
     width: number,
-    height: number
+    height: number,
+    /** Now, and how fast new light travels in tiles per second (0 = appears at once). */
+    timeMs: number,
+    speed: number
   ) => void;
   update: (timeMs: number, night: number, calm: boolean) => void;
 };
@@ -130,6 +143,7 @@ export function createBeams(sparkleMap: Texture, keeper: Keeper): Beams {
   const time = { value: 0 };
   const night = { value: 0 };
   const widthUniform = { value: WIDTH };
+  let syncedAt = 0;
   const geometry = keeper.keep(new PlaneGeometry(1, 1));
   geometry.rotateX(-Math.PI / 2);
 
@@ -138,6 +152,7 @@ export function createBeams(sparkleMap: Texture, keeper: Keeper): Beams {
     const colour = { value: new Color(LOOK.beamWhite) };
     const length = { value: 1 };
     const shape = { value: 0 };
+    const reveal = { value: 999 };
     const material = keeper.keep(
       new ShaderMaterial({
         vertexShader: VERTEX,
@@ -145,6 +160,7 @@ export function createBeams(sparkleMap: Texture, keeper: Keeper): Beams {
         uniforms: {
           uColour: colour,
           uLength: length,
+          uReveal: reveal,
           uShape: shape,
           uTime: time,
           uWidth: widthUniform,
@@ -162,7 +178,16 @@ export function createBeams(sparkleMap: Texture, keeper: Keeper): Beams {
     mesh.visible = false;
     mesh.renderOrder = 2;
     group.add(mesh);
-    ribbons.push({ mesh, colour, length, shape });
+    ribbons.push({
+      mesh,
+      colour,
+      length,
+      shape,
+      reveal,
+      beginMs: 0,
+      speed: 0,
+      key: '',
+    });
   }
 
   const sparkleMaterial = keeper.keep(
@@ -185,7 +210,14 @@ export function createBeams(sparkleMap: Texture, keeper: Keeper): Beams {
 
   return {
     group,
-    sync(segments, placements, width, height) {
+    sync(segments, placements, width, height, timeMs, speed) {
+      // Runs that were already there stay as they are; new ones grow from where the light
+      // reaches them, each starting when the run before it arrives.
+      const before = new Set<string>();
+      for (const ribbon of ribbons)
+        if (ribbon.mesh.visible) before.add(ribbon.key);
+      const arrival = new Map<number, number>();
+      syncedAt = timeMs;
       let used = 0;
       for (const segment of segments) {
         const ribbon = ribbons[used];
@@ -240,12 +272,25 @@ export function createBeams(sparkleMap: Texture, keeper: Keeper): Beams {
         ribbon.colour.value.setHex(BEAM_HEX[segment.colour]);
         ribbon.length.value = length;
         ribbon.shape.value = SHAPE_CODE[segment.colour];
+        const key = `${segment.from.x},${segment.from.y},${segment.to.x},${segment.to.y},${segment.direction},${segment.colour}`;
+        const fromTile = segment.from.y * width + segment.from.x;
+        const toTile = segment.to.y * width + segment.to.x;
+        const fresh = speed > 0 && !before.has(key);
+        const begin = fresh ? (arrival.get(fromTile) ?? 0) : 0;
+        if (fresh) arrival.set(toTile, begin + (length / speed) * 1000);
+        ribbon.key = key;
+        ribbon.beginMs = begin;
+        ribbon.speed = fresh ? speed : 0;
+        ribbon.reveal.value = fresh ? 0 : 999;
         ribbon.mesh.visible = true;
         used++;
       }
       for (let i = used; i < POOL; i++) {
         const ribbon = ribbons[i];
-        if (ribbon !== undefined) ribbon.mesh.visible = false;
+        if (ribbon !== undefined) {
+          ribbon.mesh.visible = false;
+          ribbon.key = '';
+        }
       }
 
       // A sparkle on each prism that white light is entering.
@@ -272,6 +317,17 @@ export function createBeams(sparkleMap: Texture, keeper: Keeper): Beams {
       }
     },
     update(timeMs, nightAmount, calm) {
+      for (const ribbon of ribbons) {
+        if (!ribbon.mesh.visible || ribbon.speed === 0) continue;
+        const shown =
+          (Math.max(0, timeMs - syncedAt - ribbon.beginMs) / 1000) *
+          ribbon.speed;
+        ribbon.reveal.value = shown;
+        if (shown > ribbon.length.value + 0.5) {
+          ribbon.speed = 0;
+          ribbon.reveal.value = 999;
+        }
+      }
       time.value = calm ? 0 : timeMs / 1000;
       night.value = nightAmount;
       const pulse = calm ? 0.8 : 0.72 + 0.16 * Math.sin(timeMs / 260);

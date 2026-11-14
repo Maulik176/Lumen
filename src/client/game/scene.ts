@@ -10,15 +10,23 @@ import {
   DirectionalLight,
   Group,
   HemisphereLight,
+  type Mesh,
   PerspectiveCamera,
   Plane,
   Raycaster,
   Scene,
+  type Sprite,
   Vector2,
   Vector3,
   WebGLRenderer,
 } from 'three';
-import { BIOME_LOOK, CAMERA, RELEASE, VIEW } from '../../shared/config';
+import {
+  BIOME_LOOK,
+  CAMERA,
+  ONBOARD,
+  RELEASE,
+  VIEW,
+} from '../../shared/config';
 import type { Biome } from '../../shared/calendar';
 import type { PlayState } from '../../shared/play';
 import type { Puzzle } from '../../shared/types';
@@ -67,11 +75,19 @@ export type IslandView = {
   release: () => Promise<void>;
   /** Back to dusk, for another go. */
   dawn: () => void;
+  /** Where a tile's centre is on the screen, in CSS pixels. For pointing at it. */
+  screenOf: (x: number, y: number) => { x: number; y: number };
   stats: () => ViewStats;
   dispose: () => void;
 };
 
-export type ViewOptions = { biome: Biome; calm: boolean; rider: Rider };
+export type ViewOptions = {
+  biome: Biome;
+  calm: boolean;
+  rider: Rider;
+  /** First-time teaching: slow first light, pulsing suns, breathing lanterns. */
+  teach: boolean;
+};
 
 export function createIslandView(
   canvas: HTMLCanvasElement,
@@ -106,8 +122,8 @@ export function createIslandView(
   sun.position.set(-5, 9, 6);
   const moon = new AmbientLight(0x93a2ff, 0);
   scene.add(hemisphere, sun, moon);
-  const sunDay = new Color(0xffe6bd);
-  const sunDusk = new Color(0xff9d6b);
+  const sunDay = new Color(look.sunDay);
+  const sunDusk = new Color(look.sunDusk);
 
   // Everything that floats together.
   const island = new Group();
@@ -116,11 +132,13 @@ export function createIslandView(
   island.add(ground.group);
 
   const kit = createPieceKit(glowMap, keeper);
+  const crystals: { crystal: Mesh; halo: Sprite }[] = [];
   for (const source of puzzle.sources) {
     const [x, z] = tileCentre(source.x, source.y, width, height);
-    const crystal = kit.sunCrystal(source.colour);
-    crystal.position.set(x, 0, z);
-    island.add(crystal);
+    const sunCrystal = kit.sunCrystal(source.colour);
+    sunCrystal.group.position.set(x, 0, z);
+    island.add(sunCrystal.group);
+    crystals.push(sunCrystal);
   }
   for (const mirror of puzzle.fixedMirrors) {
     const [x, z] = tileCentre(mirror.x, mirror.y, width, height);
@@ -162,6 +180,9 @@ export function createIslandView(
   let frameHandle = 0;
   let disposed = false;
   let fps = 60;
+  /** Has the light been drawn once, and has the player placed anything yet? */
+  let drawn = false;
+  let touched = false;
   let calls = 0;
   let triangles = 0;
   const pitch = CAMERA.pitchDegrees * DEGREES;
@@ -251,7 +272,24 @@ export function createIslandView(
     distance += (distanceTarget - distance) * settle;
     offsetY += (offsetTarget - offsetY) * settle;
 
-    lanterns.update(time, delta, allLit, nightAt >= 0);
+    // Teaching: until the first piece is placed, the suns pulse and the unlit lanterns breathe,
+    // so the eye goes from where light starts to where it should end up.
+    const teaching = options.teach && !touched && nightAt < 0;
+    const pulse =
+      teaching && !calm
+        ? Math.sin((time / ONBOARD.sunPulseMs) * Math.PI * 2)
+        : 0;
+    for (const sunCrystal of crystals) {
+      sunCrystal.crystal.scale.set(
+        1 + ONBOARD.sunPulse * pulse,
+        1.55 * (1 + ONBOARD.sunPulse * pulse),
+        1 + ONBOARD.sunPulse * pulse
+      );
+      sunCrystal.halo.scale.setScalar(
+        1.35 + (teaching ? 0.5 + 0.5 * pulse : 0)
+      );
+    }
+    lanterns.update(time, delta, allLit, nightAt >= 0, teaching);
     beams.update(time, night, calm);
 
     for (const piece of pieces.values()) {
@@ -357,7 +395,22 @@ export function createIslandView(
         pieces.delete(tile);
       }
 
-      beams.sync(state.light.segments, state.placements, width, height);
+      // The first light of a first-time island arrives slowly enough to be watched.
+      const speed = calm
+        ? 0
+        : !drawn && options.teach
+          ? ONBOARD.introLightSpeed
+          : ONBOARD.playLightSpeed;
+      beams.sync(
+        state.light.segments,
+        state.placements,
+        width,
+        height,
+        now,
+        speed
+      );
+      drawn = true;
+      touched = state.everPlaced;
       allLit = state.light.solved && state.phase !== 'locked';
       // Night sets the lanterns itself; until then they follow the light.
       if (nightAt < 0)
@@ -424,6 +477,16 @@ export function createIslandView(
       allLit = false;
       skyLantern.hide();
       lanterns.reset();
+    },
+
+    screenOf(x, y) {
+      const [worldX, worldZ] = tileCentre(x, y, width, height);
+      hit.set(worldX, 0.35 + island.position.y, worldZ).project(camera);
+      const bounds = canvas.getBoundingClientRect();
+      return {
+        x: bounds.left + ((hit.x + 1) / 2) * bounds.width,
+        y: bounds.top + ((1 - hit.y) / 2) * bounds.height,
+      };
     },
 
     stats() {

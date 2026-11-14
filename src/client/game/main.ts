@@ -11,6 +11,7 @@ import type {
 import type { Biome } from '../../shared/calendar';
 import { BIOMES, COPY } from '../../shared/config';
 import {
+  hintFor,
   keepRefining,
   lockIn,
   reset,
@@ -22,13 +23,15 @@ import {
 } from '../../shared/play';
 import { puzzleFromText } from '../../shared/puzzle-text';
 import { createSound } from './audio';
+import { createGhostHand } from './hand';
 import { applyTheme, createHud } from './hud';
 import type { Rider } from './release';
 import { createIslandView } from './scene';
+import { onTap } from './taps';
+import { runTutorial } from './tutorial';
 
 const HINTS_KEY = 'lumen.hints.done';
-/** A press that moves further than this many pixels is a drag, not a tap. */
-const TAP_SLOP = 12;
+const TUTORIAL_KEY = 'lumen.tutorial.done';
 
 const query = new URLSearchParams(location.search);
 
@@ -124,10 +127,23 @@ async function start(): Promise<void> {
     query.get('calm') === '1' ||
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const sound = createSound();
+
+  // First visit: three small islands teach the light before today's island appears.
+  // ?tutorial=1 forces it and ?tutorial=0 skips it, for testing.
+  const wantTutorial =
+    query.get('tutorial') === '1' ||
+    (!stored(TUTORIAL_KEY) && query.get('tutorial') !== '0');
+  if (wantTutorial) {
+    await runTutorial(canvas, root, sound, calm);
+    store(TUTORIAL_KEY);
+  }
+  const showHints = !stored(HINTS_KEY);
+  const hand = createGhostHand(root, calm);
   const view = createIslandView(canvas, puzzle, {
     biome: forcedBiome ?? island.biome,
     calm,
     rider,
+    teach: showHints,
   });
   let state: PlayState = startPlay(puzzle);
   let startedAt = performance.now();
@@ -154,6 +170,7 @@ async function start(): Promise<void> {
     view.sync(state);
     hud.update(state);
     layout();
+    pointHand();
   };
 
   const commit = async (): Promise<void> => {
@@ -206,37 +223,35 @@ async function start(): Promise<void> {
         layout();
       },
     },
-    !stored(HINTS_KEY)
+    showHints
   );
   hud.setMuted(sound.isMuted());
 
   window.addEventListener('resize', layout);
 
-  // A tap is a press and release in nearly the same place.
-  let downX = 0;
-  let downY = 0;
-  let pressing = false;
-  canvas.addEventListener('pointerdown', (event) => {
-    pressing = true;
-    downX = event.clientX;
-    downY = event.clientY;
-  });
-  canvas.addEventListener('pointerup', (event) => {
-    if (!pressing) return;
-    pressing = false;
-    if (Math.hypot(event.clientX - downX, event.clientY - downY) > TAP_SLOP)
-      return;
+  // Sound wakes itself on every tap (finger up, not down: that is what iOS counts as a gesture).
+  onTap(canvas, (clientX, clientY) => {
     if (busy || state.phase === 'locked') return;
-    const tile = view.pick(event.clientX, event.clientY);
+    const tile = view.pick(clientX, clientY);
     if (tile === null) return;
     const step = tapTile(state, tile.x, tile.y);
     if (step.events.some((item) => item.type === 'not-placeable')) return;
     apply(step);
   });
-  canvas.addEventListener('pointercancel', () => {
-    pressing = false;
-  });
-  // Sound wakes itself on every tap (finger up, not down: that is what iOS counts as a gesture).
+
+  // While the "turn it" hint is up, the ghost hand taps the piece just placed, to show how.
+  const pointHand = (): void => {
+    const last = state.placements[state.placements.length - 1];
+    if (!showHints || hintFor(state) !== 'turn' || last === undefined) {
+      hand.hide();
+      return;
+    }
+    const spot = view.screenOf(last.x, last.y);
+    hand.show(spot.x, spot.y, 1);
+  };
+  window.setInterval(() => {
+    if (hand.visible()) pointHand();
+  }, 250);
 
   view.sync(state);
   hud.update(state);

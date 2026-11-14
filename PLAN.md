@@ -185,6 +185,15 @@ debug switch.
 
 ---
 
+## Change of plan, Nov 14 (Maulik)
+
+Fable's remaining allowance goes to what needs it. Built by Fable: onboarding and the tutorial
+(done, moved up from M7), M5 core, M8 review, M9 handoff. Built by Opus from `HANDOFF.md` briefs:
+feed card restyle, Archipelago as a 2D night map, trailer mode, performance tuning.
+**Island Builder and the Sunday pick are cut**; Sundays use the generated template.
+M6 and M7 below are therefore superseded by the briefs, except the result card and sound work
+already done.
+
 ## Milestone 5 · Server and Reddit layer
 
 **Goal:** the game is a Reddit game: validated, social, daily.

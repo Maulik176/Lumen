@@ -5,10 +5,30 @@ Vite). It is an entry for Reddit's Game of the Day hackathon; submission closes 
 
 ## Where things stand (update at the end of every milestone)
 
-**As of Fri Nov 13, 2026, night IST.** Milestones 1 and 2 done. Milestone 3 built; Maulik's
-phone test of it is still to come and its fixes are a **separate pass**. **Milestone 4 (final art
-and the signature moment) is built, committed and uploaded**; it also waits on the phone.
-Next: Milestone 5 (server and Reddit layer).
+**As of Sat Nov 14, 2026.** M1–M4 built. Onboarding and tutorial in progress (moved up from M7).
+Next for Fable: M5 core, M8 judge review, M9 handoff.
+
+**Budget rule (Maulik, Nov 14):** about half the weekly Fable allowance is left until Monday night.
+Fable builds only what needs it: art fixes, onboarding, server and realtime sky, the judge review.
+Anything mechanical is written as a brief in `HANDOFF.md` for Opus, not built by Fable.
+Few screenshots, short reports.
+
+**Who builds what now:**
+- Fable: onboarding + tutorial; M5 core (server, anti-cheat, streaks, flair, leaderboard with
+  snoovatars, opt-in share, heatmap, realtime Shared Night Sky, Journeys); M8 review; M9 handoff.
+- Opus, from briefs in `HANDOFF.md`: Archipelago as a simple 2D night map, feed card restyle,
+  trailer mode, performance tuning.
+- **Island Builder is cut.** Sunday uses a generated island. Brief kept in `HANDOFF.md`.
+- Onboarding (Nov 14): first visit runs three tutorial islands (`src/shared/tutorial.ts`,
+  `src/client/game/tutorial.ts`): sun pulses, light visibly travels and stops short, unlit
+  lantern breathes, a ghost hand (`hand.ts`) taps the one tile that matters; hints "Bend the light
+  into the lantern" → "Tap it again to turn it" → prism. Skippable. Then today's island, which
+  keeps the hint line and the ghost hand for "turn" until the first Lock in. Light now travels
+  on every change (`ONBOARD` in config). `?tutorial=1` forces it, `?tutorial=0` skips it.
+  Done flag is in localStorage for now; M5 moves it to Redis (`tutorialDone`).
+- Snow biome has its own cooler daylight (`sunDay`/`sunDusk` per biome in `BIOME_LOOK`).
+- M4 phone test results were never filled in (the form came back blank). Still unknown on a real
+  phone: snoovatar on the sky lantern, smoothness of the rise, clipping.
 
 - App: `lumen-game` (the name `lumen` was taken). Listing: developers.reddit.com/apps/lumen-game.
   Owner account u/Dry_Promotion2506. Playtest subreddit `r/lumen_game_dev`. Launch subreddit
