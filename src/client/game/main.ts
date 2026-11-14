@@ -32,6 +32,7 @@ import { createSound, type Sound } from './audio';
 import { createGhostHand } from './hand';
 import { applyTheme, createHud, type HudActions } from './hud';
 import { boardSheet } from './board';
+import { crowdSheet, loadHeat } from './crowd';
 import { pastSheet } from './past';
 import type { Rider } from './release';
 import { createIslandView } from './scene';
@@ -324,6 +325,33 @@ function mountIsland(
     layout();
   };
 
+  const showCrowd = async (): Promise<void> => {
+    const heat = await loadHeat(island.day);
+    const own = state;
+    if (heat !== null) view.crowd(heat.tiles);
+    hud.showSheet(
+      crowdSheet(
+        heat,
+        tonight,
+        heat?.parSolution == null
+          ? null
+          : (par) => {
+              const answer = heat.parSolution;
+              view.sync(
+                par && answer !== null ? lockedWith(puzzle, answer) : own
+              );
+            },
+        () => {
+          view.sync(own);
+          view.crowd(null);
+          hud.hideSheet();
+          layout();
+        }
+      )
+    );
+    layout();
+  };
+
   const actions: HudActions = {
     undo: () => apply(undo(state)),
     reset: () => apply(reset(state)),
@@ -346,6 +374,7 @@ function mountIsland(
   if (options.openPast !== undefined && island.day > 1)
     actions.explore = () => void showPast();
   if (tonight) actions.board = showBoard;
+  actions.crowd = () => void showCrowd();
 
   const hud = createHud(root, island, actions, options.hints);
   hud.setMuted(sound.isMuted());

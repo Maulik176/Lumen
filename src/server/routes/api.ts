@@ -5,6 +5,7 @@ import {
   toPublicIsland,
   type IslandResponse,
   type BoardResponse,
+  type HeatResponse,
   type LockInResponse,
   type PastResponse,
   type SkyResponse,
@@ -20,6 +21,7 @@ import {
   pastIslands,
   playerState,
   readAllTime,
+  readHeat,
   readLeaderboard,
   rankedOpen,
   readSky,
@@ -186,4 +188,31 @@ api.get('/leaderboard', async (c) => {
   }
   const board = await readLeaderboard(store, day, username);
   return c.json<BoardResponse>({ ok: true, scope: 'day', ...board });
+});
+
+/** Where everyone put their pieces. 403 until the player has locked in tonight's island. */
+api.get('/heatmap', async (c) => {
+  const fromQuery = Number(c.req.query('day'));
+  const island = islandForDay(
+    requestedDay(Number.isInteger(fromQuery) ? fromQuery : undefined)
+  );
+  if (island === undefined)
+    return c.json<HeatResponse>({ ok: false, reason: 'not-found' }, 404);
+  const heat = await readHeat(
+    store,
+    await whoIsAsking(),
+    island,
+    Date.now(),
+    lastDay()
+  );
+  if (!heat.ok)
+    return c.json<HeatResponse>({ ok: false, reason: 'locked' }, 403);
+  return c.json<HeatResponse>({
+    ok: true,
+    day: island.day,
+    tiles: heat.tiles,
+    solves: heat.solves,
+    parHits: heat.parHits,
+    parSolution: heat.parSolution,
+  });
 });

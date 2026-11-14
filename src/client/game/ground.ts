@@ -22,7 +22,7 @@ import {
   type BufferGeometry,
   type Texture,
 } from 'three';
-import type { BiomeLook } from '../../shared/config';
+import { HEAT, type BiomeLook } from '../../shared/config';
 import type { Puzzle } from '../../shared/types';
 import { tileCentre } from './fit';
 import { at, merge, noise, paint, place, type Keeper } from './kit';
@@ -116,6 +116,8 @@ export type Ground = {
   group: Group;
   /** Mist follows the sky's horizon colour and thins at night. */
   update: (horizon: Color, dusk: number) => void;
+  /** Warm each tile by its share of the busiest one; null puts the colours back. */
+  tint: (counts: readonly number[] | null) => void;
 };
 
 export function createGround(
@@ -169,6 +171,9 @@ export function createGround(
     if (ground === 'tree') treeTiles.push(tile);
   }
   group.add(tiles);
+  // The painted colours, kept so a tint can always be taken off again.
+  const tileColours = Float32Array.from(tiles.instanceColor?.array ?? []);
+  const heat = new Color(HEAT.colour);
 
   // --- The earth rim and the rock underneath, as one painted shape. --------------------------
   const span = Math.max(width, height) + RIM * 2;
@@ -416,6 +421,22 @@ export function createGround(
     update(horizon, dusk) {
       mistMaterial.color.copy(mistBase).lerp(horizon, 0.5 + dusk * 0.4);
       mistMaterial.opacity = 0.55 - dusk * 0.25;
+    },
+    tint(counts) {
+      const busiest = counts === null ? 1 : Math.max(1, ...counts);
+      for (let tile = 0; tile < width * height; tile++) {
+        colour.fromArray(tileColours, tile * 3);
+        if (counts !== null && puzzle.terrain[tile] === 'grass') {
+          const share = (counts[tile] ?? 0) / busiest;
+          if (share > 0)
+            colour
+              .lerp(heat, HEAT.mix * share)
+              .multiplyScalar(1 + (HEAT.boost - 1) * share);
+          else colour.multiplyScalar(HEAT.unused);
+        }
+        tiles.setColorAt(tile, colour);
+      }
+      if (tiles.instanceColor !== null) tiles.instanceColor.needsUpdate = true;
     },
   };
 }

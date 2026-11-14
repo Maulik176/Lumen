@@ -582,3 +582,51 @@ export async function readAllTime(
         };
   return { top, me, total };
 }
+
+export type HeatOutcome =
+  | {
+      ok: true;
+      tiles: number[];
+      solves: number;
+      parHits: number;
+      parSolution: Placement[] | null;
+    }
+  | { ok: false };
+
+/**
+ * Where everyone built. Tonight's island stays hidden until the player has a ranked solve of it;
+ * an island from an earlier night is open to everyone, with its par answer.
+ */
+export async function readHeat(
+  store: Store,
+  player: Player,
+  island: DailyIsland,
+  nowMs: number,
+  lastDay: number
+): Promise<HeatOutcome> {
+  const over = island.day < currentDay(nowMs, lastDay);
+  if (!over) {
+    if (player === null) return { ok: false };
+    const mine = await store.get(KEYS.submission(island.day, player.userId));
+    if (mine === undefined) return { ok: false };
+  }
+  const [heat, stats] = await Promise.all([
+    store.hGetAll(KEYS.heat(island.day)),
+    store.hGetAll(KEYS.stats(island.day)),
+  ]);
+  const { width, height } = puzzleOfDaily(island);
+  const tiles = new Array<number>(width * height).fill(0);
+  for (const [field, value] of Object.entries(heat)) {
+    const tile = Number(field);
+    const count = Number(value);
+    if (Number.isInteger(tile) && tile >= 0 && tile < tiles.length)
+      tiles[tile] = Number.isFinite(count) ? Math.max(0, count) : 0;
+  }
+  return {
+    ok: true,
+    tiles,
+    solves: Number(stats['solves'] ?? 0) || 0,
+    parHits: Number(stats['parHits'] ?? 0) || 0,
+    parSolution: over ? island.solution : null,
+  };
+}

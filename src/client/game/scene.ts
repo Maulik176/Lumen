@@ -23,6 +23,7 @@ import {
 import {
   BIOME_LOOK,
   CAMERA,
+  HEAT,
   ONBOARD,
   RELEASE,
   SKY,
@@ -91,6 +92,11 @@ export type IslandView = {
    * lantern aloft. For reopening a post that is already solved.
    */
   settle: () => void;
+  /**
+   * "How everyone solved it": warm the tiles by these counts and bring the camera down to the
+   * island while night stays; null takes the tint off and the camera back up to the lantern.
+   */
+  crowd: (counts: readonly number[] | null) => void;
   /** Stop drawing while something covers the view, and carry on exactly where it was. */
   pause: (paused: boolean) => void;
   /** Everyone who lit tonight's island: the whole list on arrival, then each new one as it comes. */
@@ -194,8 +200,14 @@ export function createIslandView(
   /** -1 until the sky lantern lifts off. */
   let releaseAt = -1;
   let practice = false;
-  /** When 0 or more, the lantern's climb is held at this point (a reopened, finished island). */
-  let heldRise = -1;
+  /**
+   * Once set, the lantern's climb is no longer driven by time since release but eases from one
+   * point to another: held up on a reopened island, down and back for the crowd view.
+   */
+  let riseHold: { from: number; to: number; at: number; ms: number } | null =
+    null;
+  /** The sky lantern fades out while the crowd view shows the island, and back after. */
+  let veil = { from: 1, to: 1, at: 0 };
   let paused = false;
   const you = { x: 0, y: 0 };
   let yawFrom = 0;
@@ -236,7 +248,12 @@ export function createIslandView(
     practice ? RELEASE.practiceMs : calm ? RELEASE.calmRiseMs : RELEASE.riseMs;
   const riseNow = (): number => {
     if (releaseAt < 0) return 0;
-    if (heldRise >= 0) return heldRise;
+    if (riseHold !== null)
+      return (
+        riseHold.from +
+        (riseHold.to - riseHold.from) *
+          easeInOut((now - riseHold.at) / riseHold.ms)
+      );
     return easeInOut((now - releaseAt) / riseSpan());
   };
 
@@ -358,7 +375,15 @@ export function createIslandView(
         : calm
           ? appear * (1 - Math.max(0, rise - 0.78) / 0.22)
           : appear;
-      skyLantern.pose(lift - island.position.y, sway, 0.6 + 0.4 * rise, fade);
+      const shown =
+        veil.from +
+        (veil.to - veil.from) * easeInOut((time - veil.at) / HEAT.cameraMs);
+      skyLantern.pose(
+        lift - island.position.y,
+        sway,
+        0.6 + 0.4 * rise,
+        fade * shown
+      );
     }
 
     applyCamera();
@@ -548,8 +573,25 @@ export function createIslandView(
       for (let index = 0; index < lanterns.count; index++)
         lanterns.bloom(index, now - VIEW.nightfallMs);
       practice = false;
-      heldRise = calm ? RELEASE.calmHoldRise : 1;
+      const held = calm ? RELEASE.calmHoldRise : 1;
+      riseHold = { from: held, to: held, at: now, ms: 1 };
       releaseAt = Math.max(0, now - riseSpan());
+    },
+
+    crowd(counts) {
+      ground.tint(counts);
+      const shown =
+        veil.from +
+        (veil.to - veil.from) * easeInOut((now - veil.at) / HEAT.cameraMs);
+      veil = { from: shown, to: counts === null ? 1 : 0, at: now };
+      // Calm mode never moves the camera, and a practice lantern has already gone.
+      if (calm || practice || releaseAt < 0) return;
+      riseHold = {
+        from: riseNow(),
+        to: counts === null ? 1 : 0,
+        at: now,
+        ms: HEAT.cameraMs,
+      };
     },
 
     pause(wanted) {
@@ -566,7 +608,7 @@ export function createIslandView(
     dawn() {
       nightAt = -1;
       releaseAt = -1;
-      heldRise = -1;
+      riseHold = null;
       practice = false;
       allLit = false;
       skyLantern.hide();

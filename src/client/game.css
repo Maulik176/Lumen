@@ -842,3 +842,8 @@ button.result-time:enabled {
   text-decoration: underline dotted;
   text-underline-offset: 3px;
 }
+
+.crowd-hint {
+  margin: 0 0 10px;
+  font-size: 13.5px;
+}

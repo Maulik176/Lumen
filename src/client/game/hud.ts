@@ -31,6 +31,8 @@ export type HudActions = {
   explore?: () => void;
   /** Result card: tapping the time and place opens tonight's board. */
   board?: () => void;
+  /** Result card: where everyone put their pieces. Only after a solve that allows it. */
+  crowd?: () => void;
 };
 
 export type Hud = {
@@ -257,6 +259,7 @@ export function createHud(
   };
   const againButton = button(COPY.playAgain, 'quiet', actions.playAgain);
   const exploreButton = button(COPY.explore, 'quiet', actions.explore);
+  const crowdButton = button(COPY.crowd, 'main', actions.crowd);
   const backButton = button(COPY.backToTonight, 'quiet', actions.back);
   result.append(
     resultMedal,
@@ -391,9 +394,12 @@ export function createHud(
             })
           : formatTime(outcome.elapsedMs);
       // A ranked result is final; anything else can be played again.
+      // Tonight's crowd opens after a ranked solve; an earlier night's is open after any solve.
       const shown = outcome.ranked
-        ? [exploreButton]
-        : [againButton, backButton ?? exploreButton];
+        ? [crowdButton, exploreButton]
+        : backButton !== null
+          ? [crowdButton, againButton, backButton]
+          : [againButton, exploreButton];
       resultButtons.replaceChildren(
         ...shown.filter((node): node is HTMLButtonElement => node !== null)
       );

@@ -13,6 +13,7 @@ import { defineConfig, type Plugin } from 'vite';
 import {
   toPublicIsland,
   type BoardResponse,
+  type HeatResponse,
   type IslandResponse,
   type LockInResponse,
   type LockInResult,
@@ -85,6 +86,39 @@ function localApi(): Plugin {
                 },
                 total: 140,
               };
+        response.setHeader('content-type', 'application/json');
+        response.end(JSON.stringify(body));
+      });
+      // A made-up crowd: most players found par, a few wandered. A day solved here with a
+      // ranked Lock in counts as tonight (no par answer); any other day as an earlier night.
+      server.middlewares.use('/api/heatmap', (request, response) => {
+        const day = Number(
+          new URL(request.url ?? '', 'http://localhost').searchParams.get(
+            'day'
+          ) ?? '1'
+        );
+        const island = load().days[day - 1];
+        let body: HeatResponse = { ok: false, reason: 'not-found' };
+        if (island !== undefined) {
+          const puzzle = puzzleOfDaily(island);
+          const tiles = puzzle.terrain.map((ground, tile) =>
+            ground === 'grass'
+              ? (tile * 7919) % 13 < 2
+                ? (tile % 5) + 1
+                : 0
+              : 0
+          );
+          for (const placement of island.solution)
+            tiles[placement.y * puzzle.width + placement.x] = 30;
+          body = {
+            ok: true,
+            day,
+            tiles,
+            solves: 140,
+            parHits: 25,
+            parSolution: solved.has(day) ? null : island.solution,
+          };
+        }
         response.setHeader('content-type', 'application/json');
         response.end(JSON.stringify(body));
       });

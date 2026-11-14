@@ -140,6 +140,18 @@ export const COPY = {
   boardRowOne: '1 piece · {time}',
   allTimeRow: '{medals} nights at par',
   allTimeRowOne: '1 night at par',
+  /** Result card: tints the island by where everyone put their pieces. */
+  crowd: 'See how everyone solved it',
+  /** {percent} of solves at par. Tonight, and for an island from an earlier night. */
+  crowdPar: '{percent}% hit par tonight',
+  crowdParPast: '{percent}% hit par that night',
+  crowdFew: 'You are among the first tonight.',
+  crowdFewPast: 'Only a few lit it that night.',
+  crowdHint: 'Warmer tiles held more pieces.',
+  /** Past islands only: lays the par answer on the island, and back. */
+  showPar: 'Show par',
+  showMine: 'Show mine',
+  crowdLocked: 'Lock in first to see everyone else.',
   /** Closes a list and returns to the result card. */
   back: 'Back',
   /** Leaves a past island and returns to tonight's. */
@@ -770,6 +782,20 @@ export const KEEP = {
   startSeconds: 2 * 86_400,
   submissionSeconds: 45 * 86_400,
   skySeconds: 45 * 86_400,
+} as const;
+
+/** "See how everyone solved it": tiles warm by how often players put a piece there. */
+export const HEAT = {
+  /** The warm colour tiles move toward, how far at the busiest tile, and how much brighter. */
+  colour: 0xffb347,
+  mix: 0.9,
+  boost: 2.3,
+  /** Tiles nobody used are dimmed to this share, so the used ones stand out at night. */
+  unused: 0.55,
+  /** Below this many solves the share at par is not shown; a gentler line is. */
+  fewSolves: 5,
+  /** How long the camera takes to come down to the island, or go back up, in ms. */
+  cameraMs: 1500,
 } as const;
 
 /** Tonight's board and the all-time board. */

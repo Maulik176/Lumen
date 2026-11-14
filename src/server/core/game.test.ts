@@ -9,6 +9,7 @@ import {
   pastIslands,
   rankedOpen,
   readAllTime,
+  readHeat,
   readLeaderboard,
   readSky,
   resetPlayer,
@@ -489,5 +490,47 @@ describe('the boards', () => {
       ['ana', 1],
     ]);
     expect(board.me).toBeNull();
+  });
+});
+
+describe('where everyone built', () => {
+  it('stays hidden until you lock in, then counts pieces per tile', async () => {
+    const { store, effects, input } = setup();
+    const today = island(1);
+    expect(
+      (await readHeat(store, ana, today, DAY_ONE + HOUR, lastDay())).ok
+    ).toBe(false);
+    expect(
+      (await readHeat(store, null, today, DAY_ONE + HOUR, lastDay())).ok
+    ).toBe(false);
+    await recordStart(store, ben, 1, DAY_ONE);
+    await lockIn(store, ben, input(1, DAY_ONE + HOUR), effects);
+    expect(
+      (await readHeat(store, ana, today, DAY_ONE + HOUR, lastDay())).ok
+    ).toBe(false);
+    await recordStart(store, ana, 1, DAY_ONE);
+    await lockIn(store, ana, input(1, DAY_ONE + HOUR), effects);
+    const heat = await readHeat(store, ana, today, DAY_ONE + HOUR, lastDay());
+    if (!heat.ok) throw new Error('should be open');
+    const width = Number(today.rows[0]?.length);
+    for (const placement of today.solution)
+      expect(heat.tiles[placement.y * width + placement.x]).toBe(2);
+    expect(heat.solves).toBe(2);
+    expect(heat.parHits).toBe(2);
+    expect(heat.parSolution).toBeNull();
+  });
+
+  it('opens an earlier night to everyone, with its par answer', async () => {
+    const { store } = setup();
+    const heat = await readHeat(
+      store,
+      null,
+      island(1),
+      DAY_ONE + 26 * HOUR,
+      lastDay()
+    );
+    if (!heat.ok) throw new Error('should be open');
+    expect(heat.parSolution).toEqual(island(1).solution);
+    expect(heat.tiles.every((count) => count === 0)).toBe(true);
   });
 });

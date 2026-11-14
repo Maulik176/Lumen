@@ -72,6 +72,20 @@ export type PastIsland = {
 
 export type PastResponse = { ok: true; islands: PastIsland[] };
 
+/** Where everyone put their pieces on one island. Only after the player has locked in. */
+export type HeatResponse =
+  | {
+      ok: true;
+      day: number;
+      /** Pieces placed on each tile (index y * width + x) across all ranked solves. */
+      tiles: number[];
+      solves: number;
+      parHits: number;
+      /** The par answer, only once the island's night is over. */
+      parSolution: Placement[] | null;
+    }
+  | { ok: false; reason: 'locked' | 'not-found' };
+
 /** One row of tonight's board. `rank` is null for a time too fast to be believed. */
 export type BoardRow = {
   rank: number | null;
