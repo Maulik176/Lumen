@@ -2,11 +2,13 @@
  * The play screen: load today's island, wire taps to the rules, the rules to the 3D view and
  * the interface, and Lock in to the server.
  */
-import type {
-  IslandResponse,
-  LockInRequest,
-  LockInResponse,
-  PublicIsland,
+import {
+  cleanSnoovatar,
+  type IslandResponse,
+  type LockInRequest,
+  type LockInResponse,
+  type SkyLantern,
+  type SkyResponse,
 } from '../../shared/api';
 import type { Biome } from '../../shared/calendar';
 import { BIOMES, COPY } from '../../shared/config';
@@ -57,7 +59,9 @@ function store(key: string): void {
   }
 }
 
-async function loadIsland(): Promise<PublicIsland | null> {
+type Loaded = Extract<IslandResponse, { ok: true }>;
+
+async function loadIsland(): Promise<Loaded | null> {
   try {
     const wanted = query.get('day');
     const response = await fetch(
@@ -66,9 +70,46 @@ async function loadIsland(): Promise<PublicIsland | null> {
         : `/api/island?day=${encodeURIComponent(wanted)}`
     );
     const body: IslandResponse = await response.json();
-    return body.ok ? body.island : null;
+    return body.ok ? body : null;
   } catch {
     return null;
+  }
+}
+
+/** Tell the server something happened. Never waits, never fails the game. */
+function tell(path: string, body: Record<string, unknown>): void {
+  void fetch(path, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  }).catch(() => undefined);
+}
+
+/** Tonight's sky: everyone already there, then each new lantern as it rises. */
+async function joinSky(
+  day: number,
+  self: string | null,
+  onList: (lanterns: SkyLantern[]) => void,
+  onNew: (lantern: SkyLantern) => void
+): Promise<void> {
+  try {
+    const response = await fetch(`/api/sky?day=${day}`);
+    const body: SkyResponse = await response.json();
+    if (body.ok) onList(body.lanterns);
+  } catch {
+    // The sky is decoration; the island plays without it.
+  }
+  try {
+    const { connectRealtime } = await import('@devvit/web/client');
+    connectRealtime<SkyLantern>({
+      channel: `sky_${day}`,
+      onMessage: (lantern) => {
+        if (typeof lantern.u !== 'string' || lantern.u === self) return;
+        onNew({ u: lantern.u, s: lantern.s, a: cleanSnoovatar(lantern.a) });
+      },
+    });
+  } catch {
+    // Not inside Reddit, or realtime is unavailable: late lanterns simply do not appear.
   }
 }
 
@@ -112,12 +153,14 @@ async function start(): Promise<void> {
   if (canvas === null) throw new Error('missing canvas');
   applyTheme(document.documentElement);
 
-  const [island, rider] = await Promise.all([loadIsland(), loadRider()]);
-  if (island === null) {
+  const [loaded, rider] = await Promise.all([loadIsland(), loadRider()]);
+  if (loaded === null) {
     status.textContent = COPY.loadFailed;
     return;
   }
   status.remove();
+  const { island, me } = loaded;
+  const ranked = query.get('archive') !== '1';
 
   const puzzle = puzzleFromText(island);
   const forcedBiome: Biome | undefined = BIOMES.find(
@@ -130,13 +173,17 @@ async function start(): Promise<void> {
 
   // First visit: three small islands teach the light before today's island appears.
   // ?tutorial=1 forces it and ?tutorial=0 skips it, for testing.
+  const seenTutorial = me.tutorialDone || stored(TUTORIAL_KEY);
   const wantTutorial =
     query.get('tutorial') === '1' ||
-    (!stored(TUTORIAL_KEY) && query.get('tutorial') !== '0');
+    (!seenTutorial && query.get('tutorial') !== '0');
   if (wantTutorial) {
     await runTutorial(canvas, root, sound, calm);
     store(TUTORIAL_KEY);
+    tell('/api/tutorial-done', {});
   }
+  // The server's clock starts now, once today's island is the thing on screen.
+  tell('/api/start', { day: island.day });
   const showHints = !stored(HINTS_KEY);
   const hand = createGhostHand(root, calm);
   const view = createIslandView(canvas, puzzle, {
@@ -146,7 +193,8 @@ async function start(): Promise<void> {
     teach: showHints,
   });
   let state: PlayState = startPlay(puzzle);
-  let startedAt = performance.now();
+  /** True once the player has locked in and chosen to play again: later solves are unranked. */
+  let replaying = false;
   let busy = false;
 
   const layout = (): void => {
@@ -177,12 +225,13 @@ async function start(): Promise<void> {
     if (busy || !state.light.solved || state.phase === 'locked') return;
     busy = true;
     hud.setBusy(true);
-    const elapsedMs = performance.now() - startedAt;
-    const outcome = await sendLockIn({
+    const request: LockInRequest = {
       day: island.day,
       placements: state.placements,
-      elapsedMs,
-    });
+      ranked: ranked && !replaying,
+    };
+    if (rider.snoovatar !== null) request.snoovatar = rider.snoovatar;
+    const outcome = await sendLockIn(request);
     if (!outcome.ok) {
       busy = false;
       hud.setBusy(false);
@@ -217,7 +266,7 @@ async function start(): Promise<void> {
         hud.quiet(false);
         view.dawn();
         state = startPlay(puzzle);
-        startedAt = performance.now();
+        replaying = true;
         view.sync(state);
         hud.update(state);
         layout();
@@ -256,6 +305,20 @@ async function start(): Promise<void> {
   view.sync(state);
   hud.update(state);
   layout();
+  void joinSky(
+    island.day,
+    me.username,
+    (lanterns) => view.setSky(lanterns),
+    (lantern) => {
+      view.addSky(lantern);
+      hud.skyLine(
+        COPY.skyLine
+          .replace('{name}', lantern.u)
+          .replace('{island}', island.name)
+      );
+    }
+  );
+
   // The display font changes the bars' height once it arrives.
   void document.fonts?.ready.then(layout);
 

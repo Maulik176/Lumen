@@ -6,7 +6,7 @@
  * the interface is taking at the top and the bottom right now.
  */
 import type { LockInResponse, PublicIsland } from '../../shared/api';
-import { COPY, UI, VIEW } from '../../shared/config';
+import { COPY, SKY, UI, VIEW } from '../../shared/config';
 import {
   canLockIn,
   hintFor,
@@ -39,6 +39,8 @@ export type Hud = {
   hideResult: () => void;
   /** Room the interface is taking at the top and bottom, in pixels. */
   insets: () => { top: number; bottom: number };
+  /** "u/name lit Moss Steps": shown briefly, never more than one at a time. */
+  skyLine: (text: string) => void;
   /** Developer read-out, shown only with ?perf=1. */
   perf: (text: string) => void;
 };
@@ -202,15 +204,26 @@ export function createHud(
   const resultMedal = element('h2', 'result-medal');
   const resultLine = element('p', 'result-line');
   const resultTime = element('p', 'result-time');
+  const resultStreak = element('p', 'result-streak');
   const resultFooter = element('p', 'result-footer', COPY.comeBack);
   const againButton = element('button', 'button button-quiet', COPY.playAgain);
   againButton.type = 'button';
   againButton.addEventListener('click', actions.playAgain);
-  result.append(resultMedal, resultLine, resultTime, againButton, resultFooter);
+  result.append(
+    resultMedal,
+    resultLine,
+    resultTime,
+    resultStreak,
+    againButton,
+    resultFooter
+  );
 
+  // A quiet line when someone else's lantern rises.
+  const skyLine = element('p', 'sky-line');
+  let skyUntil = 0;
   const perfLine = element('pre', 'perf');
 
-  root.append(top, line, prompt, bottom, result, perfLine);
+  root.append(top, line, prompt, bottom, result, skyLine, perfLine);
 
   let noticeUntil = 0;
   let noticeTimer = 0;
@@ -299,7 +312,14 @@ export function createHud(
               pieces: outcome.pieces,
               par: outcome.par,
             });
-      resultTime.textContent = formatTime(outcome.elapsedMs);
+      resultTime.textContent = outcome.ranked
+        ? formatTime(outcome.elapsedMs)
+        : COPY.unranked;
+      resultStreak.textContent = !outcome.ranked
+        ? ''
+        : outcome.streak <= 1
+          ? COPY.streakOne
+          : fill(COPY.streakMany, { streak: outcome.streak });
       resultShown = true;
       root.classList.add('resulting');
     },
@@ -322,6 +342,16 @@ export function createHud(
         bottom:
           (promptShown ? prompt.offsetHeight : bottom.offsetHeight) + gap * 2,
       };
+    },
+
+    skyLine(text) {
+      const now = performance.now();
+      // One at a time, with a breath between them, so a busy night never becomes a ticker.
+      if (now < skyUntil + SKY.lineGapMs || hushed || resultShown) return;
+      skyUntil = now + SKY.lineMs;
+      skyLine.textContent = text;
+      skyLine.classList.add('visible');
+      window.setTimeout(() => skyLine.classList.remove('visible'), SKY.lineMs);
     },
 
     perf(text) {

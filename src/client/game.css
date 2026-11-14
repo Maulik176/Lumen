@@ -400,7 +400,7 @@ canvas {
 }
 
 .result-time {
-  margin: 2px 0 12px;
+  margin: 2px 0 2px;
   font-size: 14.5px;
   color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
@@ -558,4 +558,36 @@ canvas {
 
 #hud.leaving > * {
   opacity: 0;
+}
+
+.result-streak {
+  margin: 0 0 12px;
+  font-size: 14.5px;
+  color: var(--ink-soft);
+}
+
+.result-streak:empty {
+  display: none;
+}
+
+/* Someone else's lantern has risen. Small, low, and gone in a moment. */
+.sky-line {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--gap) * 2 + 56px);
+  margin: 0;
+  padding: 4px 12px;
+  border-radius: var(--radius);
+  background: var(--veil);
+  color: var(--light);
+  font-size: 12.5px;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(-50%);
+  transition: opacity 600ms ease;
+  pointer-events: none;
+}
+
+.sky-line.visible {
+  opacity: 0.92;
 }

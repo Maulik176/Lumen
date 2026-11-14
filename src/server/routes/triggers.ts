@@ -1,34 +1,42 @@
 import { Hono } from 'hono';
 import type { TriggerResponse } from '@devvit/web/shared';
-import { redis } from '@devvit/web/server';
-import { dayNow } from '../core/content';
-import { createDailyPost } from '../core/post';
+import { lastDay } from '../core/content';
+import { currentDay } from '../core/game';
+import { ensureDailyPost } from '../core/post';
 
 export const triggers = new Hono();
+export const scheduler = new Hono();
 
-/**
- * On install, and on each upgrade during development, make sure a post for the current build
- * exists so there is always something to open. Milestone 5 replaces this with the daily scheduler.
- */
-async function ensurePost(marker: string): Promise<TriggerResponse> {
+/** Make sure today's post exists. Safe to call from anywhere, any number of times. */
+async function ensureToday(): Promise<TriggerResponse> {
   try {
-    const key = `dev:post:${marker}`;
-    if ((await redis.get(key)) !== undefined)
-      return { status: 'success', message: 'Post already exists' };
-    const post = await createDailyPost(dayNow(Date.now()));
-    await redis.set(key, post.id);
-    return { status: 'success', message: `Post created: ${post.id}` };
+    const day = currentDay(Date.now(), lastDay());
+    const { postId, created } = await ensureDailyPost(day);
+    return {
+      status: 'success',
+      message: `Day ${day}: ${created ? 'created' : 'already posted'} ${postId}`,
+    };
   } catch (error) {
-    console.error(`Error creating post: ${String(error)}`);
-    return { status: 'error', message: 'Failed to create post' };
+    console.error(`Daily post failed: ${String(error)}`);
+    return { status: 'error', message: 'Daily post failed' };
   }
 }
 
 triggers.post('/on-app-install', async (c) =>
-  c.json<TriggerResponse>(await ensurePost('install'), 200)
+  c.json<TriggerResponse>(await ensureToday(), 200)
+);
+triggers.post('/on-app-upgrade', async (c) =>
+  c.json<TriggerResponse>(await ensureToday(), 200)
 );
 
-/** One fresh post per milestone build; bump the marker when a new one is wanted. */
-triggers.post('/on-app-upgrade', async (c) =>
-  c.json<TriggerResponse>(await ensurePost('onboard'), 200)
-);
+/** 00:00 UTC: the day's post. */
+scheduler.post('/daily-post', async (c) => {
+  await ensureToday();
+  return c.json({ status: 'ok' }, 200);
+});
+
+/** Every half hour: the same call again. Cron ticks can be skipped; this catches a missed one. */
+scheduler.post('/daily-catch-up', async (c) => {
+  await ensureToday();
+  return c.json({ status: 'ok' }, 200);
+});

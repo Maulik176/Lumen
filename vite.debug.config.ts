@@ -12,6 +12,7 @@ import {
   toPublicIsland,
   type IslandResponse,
   type LockInResponse,
+  type SkyResponse,
 } from './src/shared/api';
 import { puzzleOfDaily, readDailyFile } from './src/shared/daily';
 import { medalFor, scoreSubmission } from './src/shared/validate';
@@ -39,10 +40,52 @@ function localApi(): Plugin {
         const body: IslandResponse =
           island === undefined
             ? { ok: false, reason: 'not-found' }
-            : { ok: true, island: toPublicIsland(island) };
+            : {
+                ok: true,
+                island: toPublicIsland(island),
+                me: {
+                  loggedIn: false,
+                  username: null,
+                  streak: 0,
+                  style: 'plain',
+                  tutorialDone: false,
+                  result: null,
+                },
+                rankedOpen: false,
+                skyCount: 140,
+              };
         response.setHeader('content-type', 'application/json');
         response.end(JSON.stringify(body));
       });
+      // A stand-in sky for looking at the rendering locally: made-up test names, never shipped.
+      server.middlewares.use('/api/sky', (_request, response) => {
+        const styles = [
+          'plain',
+          'plain',
+          'paper',
+          'star',
+          'koi',
+          'comet',
+        ] as const;
+        const body: SkyResponse = {
+          ok: true,
+          day: 1,
+          count: 140,
+          lanterns: Array.from({ length: 140 }, (_, i) => ({
+            u: `test_${i}`,
+            s: styles[i % styles.length] ?? 'plain',
+            a: '',
+          })),
+        };
+        response.setHeader('content-type', 'application/json');
+        response.end(JSON.stringify(body));
+      });
+      server.middlewares.use('/api/start', (_request, response) =>
+        response.end('{"ok":true}')
+      );
+      server.middlewares.use('/api/tutorial-done', (_request, response) =>
+        response.end('{"ok":true}')
+      );
       server.middlewares.use('/api/lock-in', (request, response) => {
         let text = '';
         request.on('data', (chunk: Buffer) => {
@@ -74,7 +117,12 @@ function localApi(): Plugin {
                   pieces: score.pieces,
                   par: island.par,
                   medal: medalFor(score.pieces, island.par),
-                  elapsedMs: Math.round(Number(fields['elapsedMs']) || 0),
+                  elapsedMs: 0,
+                  ranked: false,
+                  streak: 0,
+                  style: 'plain',
+                  percentile: 0,
+                  skyCount: 140,
                 };
               }
             }

@@ -1,18 +1,53 @@
 import { Hono } from 'hono';
-import { context } from '@devvit/web/server';
+import { context, realtime, reddit } from '@devvit/web/server';
 import {
   readPostData,
   toPublicIsland,
   type IslandResponse,
   type LockInResponse,
+  type SkyResponse,
 } from '../../shared/api';
-import { puzzleOfDaily } from '../../shared/daily';
-import { medalFor, scoreSubmission } from '../../shared/validate';
-import { dayNow, islandForDay } from '../core/content';
+import { COPY } from '../../shared/config';
+import { flairText } from '../../shared/streak';
+import { islandForDay, lastDay } from '../core/content';
+import {
+  currentDay,
+  lockIn,
+  markTutorialDone,
+  playerState,
+  rankedOpen,
+  readSky,
+  recordStart,
+  skyCount,
+  type Effects,
+  type Player,
+} from '../core/game';
+import { redisStore as store } from '../core/store';
 
 export const api = new Hono();
 
-/** The day this request is about: the post's own day, or today when there is no post data. */
+const MEDAL_NAME = {
+  lamplighter: COPY.medalLamplighter,
+  glow: COPY.medalGlow,
+  spark: COPY.medalSpark,
+} as const;
+
+/** Realtime channel for a night's sky. Letters, digits and underscores only. */
+export const skyChannel = (day: number): string => `sky_${day}`;
+
+/** Who is asking, or null when logged out. */
+async function whoIsAsking(): Promise<Player> {
+  const userId = context.userId;
+  if (userId === undefined) return null;
+  const username = await reddit.getCurrentUsername().catch(() => undefined);
+  return username === undefined ? null : { userId, username };
+}
+
+function postDay(): number | undefined {
+  return readPostData(context.postData)?.day;
+}
+
+/** The day this request is about: one asked for, else the post's own, else today. */
 function requestedDay(explicit: unknown): number {
   if (
     typeof explicit === 'number' &&
@@ -20,51 +55,99 @@ function requestedDay(explicit: unknown): number {
     explicit >= 1
   )
     return explicit;
-  const post = readPostData(context.postData);
-  return post?.day ?? dayNow(Date.now());
+  return postDay() ?? currentDay(Date.now(), lastDay());
 }
 
-api.get('/island', (c) => {
+async function body(request: {
+  json: () => Promise<unknown>;
+}): Promise<Record<string, unknown>> {
+  const value: unknown = await request.json().catch(() => null);
+  return typeof value === 'object' && value !== null ? { ...value } : {};
+}
+
+/** After a ranked solve: flair and the sky broadcast. Both are decoration and may fail quietly. */
+const effects: Effects = {
+  async onRanked({ player, result, lantern }) {
+    await Promise.allSettled([
+      realtime.send(skyChannel(result.day), lantern),
+      context.subredditName === undefined
+        ? Promise.resolve()
+        : reddit.setUserFlair({
+            subredditName: context.subredditName,
+            username: player.username,
+            text: flairText(MEDAL_NAME[result.medal], result.streak),
+          }),
+    ]);
+  },
+};
+
+api.get('/island', async (c) => {
   const fromQuery = Number(c.req.query('day'));
-  const island = islandForDay(
-    requestedDay(Number.isInteger(fromQuery) ? fromQuery : undefined)
-  );
+  const day = requestedDay(Number.isInteger(fromQuery) ? fromQuery : undefined);
+  const island = islandForDay(day);
   if (island === undefined)
     return c.json<IslandResponse>({ ok: false, reason: 'not-found' }, 404);
-  return c.json<IslandResponse>({ ok: true, island: toPublicIsland(island) });
+  const player = await whoIsAsking();
+  const [me, count] = await Promise.all([
+    playerState(store, player, day),
+    skyCount(store, day),
+  ]);
+  const open =
+    postDay() === day &&
+    rankedOpen(day, Date.now(), lastDay(), undefined) &&
+    me.result === null;
+  return c.json<IslandResponse>({
+    ok: true,
+    island: toPublicIsland(island),
+    me,
+    rankedOpen: open && me.loggedIn,
+    skyCount: count,
+  });
 });
 
-/**
- * Lock in. The server re-traces the placements and decides the result; nothing the client says
- * about its own score is used. Milestone 5 adds the start record, storage, streaks and the sky.
- */
-api.post('/lock-in', async (c) => {
-  const body: unknown = await c.req.json().catch(() => null);
-  if (typeof body !== 'object' || body === null) {
-    return c.json<LockInResponse>({ ok: false, reason: 'bad-request' }, 400);
+api.post('/start', async (c) => {
+  const fields = await body(c.req);
+  const day = requestedDay(fields['day']);
+  if (islandForDay(day) !== undefined && postDay() === day) {
+    await recordStart(store, await whoIsAsking(), day, Date.now()).catch(
+      () => undefined
+    );
   }
-  const fields: Record<string, unknown> = { ...body };
+  return c.json({ ok: true });
+});
+
+api.post('/tutorial-done', async (c) => {
+  await markTutorialDone(store, await whoIsAsking()).catch(() => undefined);
+  return c.json({ ok: true });
+});
+
+api.post('/lock-in', async (c) => {
+  const fields = await body(c.req);
   const island = islandForDay(requestedDay(fields['day']));
   if (island === undefined)
     return c.json<LockInResponse>({ ok: false, reason: 'not-found' }, 404);
+  const outcome = await lockIn(
+    store,
+    await whoIsAsking(),
+    {
+      island,
+      placements: fields['placements'],
+      snoovatar: fields['snoovatar'],
+      wantsRanked: fields['ranked'] !== false,
+      postDay: postDay(),
+      lastDay: lastDay(),
+      nowMs: Date.now(),
+    },
+    effects
+  );
+  if (!outcome.ok)
+    return c.json<LockInResponse>({ ok: false, reason: outcome.reason }, 400);
+  return c.json<LockInResponse>({ ok: true, ...outcome.result });
+});
 
-  const score = scoreSubmission(puzzleOfDaily(island), fields['placements']);
-  if (!score.ok)
-    return c.json<LockInResponse>({ ok: false, reason: score.problem }, 400);
-  if (!score.solved)
-    return c.json<LockInResponse>({ ok: false, reason: 'not-solved' }, 400);
-
-  const claimed = fields['elapsedMs'];
-  const elapsedMs =
-    typeof claimed === 'number' && Number.isFinite(claimed) && claimed >= 0
-      ? Math.round(claimed)
-      : 0;
-  return c.json<LockInResponse>({
-    ok: true,
-    day: island.day,
-    pieces: score.pieces,
-    par: island.par,
-    medal: medalFor(score.pieces, island.par),
-    elapsedMs,
-  });
+api.get('/sky', async (c) => {
+  const fromQuery = Number(c.req.query('day'));
+  const day = requestedDay(Number.isInteger(fromQuery) ? fromQuery : undefined);
+  const sky = await readSky(store, day);
+  return c.json<SkyResponse>({ ok: true, day, ...sky });
 });

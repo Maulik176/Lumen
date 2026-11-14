@@ -106,6 +106,12 @@ export const COPY = {
   medalLamplighter: 'Lamplighter',
   medalGlow: 'Glow',
   medalSpark: 'Spark',
+  /** Result card: the streak line, and the note on a solve that does not count. */
+  streakOne: 'First night of a new streak',
+  streakMany: '{streak} nights in a row',
+  unranked: 'Unranked',
+  /** A quiet line when someone else's lantern rises. {name} is a username, {island} today's island. */
+  skyLine: 'u/{name} lit {island}',
   /** Result card footer. */
   comeBack: 'Come back at nightfall tomorrow.',
   /** Result card: replay without ranking. */
@@ -666,4 +672,64 @@ export const DIFFICULTY = {
   lanternWeight: 2,
   /** Per fixed mirror. They help as often as they hinder, so this is small. */
   fixedMirrorWeight: 1,
+} as const;
+
+/** Streaks. A streak counts days in a row with a ranked solve. */
+export const STREAK = {
+  /** Missed days forgiven per week (Monday to Sunday, UTC). A forgiven day adds nothing. */
+  graceDaysPerWeek: 1,
+  /**
+   * Sky-lantern styles, by the streak that unlocks them. Everyone starts with the plain one.
+   * Listed from the longest streak down.
+   */
+  styles: [
+    { days: 30, style: 'comet' },
+    { days: 14, style: 'koi' },
+    { days: 7, style: 'star' },
+    { days: 3, style: 'paper' },
+    { days: 0, style: 'plain' },
+  ],
+  /** User flair in the game's subreddit: "{medal} 🔥{streak}". Emoji is allowed in flair only. */
+  flair: '{medal} 🔥{streak}',
+} as const;
+
+export type LanternStyle = (typeof STREAK.styles)[number]['style'];
+
+/** The Shared Night Sky. Distances in tiles, times in milliseconds. */
+export const SKY = {
+  /** Lanterns kept and drawn for one night. More than this shows only as the count. */
+  maxLanterns: 300,
+  /** How many of the nearest lanterns carry their player's snoovatar. The rest are small lights. */
+  portraits: 8,
+  /**
+   * Far lanterns float between these distances beyond the island, across the slice of sky the
+   * camera faces (`spread` is that slice's half-width as a share of distance), between these heights.
+   */
+  ringNear: 18,
+  ringFar: 44,
+  spread: 0.34,
+  heightLow: -32,
+  heightHigh: 18,
+  /** They drift upward this fast, in tiles per second, and wrap around at the top. */
+  riseSpeed: 0.22,
+  /** Size of a far lantern in pixels at pixel ratio 1, and how much brighter it is at night. */
+  pointSize: 17,
+  dayOpacity: 0.3,
+  /** Portrait lanterns: ring distance, heights, size in tiles. */
+  portraitRing: 13,
+  portraitLow: 2,
+  portraitHigh: 12,
+  portraitSize: 1.5,
+  /** How long "u/name lit Moss Steps" stays on screen, and the least time between two of them. */
+  lineMs: 3200,
+  lineGapMs: 1500,
+  /** Seconds of other players' lanterns a late joiner's request may be cached for. */
+  cacheSeconds: 5,
+} as const;
+
+/** How long things are kept in Redis, in seconds. */
+export const KEEP = {
+  startSeconds: 2 * 86_400,
+  submissionSeconds: 45 * 86_400,
+  skySeconds: 45 * 86_400,
 } as const;

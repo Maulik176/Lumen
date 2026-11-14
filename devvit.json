@@ -51,6 +51,22 @@
     "subreddit": "lumen_game_dev"
   },
   "permissions": {
-    "redis": true
+    "redis": true,
+    "realtime": true,
+    "reddit": {
+      "enable": true
+    }
+  },
+  "scheduler": {
+    "tasks": {
+      "daily-post": {
+        "endpoint": "/internal/scheduler/daily-post",
+        "cron": "0 0 * * *"
+      },
+      "daily-catch-up": {
+        "endpoint": "/internal/scheduler/daily-catch-up",
+        "cron": "7,37 * * * *"
+      }
+    }
   }
 }

@@ -27,6 +27,7 @@ import {
   RELEASE,
   VIEW,
 } from '../../shared/config';
+import type { SkyLantern } from '../../shared/api';
 import type { Biome } from '../../shared/calendar';
 import type { PlayState } from '../../shared/play';
 import type { Puzzle } from '../../shared/types';
@@ -44,6 +45,7 @@ import { createLanterns } from './lanterns';
 import { createPieceKit } from './pieces';
 import { createSkyLantern, type Rider } from './release';
 import { createSky } from './sky';
+import { createSkyField } from './skyfield';
 
 const DEGREES = Math.PI / 180;
 /** How level the camera gets as it follows the sky lantern up, in degrees above the horizon. */
@@ -75,6 +77,9 @@ export type IslandView = {
   release: () => Promise<void>;
   /** Back to dusk, for another go. */
   dawn: () => void;
+  /** Everyone who lit tonight's island: the whole list on arrival, then each new one as it comes. */
+  setSky: (lanterns: readonly SkyLantern[]) => void;
+  addSky: (lantern: SkyLantern) => void;
   /** Where a tile's centre is on the screen, in CSS pixels. For pointing at it. */
   screenOf: (x: number, y: number) => { x: number; y: number };
   stats: () => ViewStats;
@@ -116,6 +121,7 @@ export function createIslandView(
   const sparkleMap = keeper.keep(sparkle(64));
 
   const sky = createSky(scene, look, blobMap, keeper);
+  const skyField = createSkyField(scene, glowMap, keeper);
 
   const hemisphere = new HemisphereLight(0xffffff, 0x8f8a78, 1);
   const sun = new DirectionalLight(0xffe6bd, 1.3);
@@ -169,6 +175,7 @@ export function createIslandView(
   let yawFrom = 0;
   let yawTo = 0;
   let yawAt = -1;
+  let yawNow = 0;
   let distance = 20;
   let distanceTarget = 20;
   let framed = false;
@@ -211,6 +218,7 @@ export function createIslandView(
       yawAt < 0 ? 1 : easeInOut((now - yawAt) / CAMERA.rotateMs);
     const yaw = yawFrom + (yawTo - yawFrom) * turnProgress;
     if (turnProgress >= 1) yawAt = -1;
+    yawNow = yaw;
 
     // Calm mode never moves the camera: the lantern travels and the light changes instead.
     const rise = calm ? 0 : riseNow();
@@ -291,6 +299,7 @@ export function createIslandView(
     }
     lanterns.update(time, delta, allLit, nightAt >= 0, teaching);
     beams.update(time, night, calm);
+    skyField.update(time, night, calm, pixelRatio, yawNow);
 
     for (const piece of pieces.values()) {
       const t = Math.min(1, (time - piece.bornAt) / VIEW.pieceDropMs);
@@ -477,6 +486,14 @@ export function createIslandView(
       allLit = false;
       skyLantern.hide();
       lanterns.reset();
+    },
+
+    setSky(lanterns) {
+      skyField.set(lanterns);
+    },
+
+    addSky(lantern) {
+      skyField.add(lantern);
     },
 
     screenOf(x, y) {

@@ -2,6 +2,7 @@
  * Shapes of everything that crosses between the client and the server.
  */
 import type { Biome, Weekday } from './calendar';
+import type { LanternStyle } from './config';
 import type { DailyIsland } from './daily';
 import type { BeamColour, Inventory, Medal, Placement } from './types';
 import type { PlacementProblem } from './validate';
@@ -28,25 +29,74 @@ export type PostData = {
   lanterns: number;
 };
 
+/** One lantern in tonight's sky. Short names keep realtime messages and Redis small. */
+export type SkyLantern = {
+  /** Username. */
+  u: string;
+  /** Lantern style earned by streak. */
+  s: LanternStyle;
+  /** Snoovatar address on Reddit's image host, or '' when the player has none. */
+  a: string;
+};
+
+export type SkyResponse = {
+  ok: true;
+  day: number;
+  count: number;
+  lanterns: SkyLantern[];
+};
+
+/** What the server knows about the player asking. */
+export type PlayerState = {
+  loggedIn: boolean;
+  username: string | null;
+  streak: number;
+  style: LanternStyle;
+  tutorialDone: boolean;
+  /** Their ranked result for this island, if they already locked in. */
+  result: LockInResult | null;
+};
+
 export type IslandResponse =
-  { ok: true; island: PublicIsland } | { ok: false; reason: 'not-found' };
+  | {
+      ok: true;
+      island: PublicIsland;
+      me: PlayerState;
+      /** True when a solve of this island today would count for boards and streaks. */
+      rankedOpen: boolean;
+      skyCount: number;
+    }
+  | { ok: false; reason: 'not-found' };
+
+export type StartRequest = { day: number };
 
 export type LockInRequest = {
   day: number;
   placements: Placement[];
-  /** Milliseconds the player took. Milestone 5 replaces this with the server's own clock. */
+  /** The player's own snoovatar address, from the post context. Checked by the server. */
+  snoovatar?: string;
+  /** False for archive and replay: the server then records nothing. */
+  ranked?: boolean;
+};
+
+export type LockInResult = {
+  day: number;
+  pieces: number;
+  par: number;
+  medal: Medal;
+  /** Milliseconds from the server's own start record to Lock in. */
   elapsedMs: number;
+  /** True when this solve counted for the leaderboard, streak and sky. */
+  ranked: boolean;
+  streak: number;
+  style: LanternStyle;
+  /** Share of ranked players this result beat or equalled on pieces and time, 0 to 100. */
+  percentile: number;
+  skyCount: number;
 };
 
 export type LockInResponse =
-  | {
-      ok: true;
-      day: number;
-      pieces: number;
-      par: number;
-      medal: Medal;
-      elapsedMs: number;
-    }
+  | ({ ok: true } & LockInResult)
   | {
       ok: false;
       reason: 'not-found' | 'not-solved' | 'bad-request' | PlacementProblem;
@@ -101,4 +151,12 @@ export function readPostData(value: unknown): PostData | null {
   if (typeof name !== 'string' || weekday === undefined) return null;
   if (typeof par !== 'number' || typeof lanterns !== 'number') return null;
   return { day, name, weekday, par, lanterns };
+}
+
+/** Reddit's own image host is the only place a snoovatar may come from. */
+export function cleanSnoovatar(value: unknown): string {
+  if (typeof value !== 'string' || value.length > 300) return '';
+  return /^https:\/\/i\.redd\.it\/snoovatar\/[\w\-./]+\.png$/.test(value)
+    ? value
+    : '';
 }
