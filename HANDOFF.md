@@ -223,6 +223,12 @@ back, and running it twice changes nothing.
 
 # Milestone 5 briefs (written Nov 14, after the server core was built)
 
+**Status, Nov 14 late: Briefs 6, 7, 8 and 9 are built** (commits dd5370b, 8ca5f61, 3880a03,
+c483beb). Differences from the briefs: the board opens by tapping the time and place line on the
+result card ("1:23 · #3 tonight"), keeping the card to Maulik's three actions; the crowd view
+fades the player's lantern instead of hiding it; the Journeys routes refuse any word not in
+JOURNEY_MAP.md and refuse a completed end from the client. Kept below for reference.
+
 What exists already, so do not rebuild it: `src/server/core/game.ts` (start, lock-in, ranking,
 player state, sky), `core/store.ts` (the `Store` type, `redisStore`, every key in `KEYS`),
 `core/post.ts` (idempotent daily post with a stickied results comment whose id is stored at
@@ -396,10 +402,6 @@ the "typical journey" table in `JOURNEY_MAP.md`; the Hono routes with a stubbed 
   `me.style` / `result.style` and tint or shape it like the points in `skyfield.ts`.
 - `tutorialDone` is saved to Redis and read back, but hints (`HINTS_KEY`) are still only in
   localStorage, so they return after an app update. Store a `hintsDone` flag the same way.
-- A returning player who already locked in today (`me.result !== null`) still gets a fresh
-  board. Show their result card straight away instead: call `hud.showResult(me.result)`, lay
-  their stored placements (add them to `PlayerState`), and skip to night with a new
-  `view.night()` that sets the sky without the animation.
 - The feed card and the result card do not show "1,284 lanterns tonight" yet; `skyCount` is in
   `/api/island` and in every lock-in result.
 - Not verified on Reddit yet: realtime between two real accounts, flair after a real ranked

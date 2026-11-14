@@ -35,12 +35,23 @@ Few screenshots, short reports.
   upgrade triggers). Client: `/api/start` once today's island is on screen, ranked Lock in with
   the player's snoovatar, streak on the result card, `skyfield.ts` drawing up to 300 lanterns in
   one draw call (plus a snoovatar atlas for the newest 8) fed by `/api/sky` and the `sky_{day}`
-  channel. 292 tests. **Not built, briefed in HANDOFF.md (6–9):** leaderboard UI, heatmap UI,
-  share button, Journeys. **Not yet verified on Reddit:** two-account realtime, flair, cron,
-  stickied comment.
+  channel. **Not yet verified on Reddit:** two-account realtime, flair, cron, stickied comment.
+- **Nov 14 late (Opus): Briefs 6–9 built.** Tonight's board (tap "1:23 · #3 tonight" on the
+  result card; `/api/leaderboard`, `board.ts`), crowd view ("See how everyone solved it",
+  `/api/heatmap`, `crowd.ts`, tiles warm via `ground.tint`), Share to comments (`/api/share`,
+  `shared/share.ts`, permission `asUser: SUBMIT_COMMENT`), Journeys (`shared/journey.ts` mapper,
+  Hono routes in `routes/journey.ts` at /api/telemetry, completed end sent in /api/lock-in,
+  permission `journeys`). **Design change (Maulik):** a ranked Lock in finishes today's island:
+  no replay; result card = See how everyone solved it, Share, Explore past islands (`past.ts`,
+  `/api/past`, practice there), "Come back at nightfall tomorrow". Reopening a solved post
+  shows night, the lantern and the card (`view.settle()`). "?" and past islands open on a layer
+  over tonight's island (`openLayer` in `main.ts`), which pauses and returns unchanged. Ghost
+  hand only in the tutorial or after a skipped one. Own sky entry never drawn twice. 309 tests.
+  Local checks run in headless Chrome when the browser pane is hidden (script in the session
+  scratchpad; not kept).
 - **Nov 15 fixes after Maulik's test:** snoovatars sit on paper lanterns; own lantern has a "You"
-  label; tapping a lantern shows its name; replays send a faint practice lantern and the card
-  shows today's real result plus "This replay doesn't count."; rank on the card; "?" How to play
+  label; tapping a lantern shows its name; unranked solves send a faint practice lantern; rank
+  on the card; "?" How to play
   in the top bar and on the feed card (`howto` entry point); mod menu "Reset my Lumen progress
   (dev)" on r/lumen_game_dev only. 293 tests. Details at the end of `HANDOFF.md`.
 - Snow biome has its own cooler daylight (`sunDay`/`sunDusk` per biome in `BIOME_LOOK`).
