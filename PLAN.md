@@ -293,6 +293,27 @@ trailer mode records the full sequence in one take; every budget row reported wi
 
 ---
 
+### Performance, measured Nov 15 (after the art pass)
+
+Measured locally in headless Chrome (software rendering, so **fps here means nothing**; draw
+calls, triangles and sizes are exact).
+
+| Budget row | Budget | Measured | Met |
+| --- | --- | --- | --- |
+| Draw calls, 6x6 island at rest | under 120 | 42 | yes |
+| Draw calls, 9x9 island at rest | under 120 | 62 to 64 | yes |
+| Draw calls, solved 8x8 with all light, night | under 120 | 79 to 88 | yes |
+| Triangles | under 80k | 5.5k to 8.8k | yes |
+| Game JS, gzipped | under 450 KB | 166 KB | yes |
+| Feed card JS, gzipped | (under 1 s paint) | about 12 KB, hero image 15 KB | yes |
+| 60 fps on a mid-range Android | 60, never under 45 | **not measured: needs the phone** | unknown |
+
+Changes made: edge smoothing is off on screens with pixel ratio 2 or more
+(`VIEW.antialiasBelowRatio`); the "You" label touches the page only when it moves; a restored
+WebGL context reloads the page. The new sky shader does six noise lookups per pixel; if the phone
+shows under 45 fps, first lower `VIEW.maxPixelRatio` to 1.5, then set `ART.wisps` to 0.
+Still open from Brief 4: the phone table, a heap profile during play, render-on-demand.
+
 ## Milestone 8 · Harsh judge review
 
 **Goal:** find what a judge would find, first.

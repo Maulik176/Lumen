@@ -303,6 +303,8 @@ export function createHud(
   const youLabel = element('span', 'sky-tag sky-you', COPY.you);
   const nameLabel = element('span', 'sky-tag');
   let nameTimer = 0;
+  let youX = -2;
+  let youY = -2;
 
   root.append(
     youLabel,
@@ -514,6 +516,12 @@ export function createHud(
     },
 
     you(spot) {
+      // Called every frame: touch the page only when the label has really moved.
+      const x = spot === null ? -1 : Math.round(spot.x * 2);
+      const y = spot === null ? -1 : Math.round(spot.y * 2);
+      if (x === youX && y === youY) return;
+      youX = x;
+      youY = y;
       youLabel.classList.toggle('visible', spot !== null);
       if (spot !== null)
         youLabel.style.transform = `translate(${spot.x.toFixed(1)}px, ${spot.y.toFixed(1)}px)`;

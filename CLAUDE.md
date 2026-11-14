@@ -49,6 +49,19 @@ Few screenshots, short reports.
   hand only in the tutorial or after a skipped one. Own sky entry never drawn twice. 309 tests.
   Local checks run in headless Chrome when the browser pane is hidden (script in the session
   scratchpad; not kept).
+- **Nov 15 (Fable): the seven-item plan before the freeze, all built.** (1) Feed card
+  (`preview.*`, `outline.ts`, `card-cache.ts`, `/api/card`): hero picture per biome rendered from
+  the real scene by `npm run hero` (needs `npm run debug` running, Chrome, cwebp; uses the
+  hand-made `content/hero.json`, never a daily island; **re-run it after any change to the look**),
+  today's outline, solved state with "See tonight's sky" and a countdown. (2) Result card rows
+  never half empty. (3) Stickied results comment counts players, refreshed at most once a minute
+  and by the half-hourly task. (4) Landscape layout above 760 px wide (`VIEW.wide*`); desktop
+  Reddit's modal measured 375 px, so see PLATFORM.md. (5) Art pass, all numbers in `ART`.
+  (6) Archipelago map (`archipelago.ts`) replaces the past-islands list. (7) Trailer mode
+  (`trailer.ts`, `shared/trailer.ts`; mod menu arms it, `?trailer=1` locally) and a performance
+  pass (table in PLAN.md Milestone 7; **phone fps still unmeasured**). `scripts/shoot.mjs` is the
+  headless-Chrome driver for local screenshots and scripted clicks. 313 tests;
+  `tests/content.test.ts` has a 2-second timing check that can fail when the machine is busy.
 - **Nov 15 fixes after Maulik's test:** snoovatars sit on paper lanterns; own lantern has a "You"
   label; tapping a lantern shows its name; unranked solves send a faint practice lantern; rank
   on the card; "?" How to play

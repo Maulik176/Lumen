@@ -221,6 +221,11 @@ back, and running it twice changes nothing.
 
 ---
 
+**Status, Nov 15: Briefs 1 (feed card), 2 (Archipelago, as a 2D night map), 3 (trailer; armed
+from the mod menu rather than a separate post) and most of 4 (performance) are built.** Left
+from Brief 4: fps on the Android phone, a heap profile, render-on-demand. The briefs above are
+kept for reference.
+
 # Milestone 5 briefs (written Nov 14, after the server core was built)
 
 **Status, Nov 14 late: Briefs 6, 7, 8 and 9 are built** (commits dd5370b, 8ca5f61, 3880a03,

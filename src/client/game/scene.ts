@@ -139,7 +139,8 @@ export function createIslandView(
 
   const renderer = new WebGLRenderer({
     canvas,
-    antialias: true,
+    // Smoothing costs most where it shows least: on dense screens it is left off.
+    antialias: (window.devicePixelRatio || 1) < VIEW.antialiasBelowRatio,
     powerPreference: 'high-performance',
   });
   let pixelRatio = Math.min(window.devicePixelRatio || 1, VIEW.maxPixelRatio);
@@ -426,6 +427,8 @@ export function createIslandView(
   canvas.addEventListener('webglcontextlost', (event) =>
     event.preventDefault()
   );
+  // A lost graphics context comes back empty; starting the page again is the simple, safe cure.
+  canvas.addEventListener('webglcontextrestored', () => location.reload());
   frameHandle = requestAnimationFrame(frame);
 
   return {

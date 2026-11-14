@@ -229,6 +229,8 @@ export const CAMERA = {
 export const VIEW = {
   /** Device pixel ratio is never above this. */
   maxPixelRatio: 2,
+  /** Edge smoothing is used only on screens with a pixel ratio below this. */
+  antialiasBelowRatio: 2,
   /** If frames stay slower than `slowFrameMs` the pixel ratio drops to this. */
   lowPixelRatio: 1.25,
   slowFrameMs: 22,
