@@ -1,7 +1,10 @@
 import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
 import { createServer, getServerPort } from '@devvit/web/server';
+import { telemetry } from '@devvit/analytics/server/reddit';
+import { TELEMETRY_DEFAULT_CLIENT_BASE_PATH } from '@devvit/analytics/shared/reddit';
 import { api } from './routes/api';
+import { journeyRoutes } from './routes/journey';
 import { forms } from './routes/forms';
 import { menu } from './routes/menu';
 import { scheduler, triggers } from './routes/triggers';
@@ -14,6 +17,8 @@ internal.route('/form', forms);
 internal.route('/triggers', triggers);
 internal.route('/scheduler', scheduler);
 
+// Journeys first: its routes sit under /api/telemetry, inside /api.
+app.route(TELEMETRY_DEFAULT_CLIENT_BASE_PATH, journeyRoutes(telemetry));
 app.route('/api', api);
 app.route('/internal', internal);
 

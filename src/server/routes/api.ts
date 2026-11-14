@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { telemetry } from '@devvit/analytics/server/reddit';
 import { context, realtime, reddit } from '@devvit/web/server';
 import {
   readPostData,
@@ -17,6 +18,7 @@ import type { DailyIsland } from '../../shared/daily';
 import { flairText } from '../../shared/streak';
 import { islandForDay, lastDay } from '../core/content';
 import { resultsComment } from '../core/post';
+import { isJourneyId } from './journey';
 import { shareText } from '../../shared/share';
 import {
   currentDay,
@@ -156,6 +158,18 @@ api.post('/lock-in', async (c) => {
   );
   if (!outcome.ok)
     return c.json<LockInResponse>({ ok: false, reason: outcome.reason }, 400);
+  // Journeys: the completed end is sent here, after the server has checked the answer.
+  const journeyId = c.req.header('x-devvit-journey-id');
+  if (isJourneyId(journeyId))
+    await telemetry
+      .endJourney({
+        journeyId,
+        complete: true,
+        game: { win: true, score: outcome.result.pieces },
+      })
+      .catch((error: unknown) =>
+        console.error(`Journey end failed: ${String(error)}`)
+      );
   return c.json<LockInResponse>({ ok: true, ...outcome.result });
 });
 

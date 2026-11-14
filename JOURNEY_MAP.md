@@ -7,7 +7,8 @@ the final version goes in with the app review on Nov 17–18.
 
 Lumen is a daily puzzle. Each day's post holds one small island: the player places mirrors and
 prisms so that light reaches every paper lantern, using as few pieces as possible, then locks in
-their answer. One ranked attempt per player per day; past days can be replayed unranked.
+their answer. One ranked attempt per player per day; once locked in, today's island is finished.
+Past islands can be played for practice, unranked.
 
 ## What one journey is
 
@@ -20,7 +21,7 @@ to the moment they lock in their answer or leave.
 | End: completed | The player taps **Lock in** with every lantern lit. The server has re-checked the solution |
 | End: abandoned | The player closes the expanded view or the page is hidden before locking in |
 | Typical length | 2 to 4 minutes |
-| Per player per day | One ranked journey. Replays and past days are separate, unranked journeys |
+| Per player per day | One ranked journey. Past islands (and signed-out play) are separate, unranked journeys |
 
 There is no failure state in Lumen. A journey is either completed or abandoned.
 
@@ -67,9 +68,15 @@ An abandoned journey is steps 1 to 4 followed by the player closing the view:
 
 ## How it is implemented
 
-- Client events use the telemetry client from `@devvit/analytics/client/reddit`; the completed
-  `Journey.End` is sent from the server (`@devvit/analytics/server/reddit`) inside the same request
-  that verifies the solution, so a client cannot report a win the server did not check.
+- Client events use the telemetry client from `@devvit/analytics/client/reddit`. Its requests go
+  to five small server routes (`src/server/routes/journey.ts`) that pass them to
+  `@devvit/analytics/server/reddit` and refuse any `action` or `actionDetails` that is not one of
+  the fixed words in this document.
+- The completed `Journey.End` is sent from the server inside the same request that verifies the
+  solution (`/api/lock-in`), so a client cannot report a win the server did not check. The
+  client's own end route accepts only an abandoned end.
+- The mapping from play to events is a pure function (`src/shared/journey.ts`) tested against
+  the "typical journey" table above.
 - The journey ID is created by `startJourney()` and managed by the SDK. It is not stored in our
   database and not joined to anything.
 - All events fire in the expanded game view. The inline feed preview sends nothing.

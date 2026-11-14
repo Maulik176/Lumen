@@ -31,6 +31,7 @@ import {
 import { puzzleFromText } from '../../shared/puzzle-text';
 import { createSound, type Sound } from './audio';
 import { createGhostHand } from './hand';
+import { createJourney, type Journey } from './journey';
 import { applyTheme, createHud, type HudActions } from './hud';
 import { boardSheet } from './board';
 import { crowdSheet, loadHeat } from './crowd';
@@ -140,11 +141,14 @@ async function joinSky(
   }
 }
 
-async function sendLockIn(request: LockInRequest): Promise<LockInResponse> {
+async function sendLockIn(
+  request: LockInRequest,
+  headers: Record<string, string>
+): Promise<LockInResponse> {
   try {
     const response = await fetch('/api/lock-in', {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', ...headers },
       body: JSON.stringify(request),
     });
     const body: LockInResponse = await response.json();
@@ -198,6 +202,8 @@ type IslandOptions = {
   ranked: boolean;
   hints: boolean;
   hand: boolean;
+  /** This island's Devvit Journey. */
+  journey: Journey;
   howToPlay?: () => void;
   openPast?: (day: number) => void;
   back?: () => void;
@@ -240,8 +246,10 @@ function mountIsland(
     view.resize(window.innerWidth, window.innerHeight, top, bottom);
   };
 
+  const { journey } = options;
   const apply = (step: PlayStep): void => {
     state = step.state;
+    journey.play(step.events);
     for (const event of step.events) {
       if (
         event.type === 'placed' ||
@@ -269,13 +277,15 @@ function mountIsland(
       ranked: options.ranked,
     };
     if (rider.snoovatar !== null) request.snoovatar = rider.snoovatar;
-    const outcome = await sendLockIn(request);
+    const outcome = await sendLockIn(request, journey.lockInHeaders());
     if (!outcome.ok) {
       busy = false;
       hud.setBusy(false);
       hud.notice(COPY.lockInFailed);
       return;
     }
+    // The server ended this journey as completed; another go here would be a new one.
+    journey.locked(tonight ? 'replay' : 'archive');
     apply(lockIn(state));
     if (tonight) store(HINTS_KEY);
     hud.quiet(true);
@@ -370,7 +380,10 @@ function mountIsland(
   const actions: HudActions = {
     undo: () => apply(undo(state)),
     reset: () => apply(reset(state)),
-    rotate: () => view.rotate(),
+    rotate: () => {
+      journey.tap('rotate');
+      view.rotate();
+    },
     toggleMute: () => sound.toggleMute(),
     lockIn: () => void commit(),
     keepRefining: () => apply(keepRefining(state)),
@@ -396,6 +409,11 @@ function mountIsland(
   const hud = createHud(root, island, actions, options.hints);
   hud.setMuted(sound.isMuted());
   window.addEventListener('resize', layout);
+  // Leaving before Lock in ends the journey as abandoned.
+  const hidden = (): void => {
+    if (document.visibilityState === 'hidden' && !paused) journey.leave();
+  };
+  document.addEventListener('visibilitychange', hidden);
 
   // Sound wakes itself on every tap (finger up, not down: that is what iOS counts as a gesture).
   const stopTaps = onTap(canvas, (clientX, clientY) => {
@@ -445,6 +463,7 @@ function mountIsland(
     hud.update(state);
   }
   layout();
+  if (tonight) journey.ready();
 
   void joinSky(
     island.day,
@@ -507,6 +526,8 @@ function mountIsland(
     dispose() {
       if (disposed) return;
       disposed = true;
+      journey.leave();
+      document.removeEventListener('visibilitychange', hidden);
       stopTaps();
       window.removeEventListener('resize', layout);
       window.clearInterval(handTimer);
@@ -556,8 +577,14 @@ async function start(): Promise<void> {
   if (firstVisit) forget(HINTS_KEY);
   // The ghost hand shows only in the tutorial, and on a first island whose tutorial was skipped.
   let handOn = false;
+  const log = query.get('perf') === '1';
+  const journey = createJourney(
+    loaded.rankedOpen && query.get('archive') !== '1' ? 'ranked' : 'replay',
+    log
+  );
   if (wantTutorial) {
     const ended = await runTutorial(canvas, root, shared.sound, calm);
+    if (ended === 'skipped') journey.tap('tutorial_skip');
     handOn = firstVisit && ended === 'skipped';
     store(TUTORIAL_KEY);
     tell('/api/tutorial-done', {});
@@ -574,7 +601,13 @@ async function start(): Promise<void> {
     layerOpen = true;
     tonight?.pause(true);
     const layer = openLayer();
-    await runTutorial(layer.canvas, layer.root, shared.sound, calm);
+    const ended = await runTutorial(
+      layer.canvas,
+      layer.root,
+      shared.sound,
+      calm
+    );
+    if (ended === 'skipped') journey.tap('tutorial_skip');
     layer.close();
     tonight?.pause(false);
     layerOpen = false;
@@ -597,6 +630,7 @@ async function start(): Promise<void> {
       ranked: false,
       hints: false,
       hand: false,
+      journey: createJourney('archive', log),
       back: () => {
         practice?.dispose();
         layer.close();
@@ -611,6 +645,7 @@ async function start(): Promise<void> {
     ranked: query.get('archive') !== '1',
     hints: !stored(HINTS_KEY),
     hand: handOn,
+    journey,
     howToPlay: () => void howToPlay(),
     openPast: (day) => void openPast(day),
   });
