@@ -101,4 +101,6 @@ export const KEYS = {
   postLock: (day: number) => `postlock:${day}`,
   dayOfPost: (postId: string) => `post:${postId}:day`,
   stickyOfPost: (postId: string) => `post:${postId}:sticky`,
+  /** Held for a minute after the results comment is rewritten, so it is not rewritten again. */
+  stickyFresh: (postId: string) => `post:${postId}:stickyfresh`,
 } as const;

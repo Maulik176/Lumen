@@ -18,7 +18,7 @@ import { COPY, PAST } from '../../shared/config';
 import type { DailyIsland } from '../../shared/daily';
 import { flairText } from '../../shared/streak';
 import { islandForDay, lastDay } from '../core/content';
-import { resultsComment } from '../core/post';
+import { refreshResultsComment, resultsComment } from '../core/post';
 import { isJourneyId } from './journey';
 import { shareText } from '../../shared/share';
 import {
@@ -94,6 +94,9 @@ const effects: Effects = {
             username: player.username,
             text: flairText(MEDAL_NAME[result.medal], result.streak),
           }),
+      context.postId === undefined
+        ? Promise.resolve()
+        : refreshResultsComment(context.postId, result.day),
     ]);
   },
 };

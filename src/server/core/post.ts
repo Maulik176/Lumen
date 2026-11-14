@@ -6,7 +6,8 @@
 import { reddit } from '@devvit/web/server';
 import { toPostData } from '../../shared/api';
 import { weekdayLabel } from '../../shared/calendar';
-import { COPY } from '../../shared/config';
+import { COMMENT, COPY } from '../../shared/config';
+import { resultsText } from '../../shared/share';
 import { islandForDay } from './content';
 import { KEYS, redisStore as store } from './store';
 
@@ -45,12 +46,43 @@ export async function resultsComment(
   if (known !== undefined && isCommentId(known)) return known;
   const sticky = await reddit.submitComment({
     id: postId,
-    text: COPY.resultsComment.replace('{day}', String(day)),
+    text: await resultsNow(day),
     runAs: 'APP',
   });
   await sticky.distinguish(true);
   await store.set(KEYS.stickyOfPost(postId), sticky.id);
   return sticky.id;
+}
+
+async function resultsNow(day: number): Promise<string> {
+  const stats = await store.hGetAll(KEYS.stats(day));
+  return resultsText(
+    day,
+    islandForDay(day)?.name ?? 'the island',
+    Number(stats['solves'] ?? 0) || 0,
+    Number(stats['parHits'] ?? 0) || 0
+  );
+}
+
+/**
+ * Rewrite the results comment with the night's counts. Called after each ranked solve, but
+ * does the work at most once a minute per post; the half-hourly task calls it with `always`
+ * so the last solves of a quiet spell are counted too. Decoration: callers ignore failures.
+ */
+export async function refreshResultsComment(
+  postId: `t3_${string}`,
+  day: number,
+  always = false
+): Promise<boolean> {
+  const first =
+    (await store.count(KEYS.stickyFresh(postId), COMMENT.minGapSeconds)) === 1;
+  if (!first && !always) return false;
+  const id = await resultsComment(postId, day);
+  const comment = await reddit.getCommentById(id);
+  const text = await resultsNow(day);
+  if (comment.body === text) return false;
+  await comment.edit({ text });
+  return true;
 }
 
 function isCommentId(id: string): id is `t1_${string}` {

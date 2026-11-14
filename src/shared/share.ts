@@ -38,3 +38,24 @@ export function shareText(result: LockInResult, lanterns: number): string {
       : medal;
   return `${first}\n\n${second}`;
 }
+
+/** The app's stickied comment on a post: an invitation, with the night's counts so far. */
+export function resultsText(
+  day: number,
+  island: string,
+  solves: number,
+  parHits: number
+): string {
+  if (solves <= 0)
+    return COPY.resultsNone
+      .replace('{day}', String(day))
+      .replace('{island}', island);
+  const par =
+    parHits > 0
+      ? COPY.resultsPar.replace('{hits}', parHits.toLocaleString('en'))
+      : '';
+  return (solves === 1 ? COPY.resultsOne : COPY.resultsMany)
+    .replace('{solves}', solves.toLocaleString('en'))
+    .replace('{island}', island)
+    .replace('{par}', par);
+}

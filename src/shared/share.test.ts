@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { LockInResult } from './api';
-import { clock, shareText } from './share';
+import { clock, resultsText, shareText } from './share';
 
 const result: LockInResult = {
   day: 12,
@@ -35,5 +35,19 @@ describe('shareText', () => {
   it('formats time as minutes and seconds', () => {
     expect(clock(0)).toBe('0:00');
     expect(clock(61_999)).toBe('1:01');
+  });
+});
+
+describe('resultsText', () => {
+  it('invites the first player, then counts players and par', () => {
+    expect(resultsText(12, 'Moss Steps', 0, 0)).toContain(
+      'Lumen #12 \u00b7 Moss Steps. Be the first'
+    );
+    expect(resultsText(12, 'Moss Steps', 1, 0)).toBe(
+      "Tonight's results: 1 player lit Moss Steps. Share yours below \u{1F447}"
+    );
+    expect(resultsText(12, 'Moss Steps', 1284, 231)).toBe(
+      "Tonight's results: 1,284 players lit Moss Steps, 231 hit par. Share yours below \u{1F447}"
+    );
   });
 });

@@ -186,7 +186,14 @@ export const COPY = {
   /** Result card, after a ranked solve: posts the result as the player's own comment. */
   share: 'Share to comments',
   /** The app's stickied comment on each post, which shared results reply to. */
-  resultsComment: 'Lumen #{day} results',
+  resultsNone:
+    "Tonight's results for Lumen #{day} \u00b7 {island}. Be the first to light it, then share yours below \ud83d\udc47",
+  resultsOne:
+    "Tonight's results: 1 player lit {island}{par}. Share yours below \ud83d\udc47",
+  resultsMany:
+    "Tonight's results: {solves} players lit {island}{par}. Share yours below \ud83d\udc47",
+  /** The middle of that line: how many hit par. Left out when nobody has. */
+  resultsPar: ', {hits} hit par',
   sharing: 'Posting\u2026',
   shared: 'Shared in the comments',
   /** The comment itself. Emoji are allowed here: it is a Reddit comment, not game UI. */
@@ -822,6 +829,12 @@ export const HEAT = {
   fewSolves: 5,
   /** How long the camera takes to come down to the island, or go back up, in ms. */
   cameraMs: 1500,
+} as const;
+
+/** The app's stickied results comment. */
+export const COMMENT = {
+  /** It is rewritten with the latest counts at most once in this many seconds. */
+  minGapSeconds: 60,
 } as const;
 
 /** The feed card. */
