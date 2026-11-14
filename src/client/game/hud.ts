@@ -24,7 +24,11 @@ export type HudActions = {
   lockIn: () => void;
   keepRefining: () => void;
   playAgain: () => void;
-  howToPlay: () => void;
+  /** Top bar, right: tonight's island offers How to play; a past island offers Back. */
+  howToPlay?: () => void;
+  back?: () => void;
+  /** Result card: the list of earlier islands. Left out on day 1, when there are none. */
+  explore?: () => void;
 };
 
 export type Hud = {
@@ -36,8 +40,14 @@ export type Hud = {
   setMuted: (muted: boolean) => void;
   /** Hide everything but the island, for nightfall and the lantern's flight. */
   quiet: (quiet: boolean) => void;
-  /** `replayed`: this is the player's real result for today, shown again after a replay. */
-  showResult: (result: LockInResult, replayed: boolean) => void;
+  /**
+   * The end screen. A ranked result finishes the island: no replay, only what comes after.
+   * An unranked one (signed out, a past island) may be played again for practice.
+   */
+  showResult: (result: LockInResult) => void;
+  /** A list in the result card's place; `hideSheet` returns to the card. */
+  showSheet: (content: HTMLElement) => void;
+  hideSheet: () => void;
   /** The small "You" label on the player's own lantern; null hides it. */
   you: (spot: { x: number; y: number } | null) => void;
   /** A tapped lantern's name, shown beside it for a moment. */
@@ -70,7 +80,7 @@ const MEDAL_NAME: Record<Medal, string> = {
   spark: COPY.medalSpark,
 };
 
-function element<K extends keyof HTMLElementTagNameMap>(
+export function element<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   className: string,
   text?: string
@@ -162,11 +172,22 @@ export function createHud(
     element('span', 'par-label', 'par'),
     element('b', 'par-number', String(island.par))
   );
-  const help = element('button', 'help-button', '?');
-  help.type = 'button';
-  help.setAttribute('aria-label', COPY.howToPlay);
-  help.addEventListener('click', actions.howToPlay);
-  top.append(title, inventory, par, help);
+  top.append(title, inventory, par);
+  const corner = actions.back ?? actions.howToPlay;
+  if (corner !== undefined) {
+    const help = element(
+      'button',
+      'help-button',
+      actions.back === undefined ? '?' : '\u2190'
+    );
+    help.type = 'button';
+    help.setAttribute(
+      'aria-label',
+      actions.back === undefined ? COPY.howToPlay : COPY.backToTonight
+    );
+    help.addEventListener('click', corner);
+    top.append(help);
+  }
 
   // One line under the top bar: a first-time hint, or a short notice.
   const line = element('p', 'panel line');
@@ -215,20 +236,35 @@ export function createHud(
   const resultLine = element('p', 'result-line');
   const resultTime = element('p', 'result-time');
   const resultStreak = element('p', 'result-streak');
-  const resultNote = element('p', 'result-note');
   const resultFooter = element('p', 'result-footer', COPY.comeBack);
-  const againButton = element('button', 'button button-quiet', COPY.playAgain);
-  againButton.type = 'button';
-  againButton.addEventListener('click', actions.playAgain);
+  const resultButtons = element('div', 'result-buttons');
+  const button = (
+    text: string,
+    kind: 'main' | 'quiet',
+    onTap: (() => void) | undefined
+  ): HTMLButtonElement | null => {
+    if (onTap === undefined) return null;
+    const node = element('button', `button button-${kind}`, text);
+    node.type = 'button';
+    node.addEventListener('click', onTap);
+    return node;
+  };
+  const againButton = button(COPY.playAgain, 'quiet', actions.playAgain);
+  const exploreButton = button(COPY.explore, 'quiet', actions.explore);
+  const backButton = button(COPY.backToTonight, 'quiet', actions.back);
   result.append(
     resultMedal,
     resultLine,
     resultTime,
     resultStreak,
-    resultNote,
-    againButton,
+    resultButtons,
     resultFooter
   );
+  // Past islands have no "tomorrow".
+  if (actions.back !== undefined) resultFooter.remove();
+
+  const sheet = element('section', 'panel sheet');
+  let sheetShown = false;
 
   // A quiet line when someone else's lantern rises.
   const skyLine = element('p', 'sky-line');
@@ -247,6 +283,7 @@ export function createHud(
     prompt,
     bottom,
     result,
+    sheet,
     skyLine,
     perfLine
   );
@@ -328,7 +365,7 @@ export function createHud(
       root.classList.toggle('quiet', quiet);
     },
 
-    showResult(outcome, replayed) {
+    showResult(outcome) {
       resultMedal.textContent = MEDAL_NAME[outcome.medal];
       resultMedal.dataset['medal'] = outcome.medal;
       resultLine.textContent =
@@ -346,7 +383,13 @@ export function createHud(
               rank: outcome.rank,
             })
           : formatTime(outcome.elapsedMs);
-      resultNote.textContent = replayed ? COPY.replayNote : '';
+      // A ranked result is final; anything else can be played again.
+      const shown = outcome.ranked
+        ? [exploreButton]
+        : [againButton, backButton ?? exploreButton];
+      resultButtons.replaceChildren(
+        ...shown.filter((node): node is HTMLButtonElement => node !== null)
+      );
       resultStreak.textContent = !outcome.ranked
         ? ''
         : outcome.streak <= 1
@@ -361,8 +404,20 @@ export function createHud(
       root.classList.remove('resulting');
     },
 
+    showSheet(content) {
+      sheet.replaceChildren(content);
+      sheetShown = true;
+      root.classList.add('sheeting');
+    },
+
+    hideSheet() {
+      sheetShown = false;
+      root.classList.remove('sheeting');
+    },
+
     insets() {
       const gap = UI.gapPx;
+      if (sheetShown) return { top: gap, bottom: sheet.offsetHeight + gap * 2 };
       if (resultShown)
         return { top: gap, bottom: result.offsetHeight + gap * 2 };
       if (hushed) return { top: gap, bottom: gap };

@@ -1,8 +1,10 @@
 /**
  * Local-only server: `npm run debug`.
  *   /debug.html  the 2D viewer for content/puzzles.json
- *   /game.html   the real play screen, with the two API routes it needs answered here by the
- *                same shared code the Reddit server uses (add ?day=12 for another island)
+ *   /game.html   the real play screen, with the API routes it needs answered here by the
+ *                same shared code the Reddit server uses (add ?day=12 for another island).
+ *                A ranked Lock in (only sent by a page that asks for one) is remembered by
+ *                day, so reloading shows the finished island; fetch('/api/forget') clears it.
  * Not used by the Reddit build.
  */
 import { readFileSync } from 'node:fs';
@@ -12,8 +14,11 @@ import {
   toPublicIsland,
   type IslandResponse,
   type LockInResponse,
+  type LockInResult,
+  type PastResponse,
   type SkyResponse,
 } from './src/shared/api';
+import type { Placement } from './src/shared/types';
 import { puzzleOfDaily, readDailyFile } from './src/shared/daily';
 import { medalFor, scoreSubmission } from './src/shared/validate';
 
@@ -27,9 +32,41 @@ function localApi(): Plugin {
         )
       )
     );
+  /** Lock ins remembered by day, standing in for Redis. */
+  const solved = new Map<
+    number,
+    { result: LockInResult; placements: Placement[] }
+  >();
   return {
     name: 'lumen-local-api',
     configureServer(server) {
+      server.middlewares.use('/api/forget', (_request, response) => {
+        solved.clear();
+        response.end('{"ok":true}');
+      });
+      server.middlewares.use('/api/past', (request, response) => {
+        const before = Number(
+          new URL(request.url ?? '', 'http://localhost').searchParams.get(
+            'before'
+          ) ?? '1'
+        );
+        const body: PastResponse = {
+          ok: true,
+          islands: load()
+            .days.filter((island) => island.day < before)
+            .reverse()
+            .map((island) => ({
+              day: island.day,
+              name: island.name,
+              weekday: island.weekday,
+              biome: island.biome,
+              par: island.par,
+              medal: solved.get(island.day)?.result.medal ?? null,
+            })),
+        };
+        response.setHeader('content-type', 'application/json');
+        response.end(JSON.stringify(body));
+      });
       server.middlewares.use('/api/island', (request, response) => {
         const day = Number(
           new URL(request.url ?? '', 'http://localhost').searchParams.get(
@@ -49,7 +86,8 @@ function localApi(): Plugin {
                   streak: 0,
                   style: 'plain',
                   tutorialDone: false,
-                  result: null,
+                  result: solved.get(day)?.result ?? null,
+                  placements: solved.get(day)?.placements ?? null,
                 },
                 rankedOpen: false,
                 skyCount: 140,
@@ -110,7 +148,26 @@ function localApi(): Plugin {
               if (!score.ok) body = { ok: false, reason: score.problem };
               else if (!score.solved)
                 body = { ok: false, reason: 'not-solved' };
-              else {
+              else if (fields['ranked'] === true && !solved.has(island.day)) {
+                const result: LockInResult = {
+                  day: island.day,
+                  pieces: score.pieces,
+                  par: island.par,
+                  medal: medalFor(score.pieces, island.par),
+                  elapsedMs: 83_000,
+                  ranked: true,
+                  streak: 4,
+                  style: 'paper',
+                  percentile: 80,
+                  rank: 3,
+                  skyCount: 141,
+                };
+                solved.set(island.day, {
+                  result,
+                  placements: score.placements,
+                });
+                body = { ok: true, ...result };
+              } else {
                 body = {
                   ok: true,
                   day: island.day,

@@ -63,7 +63,7 @@ canvas {
   font-size: 18px;
 }
 
-#hud {
+.hud {
   position: fixed;
   inset: 0;
   pointer-events: none;
@@ -340,21 +340,21 @@ canvas {
   gap: var(--gap);
 }
 
-#hud.prompting .prompt {
+.hud.prompting .prompt {
   opacity: 1;
   transform: none;
   pointer-events: auto;
 }
 
-#hud.prompting .bar-bottom {
+.hud.prompting .bar-bottom {
   opacity: 0;
   pointer-events: none;
 }
 
 /* Nightfall and the lantern's flight: only the island and the sky. */
-#hud.quiet .bar,
-#hud.quiet .line,
-#hud.quiet .prompt {
+.hud.quiet .bar,
+.hud.quiet .line,
+.hud.quiet .prompt {
   opacity: 0;
   pointer-events: none;
 }
@@ -371,7 +371,7 @@ canvas {
   pointer-events: none;
 }
 
-#hud.resulting .result {
+.hud.resulting .result {
   opacity: 1;
   transform: translate(-50%, 0);
   pointer-events: auto;
@@ -556,7 +556,7 @@ canvas {
   color: var(--ink-soft);
 }
 
-#hud.leaving > * {
+.hud.leaving > * {
   opacity: 0;
 }
 
@@ -611,18 +611,6 @@ canvas {
   background: rgba(42, 34, 51, 0.1);
 }
 
-/* After a replay: under the real result. */
-.result-note {
-  margin: 0 0 12px;
-  font-size: 13.5px;
-  font-style: italic;
-  color: var(--ink-soft);
-}
-
-.result-note:empty {
-  display: none;
-}
-
 /* A name beside a lantern in the sky: "You" on the player's own, "u/name" on a tapped one. */
 .sky-tag {
   position: absolute;
@@ -647,4 +635,132 @@ canvas {
 .sky-you {
   font-family: var(--display);
   color: var(--amber);
+}
+
+/* A layer over tonight's island: How to play, or a past island. Tonight waits underneath. */
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  background: #1a1430;
+}
+
+/* A list in a paper sheet at the foot of the view, in the result card's place. */
+.sheet {
+  left: 50%;
+  bottom: var(--gap);
+  width: min(380px, calc(100% - 2 * var(--gap)));
+  max-height: 62%;
+  display: flex;
+  flex-direction: column;
+  padding: 14px 14px 12px;
+  opacity: 0;
+  transform: translate(-50%, 14px);
+  pointer-events: none;
+}
+
+.hud.sheeting .sheet {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+}
+
+.hud.sheeting .result {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sheet-title {
+  margin: 0 0 8px;
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 21px;
+  text-align: center;
+}
+
+.sheet-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0 -4px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.sheet-row {
+  width: 100%;
+  min-height: var(--tap);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 0;
+  border-bottom: 1px solid rgba(42, 34, 51, 0.12);
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+}
+
+.sheet-row:active {
+  background: rgba(42, 34, 51, 0.08);
+}
+
+.sheet-row:last-child {
+  border-bottom: 0;
+}
+
+.sheet-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.sheet-name {
+  font-family: var(--display);
+  font-size: 16px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sheet-detail {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.sheet-side {
+  flex: none;
+  font-size: 13px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.sheet-side[data-medal='lamplighter'] {
+  color: var(--medal-lamplighter);
+}
+
+.sheet-side[data-medal='glow'] {
+  color: var(--medal-glow);
+}
+
+.sheet-side[data-medal='spark'] {
+  color: var(--medal-spark);
+}
+
+.sheet-empty {
+  margin: 8px 0;
+  text-align: center;
+  color: var(--ink-soft);
+}
+
+.sheet-close {
+  margin-top: 10px;
+}
+
+.result-buttons {
+  display: grid;
+  gap: var(--gap);
+  margin-top: 4px;
 }

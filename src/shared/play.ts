@@ -226,6 +226,18 @@ export function lockIn(state: PlayState): PlayStep {
   return { state: { ...state, phase: 'locked' }, events: [{ type: 'locked' }] };
 }
 
+/** An island as it was locked in, for showing a stored result again. Nothing can be changed. */
+export function lockedWith(puzzle: Puzzle, placements: Placement[]): PlayState {
+  return {
+    ...startPlay(puzzle),
+    placements,
+    light: trace(puzzle, placements),
+    phase: 'locked',
+    everPlaced: placements.length > 0,
+    everTurned: placements.length > 0,
+  };
+}
+
 /** Which first-time hint to show, if any. */
 export function hintFor(state: PlayState): 'place' | 'turn' | 'prism' | null {
   if (state.phase !== 'playing' || state.light.solved) return null;

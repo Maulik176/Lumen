@@ -86,6 +86,13 @@ export type IslandView = {
   youAt: () => { x: number; y: number } | null;
   /** Back to dusk, for another go. */
   dawn: () => void;
+  /**
+   * Show a finished island at once, as it was left: night, every lantern bloomed, the player's
+   * lantern aloft. For reopening a post that is already solved.
+   */
+  settle: () => void;
+  /** Stop drawing while something covers the view, and carry on exactly where it was. */
+  pause: (paused: boolean) => void;
   /** Everyone who lit tonight's island: the whole list on arrival, then each new one as it comes. */
   setSky: (lanterns: readonly SkyLantern[]) => void;
   addSky: (lantern: SkyLantern) => void;
@@ -187,6 +194,9 @@ export function createIslandView(
   /** -1 until the sky lantern lifts off. */
   let releaseAt = -1;
   let practice = false;
+  /** When 0 or more, the lantern's climb is held at this point (a reopened, finished island). */
+  let heldRise = -1;
+  let paused = false;
   const you = { x: 0, y: 0 };
   let yawFrom = 0;
   let yawTo = 0;
@@ -226,6 +236,7 @@ export function createIslandView(
     practice ? RELEASE.practiceMs : calm ? RELEASE.calmRiseMs : RELEASE.riseMs;
   const riseNow = (): number => {
     if (releaseAt < 0) return 0;
+    if (heldRise >= 0) return heldRise;
     return easeInOut((now - releaseAt) / riseSpan());
   };
 
@@ -257,7 +268,7 @@ export function createIslandView(
   };
 
   const frame = (time: number): void => {
-    if (disposed) return;
+    if (disposed || paused) return;
     frameHandle = requestAnimationFrame(frame);
     const delta = Math.min(100, Math.max(1, time - lastFrame));
     lastFrame = time;
@@ -330,7 +341,11 @@ export function createIslandView(
       const drift = Math.max(0, since - riseSpan()) / 1000;
       const lift = still
         ? 1 + RELEASE.calmRiseHeight * rise
-        : 1 + RELEASE.riseHeight * rise + drift * RELEASE.driftSpeed;
+        : 1 +
+          RELEASE.riseHeight * rise +
+          // Drifts on at driftSpeed, slowing to a stop, so it never leaves the picture.
+          RELEASE.driftHeight *
+            (1 - Math.exp((-drift * RELEASE.driftSpeed) / RELEASE.driftHeight));
       const sway = still
         ? 0
         : Math.sin((since / RELEASE.swayPeriodMs) * Math.PI * 2) *
@@ -524,9 +539,34 @@ export function createIslandView(
       return you;
     },
 
+    settle() {
+      duskAtNightfall = 1;
+      // Never below 0, which means "not yet": right after page load a frame's time can be
+      // earlier than the moment the view was made.
+      nightAt = Math.max(0, now - VIEW.nightfallMs - VIEW.calmNightfallMs);
+      allLit = false;
+      for (let index = 0; index < lanterns.count; index++)
+        lanterns.bloom(index, now - VIEW.nightfallMs);
+      practice = false;
+      heldRise = calm ? RELEASE.calmHoldRise : 1;
+      releaseAt = Math.max(0, now - riseSpan());
+    },
+
+    pause(wanted) {
+      if (wanted === paused || disposed) return;
+      paused = wanted;
+      if (paused) {
+        cancelAnimationFrame(frameHandle);
+        return;
+      }
+      lastFrame = performance.now();
+      frameHandle = requestAnimationFrame(frame);
+    },
+
     dawn() {
       nightAt = -1;
       releaseAt = -1;
+      heldRise = -1;
       practice = false;
       allLit = false;
       skyLantern.hide();

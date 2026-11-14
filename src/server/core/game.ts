@@ -10,6 +10,7 @@
 import {
   cleanSnoovatar,
   type LockInResult,
+  type PastIsland,
   type PlayerState,
   type SkyLantern,
 } from '../../shared/api';
@@ -26,6 +27,7 @@ import type { Placement } from '../../shared/types';
 import {
   medalFor,
   scoreSubmission,
+  validatePlacements,
   type PlacementProblem,
 } from '../../shared/validate';
 import { KEYS, type Store } from './store';
@@ -128,11 +130,33 @@ function readResult(text: string | undefined): LockInResult | null {
   }
 }
 
+/** The pieces stored with a result, checked against the island again. */
+function readPlacements(
+  text: string | undefined,
+  island: DailyIsland
+): Placement[] | null {
+  if (text === undefined) return null;
+  try {
+    const value: unknown = JSON.parse(text);
+    if (typeof value !== 'object' || value === null) return null;
+    const fields: Record<string, unknown> = { ...value };
+    const check = validatePlacements(
+      puzzleOfDaily(island),
+      fields['placements']
+    );
+    return check.ok ? check.placements : null;
+  } catch {
+    return null;
+  }
+}
+
 /** What the server knows about a player for one island. */
 export async function playerState(
   store: Store,
   player: Player,
-  day: number
+  day: number,
+  /** When given, the stored pieces come back too, to show the island as it was left. */
+  island?: DailyIsland
 ): Promise<PlayerState> {
   if (player === null) {
     return {
@@ -142,6 +166,7 @@ export async function playerState(
       style: 'plain',
       tutorialDone: false,
       result: null,
+      placements: null,
     };
   }
   const [fields, stored] = await Promise.all([
@@ -156,6 +181,7 @@ export async function playerState(
     style: styleFor(streak.streak),
     tutorialDone: fields['tutorialDone'] === '1',
     result: readResult(stored),
+    placements: island === undefined ? null : readPlacements(stored, island),
   };
 }
 
@@ -426,4 +452,29 @@ export async function resetPlayer(
     }),
   ]);
   if (had) await store.hIncrBy(KEYS.stats(day), 'solves', -1);
+}
+
+/** Earlier islands, newest first, with the player's medal on each night they played. */
+export async function pastIslands(
+  store: Store,
+  player: Player,
+  islands: readonly DailyIsland[]
+): Promise<PastIsland[]> {
+  const medals = await Promise.all(
+    islands.map(async (island) =>
+      player === null
+        ? null
+        : (readResult(
+            await store.get(KEYS.submission(island.day, player.userId))
+          )?.medal ?? null)
+    )
+  );
+  return islands.map((island, index) => ({
+    day: island.day,
+    name: island.name,
+    weekday: island.weekday,
+    biome: island.biome,
+    par: island.par,
+    medal: medals[index] ?? null,
+  }));
 }

@@ -5,6 +5,7 @@ import {
   isPlaceable,
   keepRefining,
   lockIn,
+  lockedWith,
   piecesLeft,
   reset,
   startPlay,
@@ -302,5 +303,18 @@ describe('progress and hints', () => {
 
   it('no hint while the "All lit" prompt is showing', () => {
     expect(hintFor(tapTile(startPlay(island()), 3, 2).state)).toBeNull();
+  });
+});
+
+describe('lockedWith', () => {
+  it('shows a stored answer as locked, lit, and unchangeable', () => {
+    const puzzle = island();
+    const state = lockedWith(puzzle, [
+      { x: 3, y: 2, piece: { kind: 'mirror', orientation: 'slash' } },
+    ]);
+    expect(state.phase).toBe('locked');
+    expect(state.light.solved).toBe(true);
+    expect(tapTile(state, 3, 2).state).toBe(state);
+    expect(canLockIn(state)).toBe(false);
   });
 });

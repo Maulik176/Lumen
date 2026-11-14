@@ -55,7 +55,22 @@ export type PlayerState = {
   tutorialDone: boolean;
   /** Their ranked result for this island, if they already locked in. */
   result: LockInResult | null;
+  /** The pieces of that result, to show the island as they left it. */
+  placements: Placement[] | null;
 };
+
+/** One earlier island, for "Explore past islands". */
+export type PastIsland = {
+  day: number;
+  name: string;
+  weekday: Weekday;
+  biome: Biome;
+  par: number;
+  /** The player's medal on its night, if they played it then. */
+  medal: Medal | null;
+};
+
+export type PastResponse = { ok: true; islands: PastIsland[] };
 
 export type IslandResponse =
   | {

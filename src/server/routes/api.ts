@@ -5,15 +5,18 @@ import {
   toPublicIsland,
   type IslandResponse,
   type LockInResponse,
+  type PastResponse,
   type SkyResponse,
 } from '../../shared/api';
-import { COPY } from '../../shared/config';
+import { COPY, PAST } from '../../shared/config';
+import type { DailyIsland } from '../../shared/daily';
 import { flairText } from '../../shared/streak';
 import { islandForDay, lastDay } from '../core/content';
 import {
   currentDay,
   lockIn,
   markTutorialDone,
+  pastIslands,
   playerState,
   rankedOpen,
   readSky,
@@ -89,7 +92,7 @@ api.get('/island', async (c) => {
     return c.json<IslandResponse>({ ok: false, reason: 'not-found' }, 404);
   const player = await whoIsAsking();
   const [me, count] = await Promise.all([
-    playerState(store, player, day),
+    playerState(store, player, day, island),
     skyCount(store, day),
   ]);
   const open =
@@ -150,4 +153,21 @@ api.get('/sky', async (c) => {
   const day = requestedDay(Number.isInteger(fromQuery) ? fromQuery : undefined);
   const sky = await readSky(store, day);
   return c.json<SkyResponse>({ ok: true, day, ...sky });
+});
+
+/** Islands before the given day (the post's own by default), newest first. */
+api.get('/past', async (c) => {
+  const fromQuery = Number(c.req.query('before'));
+  const before = requestedDay(
+    Number.isInteger(fromQuery) ? fromQuery : undefined
+  );
+  const islands: DailyIsland[] = [];
+  for (let day = before - 1; day >= 1 && islands.length < PAST.max; day--) {
+    const island = islandForDay(day);
+    if (island !== undefined) islands.push(island);
+  }
+  const list = await pastIslands(store, await whoIsAsking(), islands).catch(
+    () => pastIslands(store, null, islands)
+  );
+  return c.json<PastResponse>({ ok: true, islands: list });
 });

@@ -6,6 +6,7 @@ import { islandForDay, lastDay } from './content';
 import {
   lockIn,
   playerState,
+  pastIslands,
   rankedOpen,
   readSky,
   resetPlayer,
@@ -406,5 +407,21 @@ describe('resetPlayer (developer tool)', () => {
     const again = await lockIn(store, ana, input, effects);
     expect(again.ok && again.result.ranked).toBe(true);
     expect(again.ok && again.result.rank).toBe(1);
+  });
+});
+
+describe('a solved island, reopened', () => {
+  it('comes back with its pieces, and past islands carry their medals', async () => {
+    const { store, effects, input } = setup();
+    await recordStart(store, ana, 1, DAY_ONE);
+    await lockIn(store, ana, input(1, DAY_ONE + HOUR), effects);
+    const state = await playerState(store, ana, 1, island(1));
+    expect(state.placements).toEqual(island(1).solution);
+    expect((await playerState(store, ana, 1)).placements).toBeNull();
+    const past = await pastIslands(store, ana, [island(2), island(1)]);
+    expect(past.map((entry) => entry.day)).toEqual([2, 1]);
+    expect(past[0]?.medal).toBeNull();
+    expect(past[1]?.medal).toBe('lamplighter');
+    expect((await pastIslands(store, null, [island(1)]))[0]?.medal).toBeNull();
   });
 });

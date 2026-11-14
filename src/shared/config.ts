@@ -113,8 +113,6 @@ export const COPY = {
   unranked: 'Played for practice',
   /** Result card, time and place on tonight's board. */
   rankLine: '{time} · #{rank} tonight',
-  /** Result card after a replay: under the player's real result for today. */
-  replayNote: "This replay doesn't count.",
   /** The small label on the player's own lantern, and the name shown when a lantern is tapped. */
   you: 'You',
   skyName: 'u/{name}',
@@ -128,6 +126,14 @@ export const COPY = {
   comeBack: 'Come back at nightfall tomorrow.',
   /** Result card: replay without ranking. */
   playAgain: 'Play again for practice',
+  /** Result card: opens the list of earlier islands, where practice lives. */
+  explore: 'Explore past islands',
+  pastTitle: 'Past islands',
+  pastEmpty: 'Earlier islands will gather here.',
+  /** Closes a list and returns to the result card. */
+  back: 'Back',
+  /** Leaves a past island and returns to tonight's. */
+  backToTonight: 'Back to tonight',
   /** If the island cannot be loaded. */
   loadFailed: 'The island is hidden in mist. Try again in a moment.',
   /** If Lock in cannot reach the server. */
@@ -453,7 +459,11 @@ export const RELEASE = {
   calmRiseHeight: 3.4,
   /** Height of the snoovatar or glyph printed on the lantern's paper, in tiles (the shade is 0.78). */
   portraitSize: 0.4,
-  /** A replay's practice lantern: how long it rises before it is gone, and how faint it is. */
+  /** After rising, the lantern keeps drifting up at `driftSpeed`, easing to stop this far higher. */
+  driftHeight: 2.5,
+  /** Reopening a solved post in calm mode: how far up its climb the lantern is shown. */
+  calmHoldRise: 0.7,
+  /** A practice lantern: how long it rises before it is gone, and how faint it is. */
   practiceMs: 2600,
   practiceOpacity: 0.4,
 } as const;
@@ -750,6 +760,11 @@ export const KEEP = {
   startSeconds: 2 * 86_400,
   submissionSeconds: 45 * 86_400,
   skySeconds: 45 * 86_400,
+} as const;
+
+/** "Explore past islands": how many earlier islands the list shows, newest first. */
+export const PAST = {
+  max: 30,
 } as const;
 
 /** Developer tools that exist only on the playtest subreddit. */
