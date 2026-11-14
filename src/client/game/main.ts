@@ -243,8 +243,8 @@ function mountIsland(
 
   const layout = (): void => {
     if (disposed) return;
-    const { top, bottom } = hud.insets();
-    view.resize(window.innerWidth, window.innerHeight, top, bottom);
+    const { top, bottom, right } = hud.insets();
+    view.resize(window.innerWidth, window.innerHeight, top, bottom, right);
   };
 
   const { journey } = options;

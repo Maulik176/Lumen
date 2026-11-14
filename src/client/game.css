@@ -859,3 +859,49 @@ button.result-time:enabled {
   margin: 0 0 10px;
   font-size: 13.5px;
 }
+
+/*
+ * Landscape (a laptop): the bars are centred at a comfortable width, and the result card and
+ * lists stand in a column on the right, beside the island, never over it. Phones are untouched.
+ */
+.hud.wide .bar,
+.hud.wide .lesson {
+  left: 50%;
+  right: auto;
+  width: min(var(--wide-bar), calc(100% - 2 * var(--gap)));
+  transform: translateX(-50%);
+}
+
+.hud.wide .prompt {
+  left: 50%;
+  right: auto;
+  width: min(460px, calc(100% - 2 * var(--gap)));
+  transform: translate(-50%, 10px);
+}
+
+.hud.wide.prompting .prompt {
+  transform: translate(-50%, 0);
+}
+
+.hud.wide .result,
+.hud.wide .sheet {
+  left: auto;
+  right: var(--wide-gap);
+  bottom: auto;
+  top: 50%;
+  width: var(--wide-panel);
+  transform: translate(14px, -50%);
+}
+
+.hud.wide .sheet {
+  max-height: calc(100% - 2 * var(--wide-gap));
+}
+
+.hud.wide.resulting .result,
+.hud.wide.sheeting .sheet {
+  transform: translate(0, -50%);
+}
+
+.hud.wide .sky-line {
+  bottom: calc(var(--gap) * 2 + 64px);
+}

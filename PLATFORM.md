@@ -125,7 +125,20 @@ is too much for 300 lanterns, so the sky draws snoovatars only for the nearest f
   932 px phone. The game must fit 430 x 701 there, and proportionally less on a 360 x 640 phone
   (expect roughly 360 x 410–480). Camera framing and the two bars are designed for that, and
   measured at run time, never assumed.
-- Desktop expanded is a phone-shaped modal, 375 px wide. One portrait layout serves both.
+- Desktop expanded is a phone-shaped modal, 375 px wide (measured Nov 12, Chrome, as the app
+  owner). The phone layout serves it.
+- **Landscape layout (added Nov 15).** The game measures its view and switches to a landscape
+  layout when it is at least 760 px wide and 1.2 times wider than tall (`VIEW.wideMinWidth`,
+  `VIEW.wideMinAspect`): bars centred, result card and lists in a right-hand column, island
+  framed in the rest. Checked locally at 1100 x 700. **It does not trigger in a 375 px modal.**
+  Whether Reddit ever gives the expanded view more width on desktop (a larger modal, a
+  fullscreen control; `devvit.json`'s schema speaks of entry points "opened fullscreen") is
+  **not known**: Claude cannot open reddit.com.
+- **What a normal user sees on desktop: NOT YET CHECKED.** To check, Maulik opens the post in a
+  private window with a second, non-moderator account (and once signed out) and notes: (1) is the
+  playtest version's post visible at all to them; (2) the feed card's size and whether "Light the
+  lanterns" opens the modal; (3) the modal's size (a screenshot is enough) and whether it can be
+  enlarged; (4) signed out: does the game play, and what does Lock in say. Results go here.
 - WebGL2 is available on both. Max texture 16384. Pixel ratio 3 on the phone, so the cap of 2 in
   the performance budget matters.
 

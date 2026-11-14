@@ -61,8 +61,11 @@ export type Hud = {
   /** A tapped lantern's name, shown beside it for a moment. */
   nameTag: (text: string, x: number, y: number) => void;
   hideResult: () => void;
-  /** Room the interface is taking at the top and bottom, in pixels. */
-  insets: () => { top: number; bottom: number };
+  /**
+   * Room the interface is taking at the top, the bottom and (landscape only) the right, in
+   * pixels. Also switches between the phone layout and the landscape one to suit the view.
+   */
+  insets: () => { top: number; bottom: number; right: number };
   /** "u/name lit Moss Steps": shown briefly, never more than one at a time. */
   skyLine: (text: string) => void;
   /** Developer read-out, shown only with ?perf=1. */
@@ -131,6 +134,14 @@ function fill(
   );
 }
 
+/** True when the view is wide enough for the landscape layout (a laptop, not a phone). */
+export function wideView(): boolean {
+  return (
+    window.innerWidth >= VIEW.wideMinWidth &&
+    window.innerWidth / window.innerHeight >= VIEW.wideMinAspect
+  );
+}
+
 /** Hand the interface colours in config.ts to the stylesheet. */
 export function applyTheme(root: HTMLElement): void {
   const set = (name: string, value: string): void =>
@@ -149,6 +160,9 @@ export function applyTheme(root: HTMLElement): void {
   set('--radius', `${UI.radiusPx}px`);
   set('--gap', `${UI.gapPx}px`);
   set('--tap', `${UI.tapPx}px`);
+  set('--wide-bar', `${VIEW.wideBarPx}px`);
+  set('--wide-panel', `${VIEW.widePanelPx}px`);
+  set('--wide-gap', `${VIEW.wideGapPx}px`);
 }
 
 export function createHud(
@@ -464,10 +478,20 @@ export function createHud(
 
     insets() {
       const gap = UI.gapPx;
-      if (sheetShown) return { top: gap, bottom: sheet.offsetHeight + gap * 2 };
+      const wide = wideView();
+      root.classList.toggle('wide', wide);
+      // Landscape: the card or list stands in a column on the right, beside the island.
+      if (wide && (sheetShown || resultShown))
+        return {
+          top: VIEW.wideGapPx * 2,
+          bottom: VIEW.wideGapPx * 2,
+          right: VIEW.widePanelPx + VIEW.wideGapPx * 2,
+        };
+      if (sheetShown)
+        return { top: gap, bottom: sheet.offsetHeight + gap * 2, right: 0 };
       if (resultShown)
-        return { top: gap, bottom: result.offsetHeight + gap * 2 };
-      if (hushed) return { top: gap, bottom: gap };
+        return { top: gap, bottom: result.offsetHeight + gap * 2, right: 0 };
+      if (hushed) return { top: gap, bottom: gap, right: 0 };
       const lineRoom = line.classList.contains('visible')
         ? line.offsetHeight + gap
         : gap;
@@ -475,6 +499,7 @@ export function createHud(
         top: top.offsetHeight + gap + lineRoom,
         bottom:
           (promptShown ? prompt.offsetHeight : bottom.offsetHeight) + gap * 2,
+        right: 0,
       };
     },
 

@@ -9,6 +9,7 @@ import { puzzleFromText } from '../../shared/puzzle-text';
 import { TUTORIAL, type TutorialHint } from '../../shared/tutorial';
 import type { Sound } from './audio';
 import { createGhostHand } from './hand';
+import { wideView } from './hud';
 import { createIslandView } from './scene';
 import { onTap } from './taps';
 
@@ -86,6 +87,7 @@ export function runTutorial(
       let done = false;
 
       const frame = (): void => {
+        root.classList.toggle('wide', wideView());
         view.resize(
           window.innerWidth,
           window.innerHeight,

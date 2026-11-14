@@ -65,8 +65,17 @@ export type ViewStats = {
 };
 
 export type IslandView = {
-  /** Fit the island to the canvas, leaving `top` and `bottom` pixels clear for the interface. */
-  resize: (width: number, height: number, top: number, bottom: number) => void;
+  /**
+   * Fit the island to the canvas, leaving `top` and `bottom` pixels clear for the interface,
+   * and `right` pixels for a side column in the landscape layout.
+   */
+  resize: (
+    width: number,
+    height: number,
+    top: number,
+    bottom: number,
+    right?: number
+  ) => void;
   /** Redraw pieces, light and lanterns from the play state. */
   sync: (state: PlayState) => void;
   /** The tile under a point on the screen, or null. */
@@ -219,6 +228,8 @@ export function createIslandView(
   let framed = false;
   let offsetY = 0;
   let offsetTarget = 0;
+  let offsetX = 0;
+  let sideTarget = 0;
   let viewWidth = 1;
   let viewHeight = 1;
   let slowFrames = 0;
@@ -278,7 +289,7 @@ export function createIslandView(
     camera.setViewOffset(
       viewWidth,
       viewHeight,
-      0,
+      offsetX,
       offsetY,
       viewWidth,
       viewHeight
@@ -324,6 +335,7 @@ export function createIslandView(
     const settle = calm ? 1 : 1 - Math.exp(-delta / 180);
     distance += (distanceTarget - distance) * settle;
     offsetY += (offsetTarget - offsetY) * settle;
+    offsetX += (sideTarget - offsetX) * settle;
 
     // Teaching: until the first piece is placed, the suns pulse and the unlit lanterns breathe,
     // so the eye goes from where light starts to where it should end up.
@@ -405,7 +417,7 @@ export function createIslandView(
   frameHandle = requestAnimationFrame(frame);
 
   return {
-    resize(viewW, viewH, top, bottom) {
+    resize(viewW, viewH, top, bottom, right = 0) {
       viewWidth = Math.max(1, viewW);
       viewHeight = Math.max(1, viewH);
       renderer.setSize(viewWidth, viewHeight, false);
@@ -418,15 +430,17 @@ export function createIslandView(
         pitch,
         yaw: 0,
         tanHalfVertical: tanHalf * (free / viewHeight),
-        aspect: viewWidth / free,
+        aspect: Math.max(110, viewWidth - right) / free,
         margin: CAMERA.margin,
       });
       offsetTarget = -(top - bottom) / 2;
+      sideTarget = right / 2;
       // The first framing is immediate; later ones glide.
       if (!framed) {
         framed = true;
         distance = distanceTarget;
         offsetY = offsetTarget;
+        offsetX = sideTarget;
       }
       camera.aspect = viewWidth / viewHeight;
       camera.updateProjectionMatrix();

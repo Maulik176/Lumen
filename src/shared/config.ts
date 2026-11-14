@@ -242,6 +242,16 @@ export const VIEW = {
   resultDelayMs: 900,
   /** How long "No pieces left" stays on screen. */
   noticeMs: 2200,
+  /**
+   * A view at least this wide and this much wider than tall (a laptop) gets the landscape
+   * layout: bars centred at `wideBarPx`, and the result card and lists in a column on the right,
+   * `widePanelPx` wide and `wideGapPx` from the edge, with the island framed in the rest.
+   */
+  wideMinWidth: 760,
+  wideMinAspect: 1.2,
+  wideBarPx: 560,
+  widePanelPx: 350,
+  wideGapPx: 28,
   /** A piece drops in over this long. */
   pieceDropMs: 140,
   /** The island's slow float: height of the bob in tiles, and its period. */
