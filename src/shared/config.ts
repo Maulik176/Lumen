@@ -741,9 +741,6 @@ export const SKY = {
   /** A tapped lantern shows its player's name for this long; a tap counts within this many pixels. */
   nameMs: 2000,
   tapReachPx: 30,
-  /** The player's own lantern among the far ones: this much larger and brighter. */
-  selfSize: 1.7,
-  selfGlow: 2.4,
   /** Seconds of other players' lanterns a late joiner's request may be cached for. */
   cacheSeconds: 5,
 } as const;

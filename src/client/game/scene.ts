@@ -513,10 +513,9 @@ export function createIslandView(
     },
 
     youAt() {
-      if (skyLantern.group.visible && !practice) {
-        skyLantern.group.getWorldPosition(hit);
-        hit.y += 1.1;
-      } else if (!skyField.locateSelf(hit)) return null;
+      if (!skyLantern.group.visible || practice) return null;
+      skyLantern.group.getWorldPosition(hit);
+      hit.y += 1.1;
       hit.project(camera);
       if (hit.z > 1 || Math.abs(hit.x) > 1 || Math.abs(hit.y) > 1) return null;
       const bounds = canvas.getBoundingClientRect();

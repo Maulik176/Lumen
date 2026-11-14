@@ -47,13 +47,9 @@ const VERTEX = /* glsl */ `
   uniform float uSpeed;
   uniform float uNight;
   uniform float uDay;
-  uniform float uSelfSize;
   varying float vStyle;
   varying float vAlpha;
-  varying float vSelf;
   void main() {
-    // The player's own lantern is marked by adding 10 to its style.
-    vSelf = step(9.5, aStyle);
     float span = uHigh - uLow;
     float lift = mod(position.y - uLow + uTime * uSpeed * (0.6 + aSeed * 0.8), span);
     vec3 p = vec3(position.x + sin(uTime * 0.25 + aSeed * 40.0) * 0.6, uLow + lift, position.z);
@@ -62,22 +58,20 @@ const VERTEX = /* glsl */ `
     // A lantern that has just arrived glows brighter for a few seconds.
     float fresh = 1.0 + 1.6 * exp(-max(0.0, uTime - aBorn) * 0.6);
     vAlpha = edge * mix(uDay, 1.0, uNight);
-    vStyle = aStyle - 10.0 * vSelf;
-    gl_PointSize = uSize * (0.75 + 0.5 * aSeed) * min(fresh, 2.2) * mix(1.0, uSelfSize, vSelf);
+    vStyle = aStyle;
+    gl_PointSize = uSize * (0.75 + 0.5 * aSeed) * min(fresh, 2.2);
     gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
   }
 `;
 
 const FRAGMENT = /* glsl */ `
   uniform vec3 uWarm;
-  uniform float uSelfGlow;
   varying float vStyle;
   varying float vAlpha;
-  varying float vSelf;
   void main() {
     vec2 p = gl_PointCoord * 2.0 - 1.0;
     p.y = -p.y;
-    float glow = exp(-dot(p, p) * 3.2) * 0.55 * mix(1.0, uSelfGlow, vSelf);
+    float glow = exp(-dot(p, p) * 3.2) * 0.55;
     float body;
     vec3 colour = uWarm;
     if (vStyle < 0.5) {
@@ -152,15 +146,13 @@ export type SkyField = {
     reach: number,
     aspect: number
   ) => { name: string; x: number; y: number } | null;
-  /** Where the player's own lantern is in the world. False when it is not in the sky. */
-  locateSelf: (out: Vector3) => boolean;
 };
 
 export function createSkyField(
   scene: Scene,
   glowMap: Texture,
   keeper: Keeper,
-  /** The player's own name: their lantern is drawn larger and brighter. */
+  /** The player's own name: their entry is left out (they have their own lantern). */
   self: string | null
 ): SkyField {
   const max = SKY.maxLanterns;
@@ -191,8 +183,6 @@ export function createSkyField(
     uNight: { value: 0 },
     uDay: { value: SKY.dayOpacity },
     uWarm: { value: new Color(LOOK.lanternWarm) },
-    uSelfSize: { value: SKY.selfSize },
-    uSelfGlow: { value: SKY.selfGlow },
   };
   const material = keeper.keep(
     new ShaderMaterial({
@@ -304,7 +294,9 @@ export function createSkyField(
   };
 
   const place = (lantern: SkyLantern, fresh: boolean): void => {
-    if (names.has(lantern.u)) return;
+    // The player's own entry (from /api/sky or the realtime echo) is never drawn here: their
+    // lantern is the big one that rose from the island, labelled "You".
+    if (names.has(lantern.u) || lantern.u === self) return;
     names.add(lantern.u);
     // Past the cap the oldest slot is reused, so the newest lanterns are always the ones shown.
     const slot = total % max;
@@ -322,7 +314,7 @@ export function createSkyField(
       : SKY.heightLow + hash(lantern.u, 4) * (SKY.heightHigh - SKY.heightLow);
     positions[slot * 3 + 2] = -depth;
     seeds[slot] = hash(lantern.u, 3);
-    styles[slot] = STYLE_CODE[lantern.s] + (lantern.u === self ? 10 : 0);
+    styles[slot] = STYLE_CODE[lantern.s];
     slotNames[slot] = lantern.u;
     born[slot] = fresh ? nowSeconds : -100;
     positionAttribute.needsUpdate = true;
@@ -384,15 +376,6 @@ export function createSkyField(
         consider(name, 1);
       }
       return best;
-    },
-    locateSelf(out) {
-      if (self === null) return false;
-      const slot = slotNames.indexOf(self);
-      if (slot < 0) return false;
-      field.updateMatrixWorld();
-      pointAt(slot, out);
-      field.localToWorld(out);
-      return true;
     },
     update(timeMs, night, calm, pixelRatio, yaw) {
       field.rotation.y = yaw;

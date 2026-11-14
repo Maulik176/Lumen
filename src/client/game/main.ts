@@ -193,6 +193,8 @@ async function start(): Promise<void> {
   }
   status.remove();
   const { island, me } = loaded;
+  // The server's name for the player is the one their sky entries carry.
+  if (me.username !== null) rider.username = me.username;
   const ranked = query.get('archive') !== '1';
 
   const puzzle = puzzleFromText(island);
@@ -284,15 +286,7 @@ async function start(): Promise<void> {
     // A replay gets a faint practice lantern that fades; it joins no sky.
     const replayed = !outcome.ranked && (replaying || todays !== null);
     await view.release(replayed);
-    if (outcome.ranked) {
-      todays = outcome;
-      if (me.username !== null)
-        view.addSky({
-          u: me.username,
-          s: outcome.style,
-          a: cleanSnoovatar(rider.snoovatar),
-        });
-    }
+    if (outcome.ranked) todays = outcome;
     hud.showResult(replayed && todays !== null ? todays : outcome, replayed);
     layout();
     busy = false;
