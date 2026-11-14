@@ -72,6 +72,41 @@ export type PastIsland = {
 
 export type PastResponse = { ok: true; islands: PastIsland[] };
 
+/** One row of tonight's board. `rank` is null for a time too fast to be believed. */
+export type BoardRow = {
+  rank: number | null;
+  username: string;
+  /** Snoovatar address on Reddit's image host, or ''. */
+  snoovatar: string;
+  pieces: number;
+  timeMs: number;
+};
+
+/** One row of the all-time board: nights the player hit par. */
+export type AllTimeRow = {
+  rank: number;
+  username: string;
+  snoovatar: string;
+  medals: number;
+};
+
+export type BoardResponse =
+  | {
+      ok: true;
+      scope: 'day';
+      top: BoardRow[];
+      /** The player's own row when it is not already in `top`. */
+      me: BoardRow | null;
+      total: number;
+    }
+  | {
+      ok: true;
+      scope: 'alltime';
+      top: AllTimeRow[];
+      me: AllTimeRow | null;
+      total: number;
+    };
+
 export type IslandResponse =
   | {
       ok: true;

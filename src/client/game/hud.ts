@@ -29,6 +29,8 @@ export type HudActions = {
   back?: () => void;
   /** Result card: the list of earlier islands. Left out on day 1, when there are none. */
   explore?: () => void;
+  /** Result card: tapping the time and place opens tonight's board. */
+  board?: () => void;
 };
 
 export type Hud = {
@@ -234,7 +236,11 @@ export function createHud(
   const result = element('section', 'panel result');
   const resultMedal = element('h2', 'result-medal');
   const resultLine = element('p', 'result-line');
-  const resultTime = element('p', 'result-time');
+  const resultTime = element('button', 'result-time');
+  resultTime.type = 'button';
+  resultTime.disabled = true;
+  if (actions.board !== undefined)
+    resultTime.addEventListener('click', actions.board);
   const resultStreak = element('p', 'result-streak');
   const resultFooter = element('p', 'result-footer', COPY.comeBack);
   const resultButtons = element('div', 'result-buttons');
@@ -375,6 +381,7 @@ export function createHud(
               pieces: outcome.pieces,
               par: outcome.par,
             });
+      resultTime.disabled = !outcome.ranked || actions.board === undefined;
       resultTime.textContent = !outcome.ranked
         ? COPY.unranked
         : outcome.rank > 0

@@ -650,7 +650,7 @@ canvas {
   left: 50%;
   bottom: var(--gap);
   width: min(380px, calc(100% - 2 * var(--gap)));
-  max-height: 62%;
+  max-height: 56%;
   display: flex;
   flex-direction: column;
   padding: 14px 14px 12px;
@@ -763,4 +763,82 @@ canvas {
   display: grid;
   gap: var(--gap);
   margin-top: 4px;
+}
+
+/* Tonight's board. */
+.board-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin: 0 0 6px;
+  padding: 3px;
+  border-radius: calc(var(--radius) - 2px);
+  background: rgba(42, 34, 51, 0.08);
+}
+
+.board-tab {
+  min-height: 34px;
+  border: 0;
+  border-radius: calc(var(--radius) - 5px);
+  background: none;
+  color: var(--ink-soft);
+  font: inherit;
+  font-weight: 650;
+}
+
+.board-tab[aria-selected='true'] {
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgba(30, 22, 50, 0.18);
+}
+
+.board-rank {
+  flex: none;
+  width: 22px;
+  text-align: right;
+  font-family: var(--display);
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.board-avatar {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: top;
+  background: rgba(42, 34, 51, 0.08);
+}
+
+.board-seal {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  border: 2px solid var(--ink-soft);
+  background: var(--paper);
+  font-family: var(--display);
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.board-row.mine {
+  border-radius: calc(var(--radius) - 4px);
+  background: color-mix(in srgb, var(--amber) 22%, transparent);
+}
+
+/* The time and place on the result card opens tonight's board. */
+button.result-time {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 14.5px;
+}
+
+button.result-time:enabled {
+  color: var(--ink);
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
 }

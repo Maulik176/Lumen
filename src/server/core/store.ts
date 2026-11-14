@@ -12,6 +12,8 @@ export type Store = {
   /** Add to a counter and return the new value. The first caller gets 1: used as a lock. */
   count: (key: string, ttlSeconds?: number) => Promise<number>;
   hGetAll: (key: string) => Promise<Record<string, string>>;
+  /** Several fields of one hash at once, null where a field is missing. */
+  hMGet: (key: string, fields: string[]) => Promise<(string | null)[]>;
   hSet: (key: string, fields: Record<string, string>) => Promise<void>;
   hIncrBy: (key: string, field: string, by: number) => Promise<number>;
   zAdd: (key: string, member: string, score: number) => Promise<void>;
@@ -50,6 +52,8 @@ export const redisStore: Store = {
     return value;
   },
   hGetAll: (key) => redis.hGetAll(key),
+  hMGet: (key, fields) =>
+    fields.length === 0 ? Promise.resolve([]) : redis.hMGet(key, fields),
   async hSet(key, fields) {
     await redis.hSet(key, fields);
   },
@@ -89,6 +93,8 @@ export const KEYS = {
   stats: (day: number) => `stats:${day}`,
   sky: (day: number) => `sky:${day}`,
   user: (userId: string) => `user:${userId}`,
+  /** Hash: username -> snoovatar address, for drawing boards without one read per row. */
+  avatars: 'avatars',
   postForDay: (day: number) => `post:day:${day}`,
   postLock: (day: number) => `postlock:${day}`,
   dayOfPost: (postId: string) => `post:${postId}:day`,

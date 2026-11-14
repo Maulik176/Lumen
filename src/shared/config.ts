@@ -130,6 +130,16 @@ export const COPY = {
   explore: 'Explore past islands',
   pastTitle: 'Past islands',
   pastEmpty: 'Earlier islands will gather here.',
+  /** Tonight's board, opened from the time and place on the result card. */
+  boardTitle: "Tonight's board",
+  boardTonight: 'Tonight',
+  boardAllTime: 'All time',
+  boardEmpty: 'No lanterns yet tonight.',
+  /** A row's detail. {pieces} and {time}; all time: {medals} nights at par. */
+  boardRow: '{pieces} pieces · {time}',
+  boardRowOne: '1 piece · {time}',
+  allTimeRow: '{medals} nights at par',
+  allTimeRowOne: '1 night at par',
   /** Closes a list and returns to the result card. */
   back: 'Back',
   /** Leaves a past island and returns to tonight's. */
@@ -760,6 +770,12 @@ export const KEEP = {
   startSeconds: 2 * 86_400,
   submissionSeconds: 45 * 86_400,
   skySeconds: 45 * 86_400,
+} as const;
+
+/** Tonight's board and the all-time board. */
+export const LEADERBOARD = {
+  /** Rows shown above the player's own. */
+  top: 10,
 } as const;
 
 /** "Explore past islands": how many earlier islands the list shows, newest first. */

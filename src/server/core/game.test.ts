@@ -8,6 +8,8 @@ import {
   playerState,
   pastIslands,
   rankedOpen,
+  readAllTime,
+  readLeaderboard,
   readSky,
   resetPlayer,
   recordStart,
@@ -49,6 +51,8 @@ function memoryStore(): Store & { writes: () => number } {
       return next;
     },
     hGetAll: async (key) => Object.fromEntries(hash(key)),
+    hMGet: async (key, fields) =>
+      fields.map((field) => hash(key).get(field) ?? null),
     async hSet(key, fields) {
       writes++;
       for (const [field, value] of Object.entries(fields))
@@ -423,5 +427,67 @@ describe('a solved island, reopened', () => {
     expect(past[0]?.medal).toBeNull();
     expect(past[1]?.medal).toBe('lamplighter');
     expect((await pastIslands(store, null, [island(1)]))[0]?.medal).toBeNull();
+  });
+});
+
+describe('the boards', () => {
+  const avatar = 'https://i.redd.it/snoovatar/avatars/ana.png';
+  const solveAs = async (
+    player: Player,
+    seconds: number,
+    extra: Partial<LockInInput> = {}
+  ) => {
+    const { store, effects, input } = shared;
+    if (player === null) return;
+    await recordStart(store, player, 1, DAY_ONE);
+    await lockIn(
+      store,
+      player,
+      input(1, DAY_ONE + seconds * 1000, extra),
+      effects
+    );
+  };
+  let shared = setup();
+
+  it('orders by pieces, then time, with snoovatars and an own row below the top', async () => {
+    shared = setup();
+    await solveAs(ana, 90, { snoovatar: avatar });
+    await solveAs(ben, 40);
+    for (let i = 0; i < 11; i++)
+      await solveAs({ userId: `t2_p${i}`, username: `p${i}` }, 100 + i);
+    const board = await readLeaderboard(shared.store, 1, 'p10');
+    expect(board.total).toBe(13);
+    expect(board.top).toHaveLength(10);
+    expect(board.top[0]?.username).toBe('ben');
+    expect(board.top[0]?.timeMs).toBe(40_000);
+    expect(board.top[0]?.pieces).toBe(island(1).solution.length);
+    expect(board.top[1]).toMatchObject({
+      rank: 2,
+      username: 'ana',
+      snoovatar: avatar,
+    });
+    expect(board.me).toMatchObject({ rank: 13, username: 'p10' });
+    expect((await readLeaderboard(shared.store, 1, 'ben')).me).toBeNull();
+    expect((await readLeaderboard(shared.store, 1, null)).me).toBeNull();
+  });
+
+  it('gives no place to a time too fast to believe', async () => {
+    shared = setup();
+    await solveAs(ana, 1);
+    const board = await readLeaderboard(shared.store, 1, null);
+    expect(board.top[0]?.rank).toBeNull();
+  });
+
+  it('counts nights at par, most first', async () => {
+    shared = setup();
+    await solveAs(ana, 60);
+    await solveAs(ben, 60);
+    await shared.store.zIncrBy(KEYS.allTime, 'ben', 2);
+    const board = await readAllTime(shared.store, 'ana');
+    expect(board.top.map((row) => [row.username, row.medals])).toEqual([
+      ['ben', 3],
+      ['ana', 1],
+    ]);
+    expect(board.me).toBeNull();
   });
 });

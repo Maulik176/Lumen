@@ -4,6 +4,7 @@ import {
   readPostData,
   toPublicIsland,
   type IslandResponse,
+  type BoardResponse,
   type LockInResponse,
   type PastResponse,
   type SkyResponse,
@@ -18,6 +19,8 @@ import {
   markTutorialDone,
   pastIslands,
   playerState,
+  readAllTime,
+  readLeaderboard,
   rankedOpen,
   readSky,
   recordStart,
@@ -170,4 +173,17 @@ api.get('/past', async (c) => {
     () => pastIslands(store, null, islands)
   );
   return c.json<PastResponse>({ ok: true, islands: list });
+});
+
+/** Tonight's board (scope=day, the default) or the all-time board (scope=alltime). */
+api.get('/leaderboard', async (c) => {
+  const fromQuery = Number(c.req.query('day'));
+  const day = requestedDay(Number.isInteger(fromQuery) ? fromQuery : undefined);
+  const username = (await whoIsAsking())?.username ?? null;
+  if (c.req.query('scope') === 'alltime') {
+    const board = await readAllTime(store, username);
+    return c.json<BoardResponse>({ ok: true, scope: 'alltime', ...board });
+  }
+  const board = await readLeaderboard(store, day, username);
+  return c.json<BoardResponse>({ ok: true, scope: 'day', ...board });
 });

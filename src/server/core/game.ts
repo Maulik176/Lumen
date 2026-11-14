@@ -9,13 +9,22 @@
  */
 import {
   cleanSnoovatar,
+  type AllTimeRow,
+  type BoardRow,
   type LockInResult,
   type PastIsland,
   type PlayerState,
   type SkyLantern,
 } from '../../shared/api';
 import { dayAt } from '../../shared/calendar';
-import { CALENDAR, KEEP, RULES, SCORING, SKY } from '../../shared/config';
+import {
+  CALENDAR,
+  KEEP,
+  LEADERBOARD,
+  RULES,
+  SCORING,
+  SKY,
+} from '../../shared/config';
 import { puzzleOfDaily, type DailyIsland } from '../../shared/daily';
 import {
   advanceStreak,
@@ -381,6 +390,8 @@ export async function lockIn(
     }),
     store.zAdd(KEYS.sky(island.day), JSON.stringify(lantern), nowMs),
   ];
+  if (lantern.a !== '')
+    writes.push(store.hSet(KEYS.avatars, { [player.username]: lantern.a }));
   if (medal === 'lamplighter') {
     writes.push(
       store.hIncrBy(statsKey, 'parHits', 1),
@@ -477,4 +488,97 @@ export async function pastIslands(
     par: island.par,
     medal: medals[index] ?? null,
   }));
+}
+
+/** Snoovatar addresses for a list of usernames, '' where there is none. */
+async function avatarsOf(store: Store, names: string[]): Promise<string[]> {
+  const found = await store.hMGet(KEYS.avatars, names);
+  return names.map((_name, index) => cleanSnoovatar(found[index]));
+}
+
+function boardRow(
+  username: string,
+  score: number,
+  place: number,
+  snoovatar: string
+): BoardRow {
+  const pieces = Math.floor(score / SCORING.leaderboardPieceWeight);
+  const timeMs = score - pieces * SCORING.leaderboardPieceWeight;
+  return {
+    // A time too fast to be believed is kept, but never given a place.
+    rank: timeMs < SCORING.minPlausibleMs ? null : place,
+    username,
+    snoovatar,
+    pieces,
+    timeMs,
+  };
+}
+
+/** Tonight's board: fewest pieces first, then fastest; and the player's own row if lower. */
+export async function readLeaderboard(
+  store: Store,
+  day: number,
+  username: string | null
+): Promise<{ top: BoardRow[]; me: BoardRow | null; total: number }> {
+  const key = KEYS.leaderboard(day);
+  const [entries, total, position] = await Promise.all([
+    store.zRange(key, 0, LEADERBOARD.top - 1),
+    store.zCard(key),
+    username === null ? undefined : store.zRank(key, username),
+  ]);
+  const inTop = entries.some((entry) => entry.member === username);
+  const own =
+    username !== null && position !== undefined && !inTop
+      ? (await store.zRange(key, position, position))[0]
+      : undefined;
+  const names = entries.map((entry) => entry.member);
+  if (own !== undefined) names.push(own.member);
+  const avatars = await avatarsOf(store, names);
+  const top = entries.map((entry, index) =>
+    boardRow(entry.member, entry.score, index + 1, avatars[index] ?? '')
+  );
+  const me =
+    own === undefined || position === undefined
+      ? null
+      : boardRow(own.member, own.score, position + 1, avatars.at(-1) ?? '');
+  return { top, me, total };
+}
+
+/** The all-time board: most nights at par first. */
+export async function readAllTime(
+  store: Store,
+  username: string | null
+): Promise<{ top: AllTimeRow[]; me: AllTimeRow | null; total: number }> {
+  const [entries, total, position] = await Promise.all([
+    store.zRange(KEYS.allTime, 0, LEADERBOARD.top - 1, true),
+    store.zCard(KEYS.allTime),
+    username === null ? undefined : store.zRank(KEYS.allTime, username),
+  ]);
+  const inTop = entries.some((entry) => entry.member === username);
+  // zRank counts from the lowest score; this board counts from the highest.
+  const fromTop =
+    position === undefined || inTop ? undefined : total - 1 - position;
+  const own =
+    fromTop === undefined
+      ? undefined
+      : (await store.zRange(KEYS.allTime, fromTop, fromTop, true))[0];
+  const names = entries.map((entry) => entry.member);
+  if (own !== undefined) names.push(own.member);
+  const avatars = await avatarsOf(store, names);
+  const top = entries.map((entry, index) => ({
+    rank: index + 1,
+    username: entry.member,
+    snoovatar: avatars[index] ?? '',
+    medals: entry.score,
+  }));
+  const me =
+    own === undefined || fromTop === undefined
+      ? null
+      : {
+          rank: fromTop + 1,
+          username: own.member,
+          snoovatar: avatars.at(-1) ?? '',
+          medals: own.score,
+        };
+  return { top, me, total };
 }

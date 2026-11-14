@@ -12,6 +12,7 @@ import { join } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
 import {
   toPublicIsland,
+  type BoardResponse,
   type IslandResponse,
   type LockInResponse,
   type LockInResult,
@@ -43,6 +44,49 @@ function localApi(): Plugin {
       server.middlewares.use('/api/forget', (_request, response) => {
         solved.clear();
         response.end('{"ok":true}');
+      });
+      // Made-up test names, as in the sky stand-in. The player is 'you'.
+      server.middlewares.use('/api/leaderboard', (request, response) => {
+        const scope = new URL(
+          request.url ?? '',
+          'http://localhost'
+        ).searchParams.get('scope');
+        const names = Array.from({ length: 10 }, (_, i) => `test_${i + 1}`);
+        const body: BoardResponse =
+          scope === 'alltime'
+            ? {
+                ok: true,
+                scope: 'alltime',
+                top: names.map((username, i) => ({
+                  rank: i + 1,
+                  username,
+                  snoovatar: '',
+                  medals: 12 - i,
+                })),
+                me: { rank: 31, username: 'you', snoovatar: '', medals: 1 },
+                total: 40,
+              }
+            : {
+                ok: true,
+                scope: 'day',
+                top: names.map((username, i) => ({
+                  rank: i === 9 ? null : i + 1,
+                  username,
+                  snoovatar: '',
+                  pieces: 4 + Math.floor(i / 4),
+                  timeMs: 41_000 + i * 9_000,
+                })),
+                me: {
+                  rank: 23,
+                  username: 'you',
+                  snoovatar: '',
+                  pieces: 5,
+                  timeMs: 83_000,
+                },
+                total: 140,
+              };
+        response.setHeader('content-type', 'application/json');
+        response.end(JSON.stringify(body));
       });
       server.middlewares.use('/api/past', (request, response) => {
         const before = Number(

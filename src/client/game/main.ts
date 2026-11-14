@@ -31,6 +31,7 @@ import { puzzleFromText } from '../../shared/puzzle-text';
 import { createSound, type Sound } from './audio';
 import { createGhostHand } from './hand';
 import { applyTheme, createHud, type HudActions } from './hud';
+import { boardSheet } from './board';
 import { pastSheet } from './past';
 import type { Rider } from './release';
 import { createIslandView } from './scene';
@@ -308,6 +309,21 @@ function mountIsland(
     layout();
   };
 
+  const showBoard = (): void => {
+    hud.showSheet(
+      boardSheet(
+        island.day,
+        rider.username,
+        () => {
+          hud.hideSheet();
+          layout();
+        },
+        layout
+      )
+    );
+    layout();
+  };
+
   const actions: HudActions = {
     undo: () => apply(undo(state)),
     reset: () => apply(reset(state)),
@@ -329,6 +345,7 @@ function mountIsland(
   if (options.back !== undefined) actions.back = options.back;
   if (options.openPast !== undefined && island.day > 1)
     actions.explore = () => void showPast();
+  if (tonight) actions.board = showBoard;
 
   const hud = createHud(root, island, actions, options.hints);
   hud.setMuted(sound.isMuted());
