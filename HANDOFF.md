@@ -218,3 +218,189 @@ override on Sundays (ranked). The feed card shows "Island by u/name".
 **Tests.** Check route refuses unsolvable, too large, too loose and over-budget boards; publish
 re-validates; weekly cap; Sunday pick chooses correctly among fixtures, respects the bands, falls
 back, and running it twice changes nothing.
+
+---
+
+# Milestone 5 briefs (written Nov 14, after the server core was built)
+
+What exists already, so do not rebuild it: `src/server/core/game.ts` (start, lock-in, ranking,
+player state, sky), `core/store.ts` (the `Store` type, `redisStore`, every key in `KEYS`),
+`core/post.ts` (idempotent daily post with a stickied results comment whose id is stored at
+`KEYS.stickyOfPost(postId)`), `src/shared/streak.ts`, the live sky (`skyfield.ts`), and tests in
+`core/game.test.ts` that show how to test against the in-memory store. Follow that pattern: put
+logic in `core/` behind `Store`, keep Reddit calls in `routes/`.
+
+Data a ranked solve writes (all in `lockIn`): `lb:{day}` sorted set, member = username, score =
+pieces x 10,000,000 + timeMs, lower is better; `lb:alltime` sorted set, member = username, score =
+Lamplighter medals; `heat:{day}` hash, field = tile index (`y * width + x`), value = count;
+`stats:{day}` hash with `plays`, `solves`, `parHits`; `sub:{day}:{userId}` JSON
+`{ placements, result }`; `user:{userId}` hash with `streak`, `lastDay`, `graceWeek`, `best`,
+`style`, `username`, `tutorialDone`; `sky:{day}` sorted set of `{u,s,a}` JSON by time.
+
+Do briefs 6 to 8 before brief 2 (Archipelago) and brief 3 (trailer): they are what judges see on
+the result card. Brief 9 can be done at any time.
+
+## Brief 6 · Leaderboard with snoovatars
+
+**Goal.** From the result card, "Tonight's board": today's top 10 by fewest pieces then fastest
+time, plus the player's own row, each with a snoovatar; a second tab for all-time Lamplighters.
+
+**Server.** In `core/game.ts`, `readLeaderboard(store, day, username | null)` →
+`{ top: Row[], me: Row | null, total: number }` with
+`Row = { rank, username, pieces, timeMs, snoovatar }`. `top` = `zRange(KEYS.leaderboard(day), 0,
+9)`; decode `pieces = Math.floor(score / SCORING.leaderboardPieceWeight)`, `timeMs = score %
+weight`. `me` from `zRank` (rank + 1) when the caller is not in the top 10. Snoovatars: `lockIn`
+must also save the cleaned address: add `avatar` to the `user:{userId}` hash AND a hash
+`avatars` (field = username, value = address) so a board needs one `hGetAll`-free read: use
+`redis.hMGet`-style reads if available, else store the address inside the leaderboard member is
+NOT allowed (member must stay the bare username). Add `hGet`/`hMGet` to `Store` and both
+implementations. All-time: `readAllTime(store)` = top 10 of `KEYS.allTime` with `reverse: true`,
+`Row = { rank, username, medals, snoovatar }`. Hide the rank (show "—") when `timeMs <
+SCORING.minPlausibleMs`. Route `GET /api/leaderboard?day=N&scope=day|alltime` in `routes/api.ts`,
+types in `shared/api.ts`. Works logged out (`me: null`).
+
+**Client.** `src/client/game/board.ts`: a paper panel opened from a new quiet button on the result
+card (`COPY.board = "Tonight's board"`), closing back to the card. It takes the result card's
+place at the foot of the view and reports its height through `hud.insets()` so the island
+reframes (see how `resultShown` is handled in `hud.ts`). Rows: rank, a 28 px round snoovatar
+(`<img crossorigin="anonymous" loading="lazy">`, only if `cleanSnoovatar()` accepts it; else a
+round seal with the first letter, same idea as `glyphTexture` in `release.ts`), `u/name`, pieces
+as small lantern-count text, time via `formatTime`. The player's row is marked with the amber
+colour. Two tabs: "Tonight" and "All time". Empty: "No lanterns yet tonight." Max height 60% of
+the view with inner scroll.
+
+**Tests.** Ordering by pieces then time; own row outside the top 10; logged out; implausible times
+have no rank; all-time order; decoding of scores.
+
+**Done when.** Two accounts solve the same day and each sees both rows in the right order.
+
+## Brief 7 · Crowd heatmap
+
+**Goal.** After Lock in: "See how everyone solved it". The player's own solution stays; tiles
+tint by how often others placed a piece there; a line says "18% hit par tonight". Never before
+the player has locked in. The par solution is shown only once the day is over.
+
+**Server.** `readHeat(store, day, player)` in `core/game.ts` → `{ ok: false, reason: 'locked' }`
+unless the caller has a ranked submission for that day (`KEYS.submission`) OR the day is before
+`currentDay` (archive: open to all). Otherwise `{ ok: true, tiles: number[] (length width x
+height, counts), solves, parHits, parSolution: Placement[] | null }` where `parSolution` is
+`island.solution` only when `day < currentDay(now, lastDay())`. Route `GET /api/heatmap?day=N`,
+HTTP 403 when locked. Types in `shared/api.ts`.
+
+**Client.** A second quiet button on the result card (`COPY.crowd = 'See how everyone solved it'`).
+On tap: `view.dawn()` is NOT called; instead add `view.showHeat(tiles: number[] | null)` to
+`scene.ts`: tint each tile's instance colour toward `LOOK.lanternWarm` by
+`count / maxCount` (keep the originals to restore; `tiles.setColorAt` then
+`instanceColor.needsUpdate = true`; the tiles `InstancedMesh` is created in `ground.ts`, so
+expose a `tint(values | null)` function from `createGround`). In non-calm mode the camera is up
+in the sky at that point: add `view.returnToIsland()` that eases `releaseAt` back (set a
+`descendAt` time and run the rise backwards over 1.5 s) while the night stays. The result card
+shrinks to one line: "18% hit par tonight" (`COPY.crowdPar`, from `parHits / solves`; when
+`solves < 5` say "You are among the first tonight.") with a Back button. If `parSolution` is
+present, a toggle "Show par" lays those pieces on the island with `view.sync` of a state built by
+`startPlay` + `tapTile` replay (see `trailerSteps` idea in brief 3).
+
+**Tests.** Locked before submitting (403 path); open after; archive open to all; par solution
+hidden today and present for past days; counts are per tile index.
+
+**Done when.** The button does nothing spoilery before Lock in (it does not exist then), and after
+it the island shows where the crowd built.
+
+## Brief 8 · Share to comments (opt-in)
+
+**Goal.** One clearly labelled button on the result card posts the two-line result as a comment
+from the player's account, as a reply under the post's stickied results comment. Devvit's
+user-action rules apply in full (CLAUDE.md rule 10): explicit tap, never automatic, never needed
+to continue, never merged with another action.
+
+**Config.** `devvit.json` → `"reddit": { "enable": true, "asUser": ["SUBMIT_COMMENT"] }`.
+
+**Server.** `POST /api/share` in `routes/api.ts`: needs a logged-in caller with a ranked
+submission for the post's own day (read `KEYS.submission(day, userId)`; refuse otherwise with
+`reason: 'nothing-to-share'`). One share per player per day: `store.count('shared:{day}:{userId}')`
+must be 1, else `reason: 'already-shared'`. Parent = `KEYS.stickyOfPost(context.postId)`; if it is
+missing (older post), create and sticky one now exactly as `core/post.ts` does. Then
+`reddit.submitComment({ id: stickyId, text, runAs: 'USER' })`. Text, built by a pure, tested
+function `shareText(result, lanternCount)` in `src/shared/share.ts`:
+
+    Lumen #12  🏮🏮🏮🏮  5 pieces (par 4)  ⏱ 1:42
+
+    Glow · 🔥 7-day streak
+
+(one 🏮 per lantern on the island; blank line between the two lines so Reddit keeps them apart;
+no streak part when the streak is 1). Emoji is allowed here: it is a Reddit comment, not game UI.
+On any error return `{ ok: false, reason: 'failed' }` and log it; never throw.
+PLATFORM.md: this call failed once on desktop web with "refresh token does not exist" and worked
+on iOS; and until the app is approved, non-owners post as the app account.
+
+**Client.** Button `COPY.share = 'Share to comments'` on the result card, quiet style, below
+"Play again". States: idle → "Posting…" (disabled) → "Shared" (disabled, stays) or
+`COPY.shareFailed` as a notice with the button enabled again. Hidden for unranked results and
+logged-out players. Add a separate quiet button `COPY.join = 'Join r/{subreddit}'` only if
+Maulik asks; it must be its own action (`reddit.subscribeToCurrentSubreddit()`, permission
+`SUBSCRIBE_TO_SUBREDDIT`).
+
+**Tests.** `shareText` for par, over par, streak 1, one lantern; route refuses logged out,
+unranked, second share; creates the sticky when missing.
+
+**Done when.** Tapping Share once puts one reply under the stickied comment, from the player.
+
+## Brief 9 · Journeys wiring
+
+**Goal.** Send the events in `JOURNEY_MAP.md` exactly as written there. Nothing else, and no
+personal data in any field.
+
+**Config.** `devvit.json` → `"permissions": { ..., "journeys": true }`. Install
+`@devvit/analytics@0.15.2` (same version as the other Devvit packages).
+
+**Client** (`src/client/game/journey.ts`, called from `main.ts`): the client helper
+`telemetry` from `@devvit/analytics/client/reddit` posts to routes the package expects. Its
+ready-made router is Express-only and this server is Hono (PLATFORM.md), so write five small Hono
+routes in `src/server/routes/journey.ts`, mounted at the base path the client helper uses (read
+`TELEMETRY_JOURNEY_ENDPOINTS` and the default base path in
+`node_modules/@devvit/analytics/shared/reddit/index.js` and `client/reddit/telemetry.js`): each
+reads the JSON body and calls the matching method on the server `telemetry` client
+(`startJourney`, `journeyProgress`, `journeyInteraction`, `endJourney`, `appReady`) and returns its
+result as JSON. `journeyInteraction` needs `actionDetails` (a string) even when empty.
+Wrap every client call in `.catch(() => undefined)`: telemetry must never break play.
+
+Where each fires, in `main.ts`:
+- `appReady()` once, after the first `layout()` of today's island (not the tutorial).
+- `startJourney()` on the first `placed` event of an attempt (reset on Play again).
+- `progress({ progress: lit / total, action: 'lantern_lit' })` on each `lit-more` event;
+  `progress({ progress: 1, action: 'all_lit' })` on `all-lit`.
+- `interaction({ action })` for `undo`, `reset`, `rotate` (in the HUD action handlers, which run
+  on click, i.e. tap release), `keep_refining`, and `tutorial_skip` (from `tutorial.ts`'s Skip).
+  `actionDetails` = `ranked` | `replay` | `archive`.
+- Completed end: send from the SERVER inside `/api/lock-in` after a successful `lockIn`, with
+  `complete: true, game: { win: true, score: result.pieces }`; the client passes the journey id
+  in the header `x-devvit-journey-id` (`telemetry.getActiveJourneyId()`), then calls
+  `telemetry.clearJourneyId()`.
+- Abandoned end: `endJourney({ complete: false })` on `visibilitychange` → hidden, only if a
+  journey is active and the player has not locked in.
+
+**Check.** In playtest every receipt reads `JOURNEY_RECEIPT_DENIED_PLAYTEST`; that is expected
+(PLATFORM.md). Log receipts with `console.log` behind `?perf=1` only. After publishing, expect
+`DENIED_NOT_ALLOWLISTED` until Reddit approves `JOURNEY_MAP.md`, then `VALID`.
+
+**Tests.** A pure mapper `journeyEventsFor(playEvents, lit, total)` → list of calls, tested for
+the "typical journey" table in `JOURNEY_MAP.md`; the Hono routes with a stubbed telemetry client.
+
+**Done when.** A playtest run logs one receipt per event in the table, in order.
+
+---
+
+## Small things left open by Fable (pick up when convenient)
+
+- The player's own sky lantern (`release.ts`) does not yet show its earned style; pass
+  `me.style` / `result.style` and tint or shape it like the points in `skyfield.ts`.
+- `tutorialDone` is saved to Redis and read back, but hints (`HINTS_KEY`) are still only in
+  localStorage, so they return after an app update. Store a `hintsDone` flag the same way.
+- A returning player who already locked in today (`me.result !== null`) still gets a fresh
+  board. Show their result card straight away instead: call `hud.showResult(me.result)`, lay
+  their stored placements (add them to `PlayerState`), and skip to night with a new
+  `view.night()` that sets the sky without the animation.
+- The feed card and the result card do not show "1,284 lanterns tonight" yet; `skyCount` is in
+  `/api/island` and in every lock-in result.
+- Not verified on Reddit yet: realtime between two real accounts, flair after a real ranked
+  solve, the cron firing at 00:00 UTC, and the stickied comment on a new daily post.

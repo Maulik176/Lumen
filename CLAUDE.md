@@ -5,8 +5,9 @@ Vite). It is an entry for Reddit's Game of the Day hackathon; submission closes 
 
 ## Where things stand (update at the end of every milestone)
 
-**As of Sat Nov 14, 2026.** M1–M4 built. Onboarding and tutorial in progress (moved up from M7).
-Next for Fable: M5 core, M8 judge review, M9 handoff.
+**As of Sat Nov 14, 2026, late.** M1–M4, onboarding and **M5 core** are built and uploaded
+(v0.0.1.40). Fable has almost no allowance left: what remains for Fable is the M8 judge review and
+the final HANDOFF update only. Everything else is in `HANDOFF.md` as briefs for Opus.
 
 **Budget rule (Maulik, Nov 14):** about half the weekly Fable allowance is left until Monday night.
 Fable builds only what needs it: art fixes, onboarding, server and realtime sky, the judge review.
@@ -26,6 +27,17 @@ Few screenshots, short reports.
   keeps the hint line and the ghost hand for "turn" until the first Lock in. Light now travels
   on every change (`ONBOARD` in config). `?tutorial=1` forces it, `?tutorial=0` skips it.
   Done flag is in localStorage for now; M5 moves it to Redis (`tutorialDone`).
+- **M5 core (Nov 14):** `src/server/core/game.ts` decides every result (re-trace, server time
+  from `/api/start`, first Lock in of the day only, midnight grace), writes leaderboard,
+  all-time medals, heatmap, stats, streak (`src/shared/streak.ts`), sky; `routes/api.ts` adds
+  flair and the realtime broadcast as fallible effects. `core/post.ts` makes one post per day no
+  matter how often it is asked (cron 00:00 UTC, catch-up twice an hour, mod menu, install and
+  upgrade triggers). Client: `/api/start` once today's island is on screen, ranked Lock in with
+  the player's snoovatar, streak on the result card, `skyfield.ts` drawing up to 300 lanterns in
+  one draw call (plus a snoovatar atlas for the newest 8) fed by `/api/sky` and the `sky_{day}`
+  channel. 292 tests. **Not built, briefed in HANDOFF.md (6–9):** leaderboard UI, heatmap UI,
+  share button, Journeys. **Not yet verified on Reddit:** two-account realtime, flair, cron,
+  stickied comment.
 - Snow biome has its own cooler daylight (`sunDay`/`sunDusk` per biome in `BIOME_LOOK`).
 - M4 phone test results were never filled in (the form came back blank). Still unknown on a real
   phone: snoovatar on the sky lantern, smoothness of the rise, clipping.
