@@ -214,8 +214,11 @@ async function start(): Promise<void> {
   const wantTutorial =
     query.get('tutorial') === '1' || tutorialAsked() || firstVisit;
   if (firstVisit) forget(HINTS_KEY);
+  // The ghost hand shows only in the tutorial, and on a first island whose tutorial was skipped.
+  let handOn = false;
   if (wantTutorial) {
-    await runTutorial(canvas, root, sound, calm);
+    const ended = await runTutorial(canvas, root, sound, calm);
+    handOn = firstVisit && ended === 'skipped';
     store(TUTORIAL_KEY);
     tell('/api/tutorial-done', {});
   }
@@ -344,7 +347,7 @@ async function start(): Promise<void> {
   // While the "turn it" hint is up, the ghost hand taps the piece just placed, to show how.
   const pointHand = (): void => {
     const last = state.placements[state.placements.length - 1];
-    if (!showHints || hintFor(state) !== 'turn' || last === undefined) {
+    if (!handOn || hintFor(state) !== 'turn' || last === undefined) {
       hand.hide();
       return;
     }

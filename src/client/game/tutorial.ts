@@ -29,13 +29,15 @@ function element<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
-/** Run the tutorial. Resolves when the third island is lit or the player skips. */
+export type TutorialEnd = 'done' | 'skipped';
+
+/** Run the tutorial. Resolves when the third island is lit, or the player skips. */
 export function runTutorial(
   canvas: HTMLCanvasElement,
   root: HTMLElement,
   sound: Sound,
   calm: boolean
-): Promise<void> {
+): Promise<TutorialEnd> {
   return new Promise((finish) => {
     const bar = element('header', 'panel lesson');
     const dots = element('div', 'lesson-dots');
@@ -55,20 +57,20 @@ export function runTutorial(
     let leave: (() => void) | null = null;
     let over = false;
 
-    const end = (): void => {
+    const end = (how: TutorialEnd): void => {
       if (over) return;
       over = true;
       leave?.();
       hand.hide();
       root.replaceChildren();
-      finish();
+      finish(how);
     };
-    skip.addEventListener('click', end);
+    skip.addEventListener('click', () => end('skipped'));
 
     const play = (index: number): void => {
       const step = TUTORIAL[index];
       if (step === undefined) {
-        end();
+        end('done');
         return;
       }
       dotList.forEach((dot, at) => dot.classList.toggle('done', at < index));
