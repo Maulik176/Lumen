@@ -23,7 +23,14 @@ export type SkyView = {
   /** tan of half the vertical and half the horizontal field of view. */
   halfV: number;
   halfH: number;
+  /** How many lanterns are in the sky tonight. */
+  count: number;
 };
+
+/** How much taller than the picture the climb band is, so about SKY.comfortable show at once. */
+export function crowdScale(count: number): number {
+  return Math.max(1, count / SKY.comfortable);
+}
 
 /** A repeatable number in 0..1 from a name. */
 export function nameHash(name: string, salt: number): number {
@@ -85,7 +92,11 @@ export function skySpot(
   const aloft =
     view.aimY -
     view.dropTan * look.depth +
-    (t * band - SKY.bandBelow) * view.halfV * SKY.viewFill * reach;
+    (t * band - SKY.bandBelow) *
+      view.halfV *
+      SKY.viewFill *
+      reach *
+      crowdScale(view.count);
   return {
     x,
     y: play + (aloft - play) * view.aloft,

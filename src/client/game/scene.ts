@@ -213,6 +213,7 @@ export function createIslandView(
     camBack: 10,
     halfV: 0.25,
     halfH: 0.25,
+    count: 0,
   };
   /**
    * Once set, the lantern's climb is no longer driven by time since release but eases from one

@@ -18,6 +18,7 @@ const phone: SkyView = {
   camBack: 10.7,
   halfV: tanHalf,
   halfH: tanHalf * (430 / 701),
+  count: 2,
 };
 
 /** Is a point inside the camera's picture? The camera looks at (0, aimY, 0) from +z. */
@@ -65,6 +66,17 @@ describe('every lantern can be seen', () => {
       SKY.arrivalClimb,
       5
     );
+  });
+});
+
+describe('a busy night', () => {
+  it('shows about SKY.comfortable lanterns at once, never all three hundred', () => {
+    const busy: SkyView = { ...phone, count: 300 };
+    let shown = 0;
+    for (let i = 0; i < 300; i++)
+      if (onScreen(skySpot(skyLook(`player_${i}`), 40, busy), busy)) shown++;
+    expect(shown).toBeGreaterThan(SKY.comfortable * 0.5);
+    expect(shown).toBeLessThan(SKY.comfortable * 2);
   });
 });
 

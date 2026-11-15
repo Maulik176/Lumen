@@ -24,6 +24,7 @@ import {
 import type { SkyLantern } from '../../shared/api';
 import {
   arrivalPhase,
+  crowdScale,
   nameHash,
   skyLook,
   skySpot,
@@ -71,6 +72,7 @@ const VERTEX = /* glsl */ `
   uniform float uBelow;
   uniform float uAbove;
   uniform float uSway;
+  uniform float uCrowd;
   varying float vAlpha;
   varying float vCell;
   void main() {
@@ -82,7 +84,7 @@ const VERTEX = /* glsl */ `
     float reach = depth + uCamBack;
     float x = position.x * uHalfH * uFill * reach + sin(uTime * 0.25 + aSeed * 40.0) * uSway;
     float yPlay = uLow + t * span;
-    float yAloft = uAimY - uDropTan * depth + (t * (uBelow + uAbove) - uBelow) * uHalfV * uFill * reach;
+    float yAloft = uAimY - uDropTan * depth + (t * (uBelow + uAbove) - uBelow) * uHalfV * uFill * reach * uCrowd;
     vec3 p = vec3(x, mix(yPlay, yAloft, uAloft), position.z);
     // Fade in at the bottom and out at the top, so wrapping round is never seen.
     float edge = smoothstep(0.0, 0.08, t) * smoothstep(1.0, 0.9, t);
@@ -110,9 +112,9 @@ const FRAGMENT = /* glsl */ `
       (column + gl_PointCoord.x) / uGrid.x,
       1.0 - (row + gl_PointCoord.y) / uGrid.y
     );
+    // The sheet is premultiplied: its colour already carries its own alpha.
     vec4 paint = texture2D(uSheet, uv);
-    float alpha = paint.a * vAlpha;
-    gl_FragColor = vec4(paint.rgb * alpha, alpha);
+    gl_FragColor = vec4(paint.rgb * vAlpha, paint.a * vAlpha);
   }
 `;
 
@@ -178,6 +180,9 @@ export function createSkyField(
   sheet.height = CELL * ROWS;
   const pen = sheet.getContext('2d');
   const sheetMap = keeper.keep(new CanvasTexture(sheet));
+  // Uploaded as it is (premultiplied), never un-premultiplied: that round trip is what turns a
+  // canvas's faint soft edges into coloured speckle on Safari.
+  sheetMap.premultiplyAlpha = true;
   let sheetStale = false;
 
   // A picture the browser will not let us read back (no cross-origin permission) would taint
@@ -289,6 +294,7 @@ export function createSkyField(
     uBelow: { value: SKY.bandBelow },
     uAbove: { value: SKY.bandAbove },
     uSway: { value: SKY.sway },
+    uCrowd: { value: 1 },
     uGrid: { value: new Vector2(COLUMNS, ROWS) },
   };
   const material = keeper.keep(
@@ -320,6 +326,7 @@ export function createSkyField(
     camBack: 10,
     halfV: 0.25,
     halfH: 0.25,
+    count: 0,
   };
   let nowSeconds = 0;
   const names = new Set<string>();
@@ -401,6 +408,7 @@ export function createSkyField(
     },
     update(timeMs, night, calm, pixelRatio, yaw, now) {
       field.rotation.y = yaw;
+      now.count = Math.min(total, max);
       view = now;
       uniforms.uAloft.value = now.aloft;
       uniforms.uAimY.value = now.aimY;
@@ -408,6 +416,7 @@ export function createSkyField(
       uniforms.uCamBack.value = now.camBack;
       uniforms.uHalfV.value = now.halfV;
       uniforms.uHalfH.value = now.halfH;
+      uniforms.uCrowd.value = crowdScale(now.count);
       nowSeconds = timeMs / 1000;
       uniforms.uTime.value = calm ? nowSeconds * 0.35 : nowSeconds;
       uniforms.uNight.value = night;

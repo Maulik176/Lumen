@@ -904,6 +904,12 @@ export const SKY = {
   bandBelow: 0.45,
   bandAbove: 0.9,
   sway: 0.4,
+  /**
+   * About this many lanterns are in view at once. With more, the band they climb through grows
+   * taller in proportion, so the extra ones are above or below the picture at any moment and a
+   * busy night never smothers the player's own lantern. With fewer, every one is always in view.
+   */
+  comfortable: 28,
   /** A new arrival starts this far (0..1) into its climb, so it rises into view. */
   arrivalClimb: 0.04,
   /** They drift upward this fast, in tiles per second, and wrap around at the top. */
