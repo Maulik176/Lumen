@@ -79,7 +79,7 @@ Few screenshots, short reports.
   mod menu (`core/clock.ts`: **server code must use `nowMs()`, never `Date.now()`**); sound after
   lock and unlock (context closed when hidden, rebuilt in the next tap); phone ending (7 s rise,
   hover, `RELEASE.hoverMs`/`lookBelow`); other players as paper lanterns painted into one sheet
-  (`skyfield.ts`, `SKY.cellPx`). 326 tests. Left: REVIEW.md's P0 list (mostly phone checks) and
+  (`skyfield.ts`, `SKY.cellPx`). 325 tests. Left: REVIEW.md's P0 list (mostly phone checks) and
   P1 list, then M9.
 - **Nov 15 fixes after Maulik's test:** snoovatars sit on paper lanterns; own lantern has a "You"
   label; tapping a lantern shows its name; unranked solves send a faint practice lantern; rank
