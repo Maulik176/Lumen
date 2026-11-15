@@ -1,5 +1,7 @@
 # Lumen — judge review (M8, Sun Nov 15, 2026)
 
+Every open item below is now an Opus brief in `HANDOFF.md` section 6.
+
 Written as the harshest judge on the panel would see it, comparing against past Devvit winners
 (BridgeDit, Sketchy Solutions, Reddictionary). Based on Maulik's Reddit test of v0.0.1.48
 (iPhone and desktop), local headless runs at 430x701, 360x460 and 1100x700, and the code.
@@ -105,12 +107,12 @@ Cost: S = under 1 hour, M = 1 to 3 hours, L = half a day or more. "Phone" = need
 
 | # | Issue | Fix | Cost |
 | --- | --- | --- | --- |
-| P1-1 | Tiles are hard to tell apart; players cannot see the squares (Maulik) | Subtle seams: a darker bevel on each tile's edge in the tile shader or vertex colours, strength in `ART` | M |
-| P1-2 | The medal is only a word (Maulik) | A drawn emblem per medal (lantern, glow, spark) on the result card, feed card and map, same stroke style | M |
-| P1-3 | Crowd view is flat orange squares (Maulik) | Soft glowing pools: additive discs like the lanterns' light spill, sized by share | M |
+| P1-1 | **Done in 1c17ee8 (soft seams).** Tiles are hard to tell apart; players cannot see the squares (Maulik) | Subtle seams: a darker bevel on each tile's edge in the tile shader or vertex colours, strength in `ART` | M |
+| P1-2 | **Done in 1c17ee8 (drawn emblem on the result card).** The medal is only a word (Maulik) | A drawn emblem per medal (lantern, glow, spark) on the result card, feed card and map, same stroke style | M |
+| P1-3 | **Done in 1c17ee8 (glowing pools).** Crowd view is flat orange squares (Maulik) | Soft glowing pools: additive discs like the lanterns' light spill, sized by share | M |
 | P1-4 | Share: no way to see the comment; dev reset leaves the old reply (Maulik) | Return the comment id; "Shared · View comment" navigates to it; reset deletes it | M |
 | P1-5 | Feed card shows no streak after solving on day 1 (Maulik) | Show the flame and count from streak 1 | S |
-| P1-6 | Grainy daytime sky on iPhone (Maulik) | Banding in the gradient plus noise at low precision: add `precision highp float`, dither with a per-pixel offset, or lower `ART.wisps` | S–M + Phone |
+| P1-6 | **Fixed in code in 1c17ee8; confirm on the iPhone (HANDOFF O-2).** Grainy daytime sky on iPhone (Maulik) | Banding in the gradient plus noise at low precision: add `precision highp float`, dither with a per-pixel offset, or lower `ART.wisps` | S–M + Phone |
 | P1-7 | Trailer opening (Maulik) | A proper "Tap to start trailer" screen; optionally end on the Archipelago | S–M |
 | P1-8 | Tap targets under 44 px on 8x8 and 9x9 islands on small phones | Options: frame the island larger by trimming the reserved hint room when no hint shows on later days; or allow pinch-free "zoom to half" on tap-and-hold. Cheapest: reduce island margins (`CAMERA.margin`) and measure | M |
 | P1-9 | No subscribe step, which both SPEC and the brief's result-card item list | One quiet, separate button "Join r/…" on the result card (`subscribeToCurrentSubreddit`, permission, explicit tap only) | S |

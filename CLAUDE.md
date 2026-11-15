@@ -5,20 +5,23 @@ Vite). It is an entry for Reddit's Game of the Day hackathon; submission closes 
 
 ## Where things stand (update at the end of every milestone)
 
-**As of Sat Nov 14, 2026, late.** M1–M4, onboarding and **M5 core** are built and uploaded
-(v0.0.1.40). Fable has almost no allowance left: what remains for Fable is the M8 judge review and
-the final HANDOFF update only. Everything else is in `HANDOFF.md` as briefs for Opus.
+**As of Mon Nov 16, 2026 (M9 done, feature freeze in force). Resume from `HANDOFF.md`.**
+All nine milestones are built except the cut Island Builder. Fable's work is finished; Opus 5.5
+maintains Lumen until submission (Devpost by Dec 7). Start every session by reading, in order:
+`HANDOFF.md` (state, tools, tuning guide, app-review checklist, ranked Opus briefs O-1 to O-13),
+`REVIEW.md` (the M8 judge review and why each brief matters), then the rules below.
 
-**Budget rule (Maulik, Nov 14):** about half the weekly Fable allowance is left until Monday night.
-Fable builds only what needs it: art fixes, onboarding, server and realtime sky, the judge review.
-Anything mechanical is written as a brief in `HANDOFF.md` for Opus, not built by Fable.
-Few screenshots, short reports.
+- **Freeze:** numbers in `config.ts`, bug fixes that start with a failing test, copy, submission
+  tasks. Any brief in HANDOFF.md marked "ask" needs Maulik's explicit yes first.
+- **Last uploaded:** see the newest "Version:" line in the final M9 report; v0.0.1.50 is the
+  last version Maulik tested on Reddit.
+- **Known gaps:** never run on Android; live sky never tested with two phones; phone fps unknown;
+  sound-after-lock fix and sky-grain fix unconfirmed on the iPhone (HANDOFF brief O-2).
+- **Server time:** server code uses `nowMs()` from `src/server/core/clock.ts`, never
+  `Date.now()` (the playtest subreddit can move "today").
+- Finished briefs and old notes: `docs/HANDOFF-ARCHIVE.md`.
 
-**Who builds what now:**
-- Fable: onboarding + tutorial; M5 core (server, anti-cheat, streaks, flair, leaderboard with
-  snoovatars, opt-in share, heatmap, realtime Shared Night Sky, Journeys); M8 review; M9 handoff.
-- Opus, from briefs in `HANDOFF.md`: Archipelago as a simple 2D night map, feed card restyle,
-  trailer mode, performance tuning.
+**History** (what each session built; kept for context, oldest first, M8 last):
 - **Island Builder is cut.** Sunday uses a generated island. Brief kept in `HANDOFF.md`.
 - Onboarding (Nov 14): first visit runs three tutorial islands (`src/shared/tutorial.ts`,
   `src/client/game/tutorial.ts`): sun pulses, light visibly travels and stops short, unlit
@@ -81,6 +84,9 @@ Few screenshots, short reports.
   hover, `RELEASE.hoverMs`/`lookBelow`); other players as paper lanterns painted into one sheet
   (`skyfield.ts`, `SKY.cellPx`). 325 tests. Left: REVIEW.md's P0 list (mostly phone checks) and
   P1 list, then M9.
+- **Nov 16, M9 (Fable, finished by Opus):** art P1s built (soft tile seams `ART.seam*`, drawn
+  medal emblems `emblem.ts`, crowd pools `HEAT.pool*`, sky noise without sin()). HANDOFF.md
+  rewritten as the resume document; old briefs moved to `docs/HANDOFF-ARCHIVE.md`.
 - **Nov 15 fixes after Maulik's test:** snoovatars sit on paper lanterns; own lantern has a "You"
   label; tapping a lantern shows its name; unranked solves send a faint practice lantern; rank
   on the card; "?" How to play
@@ -204,7 +210,8 @@ How the work is laid out (so a fresh session can continue):
 - `PLAN.md` — the nine milestones, their tests and exit criteria, and the fixed cut line.
 - `PLATFORM.md` (after M1) — what Devvit really allows. Trust it over memory and over SPEC.
 - `JOURNEY_MAP.md` — the Journeys events, triggers and fields sent to Reddit for approval.
-- `HANDOFF.md` (after M9) — tuning guide and known issues.
+- `HANDOFF.md` — start here: state, tools, tuning guide, app-review checklist, Opus briefs.
+- `REVIEW.md` — the M8 judge review: scores and every remaining issue ranked.
 - `AGENTS.md` came with the template. Its Devvit limitations list is right; its mentions of React
   and tRPC are not (this repo uses neither).
 
