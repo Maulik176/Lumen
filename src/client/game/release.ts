@@ -9,14 +9,16 @@ import {
   CylinderGeometry,
   DoubleSide,
   Group,
+  LinearFilter,
+  LinearMipmapLinearFilter,
   Mesh,
   MeshStandardMaterial,
   SphereGeometry,
   Sprite,
   SpriteMaterial,
-  Texture,
-  TorusGeometry,
+  SRGBColorSpace,
   type Texture as TextureType,
+  TorusGeometry,
 } from 'three';
 import { LOOK, RELEASE, UI } from '../../shared/config';
 import { css, type Keeper } from './kit';
@@ -45,10 +47,12 @@ function hueOf(name: string): number {
 /** A round paper seal with the first letter of the name. */
 function glyphTexture(username: string | null): CanvasTexture {
   const canvas = document.createElement('canvas');
-  canvas.width = 128;
-  canvas.height = 128;
+  canvas.width = 256;
+  canvas.height = 256;
   const pen = canvas.getContext('2d');
   if (pen !== null) {
+    // Drawn on a 128-unit grid at twice the pixels, so the seal stays crisp on the lantern.
+    pen.scale(2, 2);
     const name = username ?? '';
     pen.beginPath();
     pen.arc(64, 64, 54, 0, Math.PI * 2);
@@ -91,7 +95,37 @@ function loadSnoovatar(url: string): Promise<TextureType | null> {
     const timer = window.setTimeout(() => resolve(null), 6000);
     image.onload = () => {
       window.clearTimeout(timer);
-      const texture = new Texture(image);
+      // Redrawn large and smoothly into a canvas first, then filtered with mipmaps and
+      // anisotropy on the card: the raw picture, shrunk by the graphics card alone, looked
+      // pixelated on the lantern.
+      const tall = RELEASE.portraitPx;
+      const wide = Math.round(
+        (tall * image.naturalWidth) / Math.max(1, image.naturalHeight)
+      );
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, wide);
+      canvas.height = tall;
+      const pen = canvas.getContext('2d');
+      if (pen === null) {
+        resolve(null);
+        return;
+      }
+      try {
+        pen.imageSmoothingEnabled = true;
+        pen.imageSmoothingQuality = 'high';
+        pen.drawImage(image, 0, 0, canvas.width, canvas.height);
+        // Reading one pixel back throws if the picture is not allowed: then keep the seal.
+        pen.getImageData(0, 0, 1, 1);
+      } catch {
+        resolve(null);
+        return;
+      }
+      const texture = new CanvasTexture(canvas);
+      texture.colorSpace = SRGBColorSpace;
+      texture.generateMipmaps = true;
+      texture.minFilter = LinearMipmapLinearFilter;
+      texture.magFilter = LinearFilter;
+      texture.anisotropy = RELEASE.portraitAnisotropy;
       texture.needsUpdate = true;
       resolve(texture);
     };
@@ -130,20 +164,30 @@ export function createSkyLantern(
   );
   // A tall paper shade, wider at the top, open underneath, with a domed crown.
   const shade = new Mesh(
-    keeper.keep(new CylinderGeometry(0.42, 0.3, 0.78, 14, 1, true)),
+    keeper.keep(
+      new CylinderGeometry(0.42, 0.3, 0.78, RELEASE.shadeSides, 1, true)
+    ),
     paper
   );
   shade.position.y = 0.5;
   const crown = new Mesh(
     keeper.keep(
-      new SphereGeometry(0.42, 14, 6, 0, Math.PI * 2, 0, Math.PI / 2)
+      new SphereGeometry(
+        0.42,
+        RELEASE.shadeSides,
+        8,
+        0,
+        Math.PI * 2,
+        0,
+        Math.PI / 2
+      )
     ),
     paper
   );
   crown.position.y = 0.89;
   crown.scale.y = 0.42;
   const hoop = new Mesh(
-    keeper.keep(new TorusGeometry(0.3, 0.018, 5, 18)),
+    keeper.keep(new TorusGeometry(0.3, 0.018, 5, RELEASE.shadeSides)),
     wood
   );
   hoop.rotation.x = Math.PI / 2;
@@ -191,8 +235,13 @@ export function createSkyLantern(
       keeper.keep(texture);
       portraitMaterial.map = texture;
       portraitMaterial.needsUpdate = true;
-      // Snoovatars are taller than wide (380 x 501).
-      portrait.scale.set(RELEASE.portraitSize * 0.76, RELEASE.portraitSize, 1);
+      // Snoovatars are taller than wide (380 x 501); keep the picture's own shape.
+      const image = texture.image;
+      const shape =
+        image instanceof HTMLCanvasElement && image.height > 0
+          ? image.width / image.height
+          : 0.76;
+      portrait.scale.set(RELEASE.portraitSize * shape, RELEASE.portraitSize, 1);
     });
   }
 

@@ -262,8 +262,12 @@ export const CAMERA = {
 export const VIEW = {
   /** Device pixel ratio is never above this. */
   maxPixelRatio: 2,
-  /** Edge smoothing is used only on screens with a pixel ratio below this. */
-  antialiasBelowRatio: 2,
+  /**
+   * Edge smoothing is used on screens with a pixel ratio below this. Phones' graphics chips
+   * smooth edges cheaply, and without it the lantern's edges looked jagged on iPhone (ratio 3),
+   * so it is on everywhere. Lower it to 2 only if a phone measures under 45 fps.
+   */
+  antialiasBelowRatio: 4,
   /** If frames stay slower than `slowFrameMs` the pixel ratio drops to this. */
   lowPixelRatio: 1.25,
   slowFrameMs: 22,
@@ -617,7 +621,13 @@ export const RELEASE = {
   calmRiseMs: 6000,
   calmRiseHeight: 3.4,
   /** Height of the snoovatar or glyph printed on the lantern's paper, in tiles (the shade is 0.78). */
-  portraitSize: 0.4,
+  portraitSize: 0.46,
+  /** The snoovatar is redrawn this tall (pixels) before it reaches the graphics card. */
+  portraitPx: 512,
+  /** Sharper picture when seen at an angle (the graphics card caps it at its own limit). */
+  portraitAnisotropy: 8,
+  /** Sides of the lantern's round paper shade: more is smoother at its edge. */
+  shadeSides: 40,
   /** After rising, the lantern keeps drifting up at `driftSpeed`, easing to stop this far higher. */
   driftHeight: 0.8,
   /** Reopening a solved post in calm mode: how far up its climb the lantern is shown. */
