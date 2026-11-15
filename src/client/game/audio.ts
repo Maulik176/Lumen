@@ -6,10 +6,14 @@
  * - An AudioContext only starts inside a real gesture: a finger lifting (touchend, pointerup) or
  *   a click. A finger landing (pointerdown, touchstart) does not count, so the context is created
  *   and resumed on release, before the tap itself is handled.
- * - Locking the phone or switching apps leaves the context "interrupted" or "suspended", and a
- *   resume without a gesture is usually refused. So on returning to the page it tries once, and
- *   if that does not take, the next tap resumes it. If even a tap cannot revive it, the context
- *   is replaced with a fresh one.
+ * - Locking the phone or switching apps can leave a context "interrupted", "suspended", or
+ *   worst of all "running" but silent, and none of these is reliably revived. So a context is
+ *   never kept across a hidden page: it is closed when the page is hidden, and the next tap
+ *   makes a fresh one (a context made inside a gesture is the one thing iOS always honours).
+ * - If iOS gives no page event at all, a broken context still shows itself: its own clock
+ *   (`currentTime`) stops. A tap that finds the clock where the last tap left it, with real
+ *   time having passed, replaces the context too. As a last resort, a context that a tap
+ *   cannot bring to "running" is replaced.
  * - A sound asked for while the context is still waking up is played once it is running, so the
  *   very first tap is heard.
  */
@@ -20,6 +24,8 @@ const MUTE_KEY = 'lumen.muted';
 const GESTURES = ['pointerup', 'touchend', 'click', 'keydown'] as const;
 /** If a tap's resume has not brought the context to "running" within this long, replace it. */
 const REVIVE_MS = 400;
+/** A running context's clock must have moved if this much real time passed between two taps. */
+const STALL_MS = 250;
 
 export type Sound = {
   /** Start or wake the audio. Called from inside a gesture; safe to call any number of times. */
@@ -42,6 +48,8 @@ export type SoundHost = {
   storage: Pick<Storage, 'getItem' | 'setItem'> | null;
   /** Timers, so tests can run them by hand. */
   later: (run: () => void, ms: number) => void;
+  /** Real time in milliseconds, for telling a stopped audio clock from a moving one. */
+  now: () => number;
 };
 
 /** localStorage, or null where the browser refuses access to it. */
@@ -63,6 +71,7 @@ function browserHost(): SoundHost {
     later: (run, ms) => {
       window.setTimeout(run, ms);
     },
+    now: () => performance.now(),
   };
 }
 
@@ -125,11 +134,37 @@ export function createSound(host: SoundHost = browserHost()): Sound {
     }
   };
 
+  /** Let the context go for good. The next tap makes a new one. */
+  const discard = (): void => {
+    const stale = context;
+    context = null;
+    master = null;
+    waiting = [];
+    seenAt = null;
+    if (stale !== null) void stale.close().catch(() => undefined);
+  };
+
+  /** The audio clock and the real time at the last tap that found the context running. */
+  let seenClock = 0;
+  let seenAt: number | null = null;
+
   const unlock = (): void => {
     if (muted) return;
+    if (context !== null && context.state === 'running') {
+      const stalled =
+        seenAt !== null &&
+        context.currentTime === seenClock &&
+        host.now() - seenAt > STALL_MS;
+      if (!stalled) {
+        seenClock = context.currentTime;
+        seenAt = host.now();
+        return;
+      }
+      // "Running" but its clock has stopped: iOS broke it. Start again, inside this tap.
+      discard();
+    }
     if (context === null) build();
     if (context === null) return;
-    if (context.state === 'running') return;
     prime();
     void wake();
     // A context that iOS has interrupted sometimes never comes back. Replace it; the next tap
@@ -156,13 +191,9 @@ export function createSound(host: SoundHost = browserHost()): Sound {
 
   host.page.addEventListener('visibilitychange', () => {
     if (context === null) return;
-    if (host.page.hidden) {
-      waiting = [];
-      void context.suspend().catch(() => undefined);
-    } else if (!muted) {
-      // Usually refused without a gesture on iOS; if so, the next tap resumes it.
-      void wake();
-    }
+    // Hidden (phone locked, app switched): the context is closed, never kept. Coming back
+    // needs nothing here: the next tap builds a fresh one.
+    if (host.page.hidden) discard();
   });
 
   /** One decaying tone. Queued if the context is still waking. */

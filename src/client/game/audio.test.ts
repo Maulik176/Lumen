@@ -88,6 +88,7 @@ function setup() {
   const gestures = new EventTarget();
   const page = Object.assign(new EventTarget(), { hidden: false });
   const stored = new Map<string, string>();
+  const clock = { ms: 0 };
   const host = {
     gestures,
     page,
@@ -96,6 +97,7 @@ function setup() {
       setItem: (key: string, value: string) => void stored.set(key, value),
     },
     later: (run: () => void) => void timers.push(run),
+    now: () => clock.ms,
     makeContext: () => {
       const context = new FakeContext(() => gesture);
       contexts.push(context);
@@ -122,6 +124,7 @@ function setup() {
     current,
     page,
     stored,
+    clock,
     setGesture: (value: boolean) => (gesture = value),
   };
 }
@@ -208,15 +211,54 @@ describe('sound on iOS-like rules', () => {
     expect(current()?.tones).toBeGreaterThan(0);
   });
 
-  it('suspends when the page is hidden and drops sounds queued meanwhile', async () => {
-    const { sound, tap, current, settle, page } = setup();
+  it('lets the context go when the page is hidden, and makes no sound meanwhile', async () => {
+    const { sound, tap, current, settle, page, contexts } = setup();
     tap();
     await settle();
     page.hidden = true;
     page.dispatchEvent(new Event('visibilitychange'));
-    expect(current()?.state).toBe('suspended');
+    expect(current()?.closed).toBe(true);
     sound.click();
     expect(current()?.tones).toBe(0);
+    expect(contexts).toHaveLength(1);
+  });
+
+  it('locking the phone mid-game: the first tap after unlocking plays on a fresh context', async () => {
+    const { sound, tap, settle, page, contexts } = setup();
+    tap();
+    sound.click();
+    await settle();
+    page.hidden = true;
+    page.dispatchEvent(new Event('visibilitychange'));
+    page.hidden = false;
+    page.dispatchEvent(new Event('visibilitychange'));
+    await settle();
+    tap();
+    sound.click();
+    await settle();
+    expect(contexts).toHaveLength(2);
+    expect(contexts[0]?.closed).toBe(true);
+    expect(contexts[1]?.state).toBe('running');
+    expect(contexts[1]?.tones).toBeGreaterThan(0);
+  });
+
+  it('a context that says it runs but whose clock has stopped is replaced on the next tap', async () => {
+    // What iOS can leave behind after a lock screen with no page event: "running", but silent.
+    const { sound, tap, settle, contexts, clock } = setup();
+    tap();
+    await settle();
+    clock.ms = 1000;
+    tap();
+    await settle();
+    expect(contexts).toHaveLength(1);
+    // Its clock (currentTime) has not moved in two seconds of real time.
+    clock.ms = 3000;
+    tap();
+    sound.click();
+    await settle();
+    expect(contexts).toHaveLength(2);
+    expect(contexts[0]?.closed).toBe(true);
+    expect(contexts[1]?.tones).toBeGreaterThan(0);
   });
 
   it('mute stops sound and is remembered; unmute (a tap) brings it back', async () => {
