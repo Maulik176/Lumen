@@ -596,3 +596,31 @@ describe('one-time rule cards', () => {
     expect((await playerState(store, ana, 1)).rulesSeen).toEqual([]);
   });
 });
+
+describe('the Android sky report (Nov 16)', () => {
+  it('/api/sky gives both players both lanterns, with or without a snoovatar', async () => {
+    const { store, effects, input } = setup();
+    const iphone: Player = { userId: 't2_dry', username: 'Dry_Promotion2506' };
+    const android: Player = { userId: 't2_mohak', username: 'mohak2605' };
+    await recordStart(store, iphone, 1, DAY_ONE);
+    await lockIn(
+      store,
+      iphone,
+      input(1, DAY_ONE + HOUR, {
+        snoovatar: 'https://i.redd.it/snoovatar/avatars/dry.png',
+      }),
+      effects
+    );
+    await recordStart(store, android, 1, DAY_ONE);
+    await lockIn(store, android, input(1, DAY_ONE + 2 * HOUR), effects);
+    const sky = await readSky(store, 1);
+    expect(sky.lanterns.map((lantern) => lantern.u)).toEqual([
+      'Dry_Promotion2506',
+      'mohak2605',
+    ]);
+    expect(sky.lanterns[0]?.a).toBe(
+      'https://i.redd.it/snoovatar/avatars/dry.png'
+    );
+    expect(sky.lanterns[1]?.a).toBe('');
+  });
+});

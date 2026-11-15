@@ -32,6 +32,7 @@ import {
   VIEW,
 } from '../../shared/config';
 import type { SkyLantern } from '../../shared/api';
+import type { SkyView } from '../../shared/skyspot';
 import type { Biome } from '../../shared/calendar';
 import type { PlayState } from '../../shared/play';
 import type { Puzzle } from '../../shared/types';
@@ -205,6 +206,14 @@ export function createIslandView(
   /** -1 until the sky lantern lifts off. */
   let releaseAt = -1;
   let practice = false;
+  const skyView: SkyView = {
+    aloft: 0,
+    aimY: 0,
+    dropTan: 1,
+    camBack: 10,
+    halfV: 0.25,
+    halfH: 0.25,
+  };
   /**
    * Once set, the lantern's climb is no longer driven by time since release but eases from one
    * point to another: held up on a reopened island, down and back for the crowd view.
@@ -281,6 +290,13 @@ export function createIslandView(
     const pitchNow = pitch + (RELEASE_PITCH * DEGREES - pitch) * rise;
     const distanceNow = distance * (1 + (RELEASE_ZOOM - 1) * rise);
     const [x, y, z] = cameraPosition(distanceNow, pitchNow, yaw);
+    // What the sky needs to keep every lantern inside the picture.
+    skyView.aloft = rise;
+    skyView.aimY = targetY;
+    skyView.dropTan = Math.tan(pitchNow);
+    skyView.camBack = Math.cos(pitchNow) * distanceNow;
+    skyView.halfV = Math.tan((CAMERA.fieldOfViewDegrees * DEGREES) / 2);
+    skyView.halfH = skyView.halfV * camera.aspect;
     camera.position.set(x, y + targetY, z);
     camera.lookAt(0, targetY, 0);
     // The picture is shifted to sit in the space the interface leaves: the island while
@@ -365,7 +381,7 @@ export function createIslandView(
     }
     lanterns.update(time, delta, allLit, nightAt >= 0, teaching);
     beams.update(time, night, calm);
-    skyField.update(time, night, calm, pixelRatio, yawNow);
+    skyField.update(time, night, calm, pixelRatio, yawNow, skyView);
 
     for (const piece of pieces.values()) {
       const t = Math.min(1, (time - piece.bornAt) / VIEW.pieceDropMs);

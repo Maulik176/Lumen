@@ -887,13 +887,25 @@ export const SKY = {
   portraits: 8,
   /**
    * Far lanterns float between these distances beyond the island, across the slice of sky the
-   * camera faces (`spread` is that slice's half-width as a share of distance), between these heights.
+   * camera faces, between these heights while playing (see `viewFill` and the bands below).
    */
   ringNear: 18,
   ringFar: 44,
-  spread: 0.34,
   heightLow: -32,
   heightHigh: 18,
+  /**
+   * Every lantern stays inside the camera's picture: its sideways place uses this share of the
+   * view's real half-width at its distance, whatever the screen's shape. Once the camera is
+   * aloft, each lantern climbs through the band the camera sees at its distance, from this
+   * share of the half-height below the line of sight to this share above it (the result card
+   * covers the lower part of the picture). A lantern sways this many tiles side to side.
+   */
+  viewFill: 0.85,
+  bandBelow: 0.45,
+  bandAbove: 0.9,
+  sway: 0.4,
+  /** A new arrival starts this far (0..1) into its climb, so it rises into view. */
+  arrivalClimb: 0.04,
   /** They drift upward this fast, in tiles per second, and wrap around at the top. */
   riseSpeed: 0.22,
   /** Size of a far lantern in pixels at pixel ratio 1, and how much brighter it is at night. */

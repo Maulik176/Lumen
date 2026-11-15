@@ -22,6 +22,14 @@ import {
   type Scene,
 } from 'three';
 import type { SkyLantern } from '../../shared/api';
+import {
+  arrivalPhase,
+  nameHash,
+  skyLook,
+  skySpot,
+  type SkyLook,
+  type SkyView,
+} from '../../shared/skyspot';
 import { LOOK, SKY, UI, type LanternStyle } from '../../shared/config';
 import { css, type Keeper } from './kit';
 
@@ -38,6 +46,7 @@ const CELL = SKY.cellPx;
 const COLUMNS = SKY.sheetColumns;
 const ROWS = Math.ceil(SKY.maxLanterns / COLUMNS);
 
+// Repeats skySpot() in src/shared/skyspot.ts exactly; change both together.
 const VERTEX = /* glsl */ `
   attribute float aSeed;
   attribute float aBorn;
@@ -52,14 +61,31 @@ const VERTEX = /* glsl */ `
   uniform float uSpeed;
   uniform float uNight;
   uniform float uDay;
+  uniform float uAloft;
+  uniform float uAimY;
+  uniform float uDropTan;
+  uniform float uCamBack;
+  uniform float uHalfV;
+  uniform float uHalfH;
+  uniform float uFill;
+  uniform float uBelow;
+  uniform float uAbove;
+  uniform float uSway;
   varying float vAlpha;
   varying float vCell;
   void main() {
+    // position: x = side (-1..1), y = phase (0..1), z = -depth.
     float span = uHigh - uLow;
-    float lift = mod(position.y - uLow + uTime * uSpeed * (0.6 + aSeed * 0.8), span);
-    vec3 p = vec3(position.x + sin(uTime * 0.25 + aSeed * 40.0) * 0.6, uLow + lift, position.z);
+    float rate = uSpeed * (0.6 + aSeed * 0.8) / span;
+    float t = fract(position.y + uTime * rate);
+    float depth = -position.z;
+    float reach = depth + uCamBack;
+    float x = position.x * uHalfH * uFill * reach + sin(uTime * 0.25 + aSeed * 40.0) * uSway;
+    float yPlay = uLow + t * span;
+    float yAloft = uAimY - uDropTan * depth + (t * (uBelow + uAbove) - uBelow) * uHalfV * uFill * reach;
+    vec3 p = vec3(x, mix(yPlay, yAloft, uAloft), position.z);
     // Fade in at the bottom and out at the top, so wrapping round is never seen.
-    float edge = smoothstep(0.0, 0.08, lift / span) * smoothstep(1.0, 0.9, lift / span);
+    float edge = smoothstep(0.0, 0.08, t) * smoothstep(1.0, 0.9, t);
     // A lantern that has just arrived is larger for a few seconds.
     float fresh = 1.0 + 0.8 * exp(-max(0.0, uTime - aBorn) * 0.6);
     vAlpha = edge * mix(uDay, 1.0, uNight) * mix(1.0, uFaint, aFaint);
@@ -90,14 +116,6 @@ const FRAGMENT = /* glsl */ `
   }
 `;
 
-/** A repeatable number in 0..1 from a name. */
-function hash(name: string, salt: number): number {
-  let h = 2166136261 ^ salt;
-  for (let i = 0; i < name.length; i++)
-    h = Math.imul(h ^ name.charCodeAt(i), 16777619);
-  return ((h >>> 0) % 100000) / 100000;
-}
-
 export type SkyField = {
   /** Add a whole list, for a player who has just arrived. `past`: last night's, drawn faintly. */
   set: (lanterns: readonly SkyLantern[], past?: boolean) => void;
@@ -109,7 +127,9 @@ export type SkyField = {
     night: number,
     calm: boolean,
     pixelRatio: number,
-    yaw: number
+    yaw: number,
+    /** The camera this frame, so every lantern is placed where it can be seen. */
+    view: SkyView
   ) => void;
   count: () => number;
   /**
@@ -160,6 +180,26 @@ export function createSkyField(
   const sheetMap = keeper.keep(new CanvasTexture(sheet));
   let sheetStale = false;
 
+  // A picture the browser will not let us read back (no cross-origin permission) would taint
+  // the whole sheet, and a tainted sheet cannot reach the graphics card: every lantern would
+  // vanish. So each picture is tried on a 1-pixel scratch canvas first; if it fails, the
+  // lantern keeps its letter seal.
+  const scratch = document.createElement('canvas');
+  scratch.width = 1;
+  scratch.height = 1;
+  const scratchPen = scratch.getContext('2d', { willReadFrequently: true });
+  const usable = (picture: HTMLImageElement): boolean => {
+    if (scratchPen === null) return false;
+    try {
+      scratchPen.clearRect(0, 0, 1, 1);
+      scratchPen.drawImage(picture, 0, 0, 1, 1);
+      scratchPen.getImageData(0, 0, 1, 1);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   /** Paint one lantern into its cell: glow, paper shade, crown, hoop, and who it carries. */
   const paint = (
     slot: number,
@@ -205,7 +245,7 @@ export function createSkyField(
     }
     pen.fillStyle = css(LOOK.woodDark);
     pen.fillRect(23 * u, 57 * u, 26 * u, 3.2 * u);
-    if (picture !== null) {
+    if (picture !== null && usable(picture)) {
       // The snoovatar, printed small on the paper.
       pen.drawImage(picture, 26 * u, 27 * u, 20 * u, 26.5 * u);
     } else {
@@ -215,7 +255,7 @@ export function createSkyField(
       pen.fillStyle = UI.paper;
       pen.fill();
       pen.lineWidth = 1.8 * u;
-      pen.strokeStyle = `hsl(${Math.round(hash(lantern.u, 9) * 360)} 55% 46%)`;
+      pen.strokeStyle = `hsl(${Math.round(nameHash(lantern.u, 9) * 360)} 55% 46%)`;
       pen.stroke();
       pen.fillStyle = UI.ink;
       pen.font = `600 ${Math.round(12 * u)}px "Young Serif", Georgia, serif`;
@@ -239,6 +279,16 @@ export function createSkyField(
     uDay: { value: SKY.dayOpacity },
     uFaint: { value: SKY.lastNightOpacity },
     uSheet: { value: sheetMap },
+    uAloft: { value: 0 },
+    uAimY: { value: 0 },
+    uDropTan: { value: 1 },
+    uCamBack: { value: 10 },
+    uHalfV: { value: 0.25 },
+    uHalfH: { value: 0.25 },
+    uFill: { value: SKY.viewFill },
+    uBelow: { value: SKY.bandBelow },
+    uAbove: { value: SKY.bandAbove },
+    uSway: { value: SKY.sway },
     uGrid: { value: new Vector2(COLUMNS, ROWS) },
   };
   const material = keeper.keep(
@@ -262,30 +312,36 @@ export function createSkyField(
 
   let total = 0;
   let loads = 0;
+  const looks: SkyLook[] = [];
+  let view: SkyView = {
+    aloft: 0,
+    aimY: 0,
+    dropTan: 1,
+    camBack: 10,
+    halfV: 0.25,
+    halfH: 0.25,
+  };
   let nowSeconds = 0;
   const names = new Set<string>();
 
   const place = (lantern: SkyLantern, fresh: boolean, past = false): void => {
     // The player's own entry (from /api/sky or the realtime echo) is never drawn here: their
-    // lantern is the big one that rose from the island, labelled "You".
+    // lantern is the big one that rose from the island, labelled "You". (Same rule as
+    // othersInSky in shared/skyspot.ts, which is tested.)
     if (names.has(lantern.u) || lantern.u === self) return;
     names.add(lantern.u);
     // Past the cap the oldest slot is reused, so the newest lanterns are always the ones shown.
     const slot = total % max;
     total++;
-    // The lens is narrow, so lanterns are spread across the slice of sky the camera faces (the
-    // whole field turns with the view) rather than all the way round, where most would go unseen.
-    const depth =
-      SKY.ringNear + hash(lantern.u, 2) * (SKY.ringFar - SKY.ringNear);
-    positions[slot * 3] = (hash(lantern.u, 1) - 0.5) * 2 * depth * SKY.spread;
-    // A new arrival starts low and rises into view; the rest are spread over the whole height.
-    positions[slot * 3 + 1] = fresh
-      ? SKY.heightLow +
-        (SKY.heightHigh - SKY.heightLow) * 0.1 -
-        nowSeconds * SKY.riseSpeed * (0.6 + hash(lantern.u, 3) * 0.8)
-      : SKY.heightLow + hash(lantern.u, 4) * (SKY.heightHigh - SKY.heightLow);
-    positions[slot * 3 + 2] = -depth;
-    seeds[slot] = hash(lantern.u, 3);
+    // Where it sits comes from the player's name; the shader keeps it inside the view.
+    const look = skyLook(lantern.u);
+    // A new arrival starts at the bottom of its climb and rises into view.
+    if (fresh) look.phase = arrivalPhase(look, uniforms.uTime.value);
+    looks[slot] = look;
+    positions[slot * 3] = look.side;
+    positions[slot * 3 + 1] = look.phase;
+    positions[slot * 3 + 2] = -look.depth;
+    seeds[slot] = look.seed;
     slotNames[slot] = lantern.u;
     born[slot] = fresh ? nowSeconds : -100;
     faint[slot] = past ? 1 : 0;
@@ -307,20 +363,12 @@ export function createSkyField(
   };
 
   /** Where the shader draws a lantern right now, in the field's own space. */
-  const pointAt = (slot: number, out: Vector3): void => {
-    const seed = seeds[slot] ?? 0;
-    const time = uniforms.uTime.value;
-    const span = SKY.heightHigh - SKY.heightLow;
-    const travelled =
-      (positions[slot * 3 + 1] ?? 0) -
-      SKY.heightLow +
-      time * SKY.riseSpeed * (0.6 + seed * 0.8);
-    const lift = ((travelled % span) + span) % span;
-    out.set(
-      (positions[slot * 3] ?? 0) + Math.sin(time * 0.25 + seed * 40) * 0.6,
-      SKY.heightLow + lift,
-      positions[slot * 3 + 2] ?? 0
-    );
+  const pointAt = (slot: number, out: Vector3): boolean => {
+    const look = looks[slot];
+    if (look === undefined) return false;
+    const spot = skySpot(look, uniforms.uTime.value, view);
+    out.set(spot.x, spot.y, spot.z);
+    return true;
   };
 
   return {
@@ -340,7 +388,7 @@ export function createSkyField(
       for (let slot = 0; slot < shown; slot++) {
         const name = slotNames[slot];
         if (name === undefined) continue;
-        pointAt(slot, spot);
+        if (!pointAt(slot, spot)) continue;
         field.localToWorld(spot).project(camera);
         if (spot.z > 1 || Math.abs(spot.x) > 1 || Math.abs(spot.y) > 1)
           continue;
@@ -351,8 +399,15 @@ export function createSkyField(
       }
       return best;
     },
-    update(timeMs, night, calm, pixelRatio, yaw) {
+    update(timeMs, night, calm, pixelRatio, yaw, now) {
       field.rotation.y = yaw;
+      view = now;
+      uniforms.uAloft.value = now.aloft;
+      uniforms.uAimY.value = now.aimY;
+      uniforms.uDropTan.value = now.dropTan;
+      uniforms.uCamBack.value = now.camBack;
+      uniforms.uHalfV.value = now.halfV;
+      uniforms.uHalfH.value = now.halfH;
       nowSeconds = timeMs / 1000;
       uniforms.uTime.value = calm ? nowSeconds * 0.35 : nowSeconds;
       uniforms.uNight.value = night;
