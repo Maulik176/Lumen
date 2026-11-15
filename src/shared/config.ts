@@ -89,6 +89,16 @@ export const COPY = {
   cardSolved: 'Lit \u00b7 {pieces} (par {par})',
   cardRank: '#{rank} tonight',
   cardSeeSky: "See tonight's sky",
+  cardSeeSkyPast: "See that night's sky",
+  /** A post whose island is not tonight's: said on the feed card and in the game. */
+  practicePast: "Practice \u00b7 this island's night has passed",
+  practiceFuture: 'Practice \u00b7 not open yet',
+  /** The same, short, under the island's number in the top bar. */
+  practiceShort: 'Practice island',
+  cardPractice: 'Play for practice',
+  /** Leads from any other post to tonight's. */
+  toTonight: "\u2190 Tonight's island",
+  cardSkyPast: '{count} lit it on its night',
   cardNext: 'Next island in {time}',
   /** Feed card: how many players have lit this island. */
   cardSky: '{count} lanterns lit tonight',

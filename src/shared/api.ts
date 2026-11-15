@@ -33,8 +33,14 @@ export type PostData = {
 };
 
 /** What the feed card asks for after it has painted: the crowd, and the player's own night. */
+/** Where an island stands today: it is tonight's, its night has passed, or it is yet to come. */
+export type Night = 'tonight' | 'past' | 'future';
+
 export type CardResponse = {
   ok: true;
+  night: Night;
+  /** Tonight's post, when this post is not it and tonight's exists. */
+  tonightPost: string | null;
   /** The post's own data again, for a card whose post carried none. */
   post: PostData;
   /** Ranked solves of this island so far. */
@@ -172,6 +178,9 @@ export type IslandResponse =
       /** True when a solve of this island today would count for boards and streaks. */
       rankedOpen: boolean;
       skyCount: number;
+      night: Night;
+      /** Tonight's post, when this island is not tonight's and that post exists. */
+      tonightPost: string | null;
       /**
        * Trailer mode: present only for a moderator who has just armed it from the menu. It
        * carries the island's answer, so it is never sent to anyone else.

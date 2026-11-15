@@ -33,6 +33,8 @@ export type HudActions = {
   board?: () => void;
   /** Result card: where everyone put their pieces. Only after a solve that allows it. */
   crowd?: () => void;
+  /** Result card on a post that is not tonight's: go to tonight's island. */
+  tonight?: () => void;
   /** Result card, ranked and signed in: post the result as the player's own comment. */
   share?: () => void;
 };
@@ -171,14 +173,16 @@ export function createHud(
   root: HTMLElement,
   island: PublicIsland,
   actions: HudActions,
-  showHints: boolean
+  showHints: boolean,
+  /** Shown in place of the island's name, e.g. that this is practice on a night that has passed. */
+  note?: string
 ): Hud {
   // Top bar: which island, what is left to place, and par.
   const top = element('header', 'panel bar bar-top');
   const title = element('div', 'title');
   title.append(
     element('span', 'title-number', `Lumen #${island.day}`),
-    element('span', 'title-name', island.name)
+    element('span', 'title-name', note ?? island.name)
   );
   const inventory = element('div', 'inventory');
   const mirrors = element('span', 'count');
@@ -283,6 +287,7 @@ export function createHud(
   const shareButton = button(COPY.share, 'quiet', actions.share);
   let footerTimer = 0;
   const backButton = button(COPY.backToTonight, 'quiet', actions.back);
+  const tonightButton = button(COPY.toTonight, 'main', actions.tonight);
   result.append(
     resultMedal,
     resultLine,
@@ -423,7 +428,7 @@ export function createHud(
         ? [crowdButton, shareButton, exploreButton]
         : backButton !== null
           ? [crowdButton, againButton, backButton]
-          : [againButton, exploreButton];
+          : [tonightButton, againButton, exploreButton];
       const buttons = shown.filter(
         (node): node is HTMLButtonElement => node !== null
       );

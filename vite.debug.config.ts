@@ -93,6 +93,8 @@ function localApi(): Plugin {
             ? { ok: false }
             : {
                 ok: true,
+                night: day === 2 ? 'past' : 'tonight',
+                tonightPost: day === 2 ? 't3_local' : null,
                 post: toPostData(island),
                 skyCount: 140,
                 nextInMs: 5 * 3_600_000 + 12 * 60_000,
@@ -283,6 +285,8 @@ function localApi(): Plugin {
                 },
                 rankedOpen: false,
                 skyCount: 140,
+                night: asked.get('night') === 'past' ? 'past' : 'tonight',
+                tonightPost: null,
                 ...(asked.get('trailer') === '1'
                   ? { trailer: { solution: island.solution } }
                   : {}),

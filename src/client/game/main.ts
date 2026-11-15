@@ -459,7 +459,30 @@ function mountIsland(
   // Sharing is the player's own comment: only signed in, and only on its own tap.
   if (tonight && me.loggedIn) actions.share = () => void share();
 
-  const hud = createHud(root, island, actions, options.hints);
+  // A post that is not tonight's says so, and always offers the way to tonight's island.
+  const elsewhere = tonight && loaded.night !== 'tonight';
+  const there = loaded.tonightPost;
+  if (elsewhere && there !== null)
+    actions.tonight = () => {
+      void import('@devvit/web/client')
+        .then(({ navigateTo }) =>
+          navigateTo(
+            `https://www.reddit.com/comments/${there.replace(/^t3_/, '')}`
+          )
+        )
+        .catch(() => undefined);
+    };
+  const hud = createHud(
+    root,
+    island,
+    actions,
+    options.hints,
+    elsewhere ? COPY.practiceShort : undefined
+  );
+  if (elsewhere)
+    hud.notice(
+      loaded.night === 'past' ? COPY.practicePast : COPY.practiceFuture
+    );
   hud.setMuted(sound.isMuted());
   window.addEventListener('resize', layout);
   // Leaving before Lock in ends the journey as abandoned.

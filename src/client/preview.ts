@@ -6,11 +6,12 @@
  * Once the player has locked in, the card says so and the button becomes "See tonight's sky";
  * "Light the lanterns" is never shown for a solved island.
  */
-import { context, requestExpandedMode } from '@devvit/web/client';
+import { context, navigateTo, requestExpandedMode } from '@devvit/web/client';
 import {
   readPostData,
   type CardResponse,
   type CardResult,
+  type Night,
   type PostData,
 } from '../shared/api';
 import { biomeOfDay, weekdayLabel, type Biome } from '../shared/calendar';
@@ -90,7 +91,18 @@ let solved: CardResult | null = post === null ? null : recallSolved(post.day);
 let skyCount: number | null = null;
 /** When the next island arrives, on this page's own clock. */
 let nextAt: number | null = null;
-let known = solved !== null;
+/** A night that has passed stays passed: remembered so the card never offers it as tonight's. */
+const pastKey = (day: number): string => `lumen.past.${day}`;
+function recallPast(day: number): boolean {
+  try {
+    return localStorage.getItem(pastKey(day)) === '1';
+  } catch {
+    return false;
+  }
+}
+let night: Night = post !== null && recallPast(post.day) ? 'past' : 'tonight';
+let tonightPost: string | null = null;
+let known = solved !== null || night === 'past';
 let heroSet = false;
 
 function paint(): void {
@@ -123,10 +135,30 @@ function paint(): void {
 
   card.classList.toggle('solved', solved !== null);
   play.classList.toggle('waiting', !known);
-  play.textContent = solved === null ? COPY.playButton : COPY.cardSeeSky;
+  play.textContent =
+    solved !== null
+      ? night === 'tonight'
+        ? COPY.cardSeeSky
+        : COPY.cardSeeSkyPast
+      : night === 'tonight'
+        ? COPY.playButton
+        : COPY.cardPractice;
+  // On any post but tonight's, the small link leads to tonight's island.
+  card.classList.toggle('elsewhere', night !== 'tonight');
+  how.textContent = night === 'tonight' ? COPY.howToPlay : COPY.toTonight;
+  how.hidden = night !== 'tonight' && tonightPost === null;
 
   if (solved === null) {
-    line.replaceChildren(text('span', COPY.previewGoal));
+    line.replaceChildren(
+      text(
+        'span',
+        night === 'tonight'
+          ? COPY.previewGoal
+          : night === 'past'
+            ? COPY.practicePast
+            : COPY.practiceFuture
+      )
+    );
   } else {
     const parts: Node[] = [
       icon(TICK),
@@ -162,7 +194,12 @@ function paint(): void {
         hoursAndMinutes(nextAt - performance.now())
       )
     );
-  if (skyCount !== null)
+  if (skyCount !== null && night !== 'tonight') {
+    if (skyCount > 0)
+      words.push(
+        COPY.cardSkyPast.replace('{count}', skyCount.toLocaleString('en'))
+      );
+  } else if (skyCount !== null)
     words.push(
       skyCount === 0
         ? COPY.cardSkyNone
@@ -186,6 +223,15 @@ async function refresh(): Promise<void> {
     post = post ?? body.post;
     if (post.rows === undefined) post = { ...post, rows: body.post.rows ?? [] };
     skyCount = body.skyCount;
+    night = body.night;
+    tonightPost = body.tonightPost;
+    if (night === 'past') {
+      try {
+        localStorage.setItem(pastKey(post.day), '1');
+      } catch {
+        // Not remembered; the server says so again next time.
+      }
+    }
     nextAt = body.nextInMs === null ? null : performance.now() + body.nextInMs;
     solved = body.result;
     if (solved !== null) rememberSolved(post.day, solved);
@@ -214,6 +260,13 @@ window.addEventListener('focus', () => void refresh());
 // Expanded mode must be asked for directly inside the tap, never after waiting for anything.
 how.addEventListener('click', (event) => {
   try {
+    if (night !== 'tonight') {
+      if (tonightPost !== null)
+        navigateTo(
+          `https://www.reddit.com/comments/${tonightPost.replace(/^t3_/, '')}`
+        );
+      return;
+    }
     requestExpandedMode(event, 'howto');
   } catch (error) {
     console.error(error);

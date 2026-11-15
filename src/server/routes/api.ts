@@ -10,6 +10,7 @@ import {
   type CardResponse,
   type HeatResponse,
   type LockInResponse,
+  type Night,
   type PastResponse,
   type ShareResponse,
   toPostData,
@@ -79,6 +80,19 @@ function requestedDay(explicit: unknown): number {
   return postDay() ?? currentDay(nowMs(), lastDay());
 }
 
+/** Where a day stands today, and tonight's post when the day is not tonight's. */
+async function nightOf(
+  day: number
+): Promise<{ night: Night; tonightPost: string | null }> {
+  const today = currentDay(nowMs(), lastDay());
+  if (day === today) return { night: 'tonight', tonightPost: null };
+  const post = await store.get(KEYS.postForDay(today)).catch(() => undefined);
+  return {
+    night: day < today ? 'past' : 'future',
+    tonightPost: post ?? null,
+  };
+}
+
 async function body(request: {
   json: () => Promise<unknown>;
 }): Promise<Record<string, unknown>> {
@@ -132,6 +146,7 @@ api.get('/island', async (c) => {
     me,
     rankedOpen: open && me.loggedIn,
     skyCount: count,
+    ...(await nightOf(day)),
     ...(armed ? { trailer: { solution: island.solution } } : {}),
   });
 });
@@ -299,6 +314,7 @@ api.get('/card', async (c) => {
   ]);
   return c.json<CardResponse>({
     ok: true,
+    ...(await nightOf(day)),
     post: toPostData(island),
     skyCount: count,
     nextInMs:
