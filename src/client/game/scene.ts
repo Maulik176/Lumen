@@ -153,12 +153,7 @@ export function createIslandView(
   const sparkleMap = keeper.keep(sparkle(64));
 
   const sky = createSky(scene, look, blobMap, keeper);
-  const skyField = createSkyField(
-    scene,
-    glowMap,
-    keeper,
-    options.rider.username
-  );
+  const skyField = createSkyField(scene, keeper, options.rider.username);
 
   const hemisphere = new HemisphereLight(0xffffff, 0x8f8a78, 1);
   const sun = new DirectionalLight(0xffe6bd, 1.3);
@@ -279,7 +274,10 @@ export function createIslandView(
     // Calm mode never moves the camera: the lantern travels and the light changes instead.
     const rise = calm || practice ? 0 : riseNow();
     const lanternHeight = 1 + RELEASE.riseHeight * rise;
-    const targetY = 0.15 + (lanternHeight * 0.92 - 0.15) * rise;
+    // Aloft, the camera looks just below the lantern itself, so it stays in the picture on a
+    // tall phone as well as a wide screen.
+    const targetY =
+      0.15 + (lanternHeight + 0.5 - RELEASE.lookBelow - 0.15) * rise;
     const pitchNow = pitch + (RELEASE_PITCH * DEGREES - pitch) * rise;
     const distanceNow = distance * (1 + (RELEASE_ZOOM - 1) * rise);
     const [x, y, z] = cameraPosition(distanceNow, pitchNow, yaw);
@@ -559,7 +557,11 @@ export function createIslandView(
       practice = asPractice;
       releaseAt = now;
       return new Promise<void>((resolve) => {
-        window.setTimeout(resolve, riseSpan() + VIEW.resultDelayMs);
+        window.setTimeout(
+          resolve,
+          riseSpan() +
+            (asPractice || calm ? VIEW.resultDelayMs : RELEASE.hoverMs)
+        );
       });
     },
 

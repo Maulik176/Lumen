@@ -1,108 +1,92 @@
 /**
- * The Shared Night Sky: everyone who lit tonight's island, as lanterns drifting up around it.
+ * The Shared Night Sky: everyone who lit tonight's island, each as a small paper lantern
+ * drifting up around it, carrying their snoovatar or a seal with their first letter.
  *
- * Up to SKY.maxLanterns are drawn as points in ONE draw call, each a small light shaped by the
- * style its player's streak has earned. The newest few who have a snoovatar are drawn larger and
- * nearer, carrying it; their pictures share one atlas texture.
+ * Up to SKY.maxLanterns are drawn as points in ONE draw call. Every lantern's picture is painted
+ * once into a cell of one shared sheet (a canvas texture), and each point shows its own cell.
+ * Nearer lanterns are larger. On a quiet night, last night's lanterns are drawn too, faintly.
  */
 import {
-  AdditiveBlending,
   BufferAttribute,
   BufferGeometry,
   CanvasTexture,
-  Color,
+  CustomBlending,
   Group,
+  OneFactor,
+  OneMinusSrcAlphaFactor,
   Points,
   ShaderMaterial,
-  Sprite,
-  SpriteMaterial,
+  Vector2,
   Vector3,
   type Camera,
   type Scene,
-  type Texture,
 } from 'three';
 import type { SkyLantern } from '../../shared/api';
-import { LOOK, SKY, type LanternStyle } from '../../shared/config';
+import { LOOK, SKY, UI, type LanternStyle } from '../../shared/config';
 import { css, type Keeper } from './kit';
 
-const STYLE_CODE: Record<LanternStyle, number> = {
-  plain: 0,
-  paper: 1,
-  star: 2,
-  koi: 3,
-  comet: 4,
+/** The band of colour under a lantern's crown says which style its player's streak has earned. */
+const STYLE_BAND: Record<LanternStyle, number | null> = {
+  plain: null,
+  paper: LOOK.beamRed,
+  star: LOOK.lanternYellow,
+  koi: LOOK.flame,
+  comet: LOOK.beamBlue,
 };
-const ATLAS_COLUMNS = 4;
-const CELL_WIDTH = 96;
-const CELL_HEIGHT = 128;
+
+const CELL = SKY.cellPx;
+const COLUMNS = SKY.sheetColumns;
+const ROWS = Math.ceil(SKY.maxLanterns / COLUMNS);
 
 const VERTEX = /* glsl */ `
   attribute float aSeed;
-  attribute float aStyle;
   attribute float aBorn;
   attribute float aFaint;
+  attribute float aCell;
   uniform float uFaint;
   uniform float uTime;
   uniform float uSize;
+  uniform float uNear;
   uniform float uLow;
   uniform float uHigh;
   uniform float uSpeed;
   uniform float uNight;
   uniform float uDay;
-  varying float vStyle;
   varying float vAlpha;
+  varying float vCell;
   void main() {
     float span = uHigh - uLow;
     float lift = mod(position.y - uLow + uTime * uSpeed * (0.6 + aSeed * 0.8), span);
     vec3 p = vec3(position.x + sin(uTime * 0.25 + aSeed * 40.0) * 0.6, uLow + lift, position.z);
     // Fade in at the bottom and out at the top, so wrapping round is never seen.
     float edge = smoothstep(0.0, 0.08, lift / span) * smoothstep(1.0, 0.9, lift / span);
-    // A lantern that has just arrived glows brighter for a few seconds.
-    float fresh = 1.0 + 1.6 * exp(-max(0.0, uTime - aBorn) * 0.6);
+    // A lantern that has just arrived is larger for a few seconds.
+    float fresh = 1.0 + 0.8 * exp(-max(0.0, uTime - aBorn) * 0.6);
     vAlpha = edge * mix(uDay, 1.0, uNight) * mix(1.0, uFaint, aFaint);
-    vStyle = aStyle;
-    gl_PointSize = uSize * (0.75 + 0.5 * aSeed) * min(fresh, 2.2);
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+    vCell = aCell;
+    vec4 seen = modelViewMatrix * vec4(p, 1.0);
+    // Nearer lanterns are larger, within limits, so the sky has depth.
+    float near = clamp(uNear / max(1.0, -seen.z), 0.5, 1.5);
+    gl_PointSize = uSize * near * fresh;
+    gl_Position = projectionMatrix * seen;
   }
 `;
 
 const FRAGMENT = /* glsl */ `
-  uniform vec3 uWarm;
-  varying float vStyle;
+  uniform sampler2D uSheet;
+  uniform vec2 uGrid;
   varying float vAlpha;
+  varying float vCell;
   void main() {
-    vec2 p = gl_PointCoord * 2.0 - 1.0;
-    p.y = -p.y;
-    float glow = exp(-dot(p, p) * 3.2) * 0.55;
-    float body;
-    vec3 colour = uWarm;
-    if (vStyle < 0.5) {
-      body = smoothstep(0.34, 0.2, length(p));
-    } else if (vStyle < 1.5) {
-      // Paper: a small upright lantern.
-      vec2 q = abs(p) - vec2(0.2, 0.3);
-      body = smoothstep(0.1, 0.0, length(max(q, 0.0)));
-      colour = mix(uWarm, vec3(1.0, 0.95, 0.85), 0.35);
-    } else if (vStyle < 2.5) {
-      // Star: four soft points.
-      float star = abs(p.x) * abs(p.y) * 9.0 + dot(p, p) * 1.2;
-      body = smoothstep(0.5, 0.15, star);
-      colour = vec3(1.0, 0.96, 0.7);
-    } else if (vStyle < 3.5) {
-      // Koi: a rounded body with a tail.
-      float fish = length(vec2(p.x * 1.7, p.y + 0.05)) - 0.34;
-      float tail = max(abs(p.x) - (-p.y - 0.25) * 0.9, -p.y - 0.75);
-      body = smoothstep(0.06, -0.04, min(fish, max(tail, 0.2 - (-p.y))));
-      colour = vec3(1.0, 0.55, 0.3);
-    } else {
-      // Comet: a bright head with a trail below, since it is rising.
-      float head = smoothstep(0.3, 0.12, length(p - vec2(0.0, 0.3)));
-      float trail = smoothstep(0.22, 0.0, abs(p.x)) * smoothstep(-0.95, 0.3, p.y) * step(p.y, 0.3) * 0.7;
-      body = max(head, trail);
-      colour = vec3(0.8, 0.92, 1.0);
-    }
-    float alpha = (body + glow) * vAlpha;
-    gl_FragColor = vec4(colour * alpha, alpha);
+    float column = mod(vCell, uGrid.x);
+    float row = floor(vCell / uGrid.x);
+    vec2 uv = vec2(
+      (column + gl_PointCoord.x) / uGrid.x,
+      1.0 - (row + gl_PointCoord.y) / uGrid.y
+    );
+    vec4 paint = texture2D(uSheet, uv);
+    float alpha = paint.a * vAlpha;
+    gl_FragColor = vec4(paint.rgb * alpha, alpha);
   }
 `;
 
@@ -114,17 +98,8 @@ function hash(name: string, salt: number): number {
   return ((h >>> 0) % 100000) / 100000;
 }
 
-type Portrait = {
-  group: Group;
-  material: SpriteMaterial;
-  map: Texture;
-  glow: SpriteMaterial;
-  seed: number;
-  name: string;
-};
-
 export type SkyField = {
-  /** Replace the whole sky, for a player who has just arrived. */
+  /** Add a whole list, for a player who has just arrived. `past`: last night's, drawn faintly. */
   set: (lanterns: readonly SkyLantern[], past?: boolean) => void;
   /** One more lantern, as it happens. */
   add: (lantern: SkyLantern) => void;
@@ -152,7 +127,6 @@ export type SkyField = {
 
 export function createSkyField(
   scene: Scene,
-  glowMap: Texture,
   keeper: Keeper,
   /** The player's own name: their entry is left out (they have their own lantern). */
   self: string | null
@@ -162,34 +136,110 @@ export function createSkyField(
   const spot = new Vector3();
   const positions = new Float32Array(max * 3);
   const seeds = new Float32Array(max);
-  const styles = new Float32Array(max);
   const born = new Float32Array(max);
+  const faint = new Float32Array(max);
+  const cells = new Float32Array(max);
+  for (let slot = 0; slot < max; slot++) cells[slot] = slot;
   const geometry = keeper.keep(new BufferGeometry());
   const positionAttribute = new BufferAttribute(positions, 3);
   const seedAttribute = new BufferAttribute(seeds, 1);
-  const styleAttribute = new BufferAttribute(styles, 1);
   const bornAttribute = new BufferAttribute(born, 1);
+  const faintAttribute = new BufferAttribute(faint, 1);
   geometry.setAttribute('position', positionAttribute);
   geometry.setAttribute('aSeed', seedAttribute);
-  geometry.setAttribute('aStyle', styleAttribute);
   geometry.setAttribute('aBorn', bornAttribute);
-  // 1 for a lantern from the night before, shown faintly on a quiet night.
-  const faint = new Float32Array(max);
-  const faintAttribute = new BufferAttribute(faint, 1);
   geometry.setAttribute('aFaint', faintAttribute);
+  geometry.setAttribute('aCell', new BufferAttribute(cells, 1));
   geometry.setDrawRange(0, 0);
+
+  // The sheet: one cell per lantern, painted once when the lantern arrives.
+  const sheet = document.createElement('canvas');
+  sheet.width = CELL * COLUMNS;
+  sheet.height = CELL * ROWS;
+  const pen = sheet.getContext('2d');
+  const sheetMap = keeper.keep(new CanvasTexture(sheet));
+  let sheetStale = false;
+
+  /** Paint one lantern into its cell: glow, paper shade, crown, hoop, and who it carries. */
+  const paint = (
+    slot: number,
+    lantern: SkyLantern,
+    picture: HTMLImageElement | null
+  ): void => {
+    if (pen === null) return;
+    const left = (slot % COLUMNS) * CELL;
+    const top = Math.floor(slot / COLUMNS) * CELL;
+    // Drawn on a 72-unit grid, whatever the cell's real size.
+    const u = CELL / 72;
+    pen.save();
+    pen.translate(left, top);
+    pen.clearRect(0, 0, CELL, CELL);
+    const glow = pen.createRadialGradient(
+      36 * u,
+      38 * u,
+      4 * u,
+      36 * u,
+      38 * u,
+      35 * u
+    );
+    glow.addColorStop(0, 'rgba(255, 198, 110, 0.55)');
+    glow.addColorStop(1, 'rgba(255, 198, 110, 0)');
+    pen.fillStyle = glow;
+    pen.fillRect(0, 0, CELL, CELL);
+    // The shade: wider at the top, with a domed crown.
+    const paper = pen.createLinearGradient(0, 12 * u, 0, 60 * u);
+    paper.addColorStop(0, css(LOOK.lanternPaper));
+    paper.addColorStop(1, css(LOOK.lanternWarm));
+    pen.fillStyle = paper;
+    pen.beginPath();
+    pen.moveTo(18 * u, 22 * u);
+    pen.quadraticCurveTo(36 * u, 6 * u, 54 * u, 22 * u);
+    pen.lineTo(48 * u, 58 * u);
+    pen.lineTo(24 * u, 58 * u);
+    pen.closePath();
+    pen.fill();
+    const band = STYLE_BAND[lantern.s];
+    if (band !== null) {
+      pen.fillStyle = css(band);
+      pen.fillRect(18.6 * u, 21 * u, 34.8 * u, 3.4 * u);
+    }
+    pen.fillStyle = css(LOOK.woodDark);
+    pen.fillRect(23 * u, 57 * u, 26 * u, 3.2 * u);
+    if (picture !== null) {
+      // The snoovatar, printed small on the paper.
+      pen.drawImage(picture, 26 * u, 27 * u, 20 * u, 26.5 * u);
+    } else {
+      // A round seal with the player's first letter, in a colour of their own.
+      pen.beginPath();
+      pen.arc(36 * u, 40 * u, 9.5 * u, 0, Math.PI * 2);
+      pen.fillStyle = UI.paper;
+      pen.fill();
+      pen.lineWidth = 1.8 * u;
+      pen.strokeStyle = `hsl(${Math.round(hash(lantern.u, 9) * 360)} 55% 46%)`;
+      pen.stroke();
+      pen.fillStyle = UI.ink;
+      pen.font = `600 ${Math.round(12 * u)}px "Young Serif", Georgia, serif`;
+      pen.textAlign = 'center';
+      pen.textBaseline = 'middle';
+      pen.fillText(lantern.u.charAt(0).toUpperCase(), 36 * u, 40.8 * u);
+    }
+    pen.restore();
+    sheetStale = true;
+  };
 
   const size: { value: number } = { value: SKY.pointSize };
   const uniforms = {
     uTime: { value: 0 },
     uSize: size,
+    uNear: { value: SKY.fullSizeAt },
     uLow: { value: SKY.heightLow },
     uHigh: { value: SKY.heightHigh },
     uSpeed: { value: SKY.riseSpeed },
     uNight: { value: 0 },
     uDay: { value: SKY.dayOpacity },
-    uWarm: { value: new Color(LOOK.lanternWarm) },
     uFaint: { value: SKY.lastNightOpacity },
+    uSheet: { value: sheetMap },
+    uGrid: { value: new Vector2(COLUMNS, ROWS) },
   };
   const material = keeper.keep(
     new ShaderMaterial({
@@ -198,8 +248,9 @@ export function createSkyField(
       uniforms,
       transparent: true,
       depthWrite: false,
-      blending: AdditiveBlending,
-      premultipliedAlpha: true,
+      blending: CustomBlending,
+      blendSrc: OneFactor,
+      blendDst: OneMinusSrcAlphaFactor,
     })
   );
   const points = new Points(geometry, material);
@@ -209,96 +260,10 @@ export function createSkyField(
   field.add(points);
   scene.add(field);
 
-  // The portrait atlas: one canvas, one picture per cell.
-  const atlasCanvas = document.createElement('canvas');
-  atlasCanvas.width = CELL_WIDTH * ATLAS_COLUMNS;
-  atlasCanvas.height = CELL_HEIGHT * Math.ceil(SKY.portraits / ATLAS_COLUMNS);
-  const atlasPen = atlasCanvas.getContext('2d');
-  const atlas = keeper.keep(new CanvasTexture(atlasCanvas));
-  const rows = Math.ceil(SKY.portraits / ATLAS_COLUMNS);
-  const portraits: Portrait[] = [];
-  for (let i = 0; i < SKY.portraits; i++) {
-    const map = keeper.keep(atlas.clone());
-    map.repeat.set(1 / ATLAS_COLUMNS, 1 / rows);
-    map.offset.set(
-      (i % ATLAS_COLUMNS) / ATLAS_COLUMNS,
-      1 - (Math.floor(i / ATLAS_COLUMNS) + 1) / rows
-    );
-    const portraitMaterial = keeper.keep(
-      new SpriteMaterial({
-        map,
-        transparent: true,
-        depthWrite: false,
-        opacity: 0,
-      })
-    );
-    const glow = keeper.keep(
-      new SpriteMaterial({
-        map: glowMap,
-        color: LOOK.lanternWarm,
-        blending: AdditiveBlending,
-        depthWrite: false,
-        opacity: 0,
-      })
-    );
-    const group = new Group();
-    const halo = new Sprite(glow);
-    halo.scale.setScalar(SKY.portraitSize * 2.4);
-    const picture = new Sprite(portraitMaterial);
-    picture.scale.set(SKY.portraitSize * 0.76, SKY.portraitSize, 1);
-    group.add(halo, picture);
-    group.visible = false;
-    field.add(group);
-    portraits.push({
-      group,
-      material: portraitMaterial,
-      map,
-      glow,
-      seed: i / SKY.portraits,
-      name: '',
-    });
-  }
-  let nextPortrait = 0;
   let total = 0;
+  let loads = 0;
   let nowSeconds = 0;
   const names = new Set<string>();
-
-  const givePortrait = (lantern: SkyLantern): void => {
-    if (lantern.a === '' || atlasPen === null) return;
-    const slot = nextPortrait % SKY.portraits;
-    nextPortrait++;
-    const portrait = portraits[slot];
-    if (portrait === undefined) return;
-    const image = new Image();
-    image.crossOrigin = 'anonymous';
-    image.onload = () => {
-      const x = (slot % ATLAS_COLUMNS) * CELL_WIDTH;
-      const y = Math.floor(slot / ATLAS_COLUMNS) * CELL_HEIGHT;
-      atlasPen.clearRect(x, y, CELL_WIDTH, CELL_HEIGHT);
-      // A paper lantern first: a glowing shade, wider at the top, with a dark hoop underneath.
-      const shade = atlasPen.createLinearGradient(0, y + 8, 0, y + 118);
-      shade.addColorStop(0, css(LOOK.lanternPaper));
-      shade.addColorStop(1, css(LOOK.lanternWarm));
-      atlasPen.fillStyle = shade;
-      atlasPen.beginPath();
-      atlasPen.moveTo(x + 10, y + 30);
-      atlasPen.quadraticCurveTo(x + 48, y - 4, x + 86, y + 30);
-      atlasPen.lineTo(x + 72, y + 116);
-      atlasPen.lineTo(x + 24, y + 116);
-      atlasPen.closePath();
-      atlasPen.fill();
-      atlasPen.fillStyle = css(LOOK.woodDark);
-      atlasPen.fillRect(x + 22, y + 114, 52, 6);
-      // Then the rider, small, printed on the paper.
-      atlasPen.drawImage(image, x + 27, y + 46, 42, 56);
-      atlas.needsUpdate = true;
-      for (const other of portraits) other.map.needsUpdate = true;
-      portrait.name = lantern.u;
-      portrait.seed = hash(lantern.u, 5);
-      portrait.group.visible = true;
-    };
-    image.src = lantern.a;
-  };
 
   const place = (lantern: SkyLantern, fresh: boolean, past = false): void => {
     // The player's own entry (from /api/sky or the realtime echo) is never drawn here: their
@@ -321,20 +286,27 @@ export function createSkyField(
       : SKY.heightLow + hash(lantern.u, 4) * (SKY.heightHigh - SKY.heightLow);
     positions[slot * 3 + 2] = -depth;
     seeds[slot] = hash(lantern.u, 3);
-    styles[slot] = STYLE_CODE[lantern.s];
     slotNames[slot] = lantern.u;
     born[slot] = fresh ? nowSeconds : -100;
     faint[slot] = past ? 1 : 0;
-    faintAttribute.needsUpdate = true;
     positionAttribute.needsUpdate = true;
     seedAttribute.needsUpdate = true;
-    styleAttribute.needsUpdate = true;
     bornAttribute.needsUpdate = true;
+    faintAttribute.needsUpdate = true;
     geometry.setDrawRange(0, Math.min(total, max));
-    if (!past) givePortrait(lantern);
+    paint(slot, lantern, null);
+    // Snoovatars are fetched for a bounded number of lanterns; the rest keep their seal.
+    if (lantern.a === '' || loads >= SKY.snoovatarLoads) return;
+    loads++;
+    const image = new Image();
+    image.crossOrigin = 'anonymous';
+    image.onload = () => {
+      if (slotNames[slot] === lantern.u) paint(slot, lantern, image);
+    };
+    image.src = lantern.a;
   };
 
-  /** Where the shader draws a far lantern right now, in the field's own space. */
+  /** Where the shader draws a lantern right now, in the field's own space. */
   const pointAt = (slot: number, out: Vector3): void => {
     const seed = seeds[slot] ?? 0;
     const time = uniforms.uTime.value;
@@ -364,26 +336,18 @@ export function createSkyField(
       let best: { name: string; x: number; y: number; past: boolean } | null =
         null;
       let nearest = reach;
-      const consider = (name: string, grow: number, past: boolean): void => {
-        field.localToWorld(spot).project(camera);
-        if (spot.z > 1 || Math.abs(spot.x) > 1 || Math.abs(spot.y) > 1) return;
-        const away = Math.hypot((spot.x - x) * aspect, spot.y - y) / grow;
-        if (away >= nearest) return;
-        nearest = away;
-        best = { name, x: spot.x, y: spot.y, past };
-      };
-      for (const portrait of portraits) {
-        if (!portrait.group.visible || portrait.material.opacity < 0.2)
-          continue;
-        spot.copy(portrait.group.position);
-        consider(portrait.name, 1.6, false);
-      }
       const shown = Math.min(total, max);
       for (let slot = 0; slot < shown; slot++) {
         const name = slotNames[slot];
         if (name === undefined) continue;
         pointAt(slot, spot);
-        consider(name, 1, faint[slot] === 1);
+        field.localToWorld(spot).project(camera);
+        if (spot.z > 1 || Math.abs(spot.x) > 1 || Math.abs(spot.y) > 1)
+          continue;
+        const away = Math.hypot((spot.x - x) * aspect, spot.y - y);
+        if (away >= nearest) continue;
+        nearest = away;
+        best = { name, x: spot.x, y: spot.y, past: faint[slot] === 1 };
       }
       return best;
     },
@@ -393,25 +357,10 @@ export function createSkyField(
       uniforms.uTime.value = calm ? nowSeconds * 0.35 : nowSeconds;
       uniforms.uNight.value = night;
       uniforms.uSize.value = SKY.pointSize * pixelRatio;
-      const height = SKY.portraitHigh - SKY.portraitLow;
-      for (const portrait of portraits) {
-        if (!portrait.group.visible) continue;
-        const across =
-          (portrait.seed - 0.5) * 2 * SKY.portraitRing * SKY.spread * 0.8;
-        const lift =
-          (portrait.seed * height + nowSeconds * SKY.riseSpeed * 0.4) % height;
-        portrait.group.position.set(
-          across,
-          SKY.portraitLow + lift,
-          -SKY.portraitRing - portrait.seed * 4
-        );
-        const edge = Math.min(
-          1,
-          lift / (height * 0.12),
-          (height - lift) / (height * 0.12)
-        );
-        portrait.material.opacity = Math.max(0, edge) * night;
-        portrait.glow.opacity = Math.max(0, edge) * night * 0.6;
+      // Newly painted cells reach the graphics card once per frame at most.
+      if (sheetStale) {
+        sheetStale = false;
+        sheetMap.needsUpdate = true;
       }
     },
   };

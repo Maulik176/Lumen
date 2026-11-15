@@ -588,11 +588,15 @@ export const RELEASE = {
   /** Pause after the last island lantern blooms before the sky lantern lifts. */
   delayMs: 500,
   /** How long the camera follows the lantern up. */
-  riseMs: 5200,
+  riseMs: 7000,
+  /** Once aloft it hovers, in view, this long before the result card comes. */
+  hoverMs: 2600,
+  /** The camera looks this far below the lantern (tiles), so it floats in the upper part of the view. */
+  lookBelow: 0.35,
   /** How high the lantern climbs while the camera follows. */
   riseHeight: 9,
   /** The lantern keeps drifting up at this speed (tiles per second) behind the result card. */
-  driftSpeed: 0.35,
+  driftSpeed: 0.16,
   /** Gentle sideways sway: width in tiles and period in milliseconds. */
   swayWidth: 0.25,
   swayPeriodMs: 3600,
@@ -605,7 +609,7 @@ export const RELEASE = {
   /** Height of the snoovatar or glyph printed on the lantern's paper, in tiles (the shade is 0.78). */
   portraitSize: 0.4,
   /** After rising, the lantern keeps drifting up at `driftSpeed`, easing to stop this far higher. */
-  driftHeight: 2.5,
+  driftHeight: 0.8,
   /** Reopening a solved post in calm mode: how far up its climb the lantern is shown. */
   calmHoldRise: 0.7,
   /** A practice lantern: how long it rises before it is gone, and how faint it is. */
@@ -883,7 +887,15 @@ export const SKY = {
   /** They drift upward this fast, in tiles per second, and wrap around at the top. */
   riseSpeed: 0.22,
   /** Size of a far lantern in pixels at pixel ratio 1, and how much brighter it is at night. */
-  pointSize: 17,
+  pointSize: 42,
+  /** A lantern is drawn at that size when this far from the camera (tiles); nearer ones larger. */
+  fullSizeAt: 34,
+  /** Each lantern's picture is painted into a square cell of one shared sheet: cell size in
+   *  pixels, and cells per row. */
+  cellPx: 72,
+  sheetColumns: 20,
+  /** Snoovatars are fetched for at most this many lanterns a night; the rest show a letter seal. */
+  snoovatarLoads: 60,
   dayOpacity: 0.3,
   /** Portrait lanterns: ring distance, heights, size in tiles. */
   portraitRing: 13,
@@ -900,7 +912,7 @@ export const SKY = {
    * full brightness and named "last night" when tapped. Real players only, never invented ones.
    */
   quietBelow: 10,
-  lastNightOpacity: 0.35,
+  lastNightOpacity: 0.45,
   /** How long the once-only line about the player's first lantern stays, in ms. */
   joinLineMs: 5200,
   tapReachPx: 30,
