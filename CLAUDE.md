@@ -22,7 +22,7 @@ maintains Lumen until submission (Devpost by Dec 7). Start every session by read
 - Finished briefs and old notes: `docs/HANDOFF-ARCHIVE.md`.
 
 **History** (what each session built; kept for context, oldest first, M8 last):
-- **Island Builder is cut.** Sunday uses a generated island. Brief kept in `HANDOFF.md`.
+- **Island Builder is cut.** Sunday uses a generated island. Brief kept in `docs/HANDOFF-ARCHIVE.md`.
 - Onboarding (Nov 14): first visit runs three tutorial islands (`src/shared/tutorial.ts`,
   `src/client/game/tutorial.ts`): sun pulses, light visibly travels and stops short, unlit
   lantern breathes, a ghost hand (`hand.ts`) taps the one tile that matters; hints "Bend the light
