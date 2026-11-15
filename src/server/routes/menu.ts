@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { nowMs } from '../core/clock';
 import type { UiResponse } from '@devvit/web/shared';
 import { context, reddit } from '@devvit/web/server';
 import { DEV, TRAILER } from '../../shared/config';
@@ -17,7 +18,7 @@ export function postAddress(postId: string): string {
 /** Manual fallback for the scheduler: makes today's post, or opens it if it already exists. */
 menu.post('/post-today', async (c) => {
   try {
-    const { postId } = await ensureDailyPost(currentDay(Date.now(), lastDay()));
+    const { postId } = await ensureDailyPost(currentDay(nowMs(), lastDay()));
     return c.json<UiResponse>({ navigateTo: postAddress(postId) }, 200);
   } catch (error) {
     console.error(`Error creating today's post: ${String(error)}`);
@@ -69,7 +70,7 @@ menu.post('/reset-me', async (c) => {
     await resetPlayer(
       redisStore,
       { userId, username },
-      currentDay(Date.now(), lastDay())
+      currentDay(nowMs(), lastDay())
     );
     return c.json<UiResponse>(
       { showToast: 'Reset. Reload the post to play as a first-timer.' },
@@ -94,4 +95,85 @@ menu.post('/trailer', async (c) => {
     { showToast: 'Trailer armed. Open the game within 10 minutes.' },
     200
   );
+});
+
+/** Playtest subreddit only: asks which day "today" should be. */
+menu.post('/set-today', (c) => {
+  if (context.subredditName !== DEV.resetSubreddit)
+    return c.json<UiResponse>(
+      { showToast: 'Only on the playtest subreddit' },
+      200
+    );
+  return c.json<UiResponse>(
+    {
+      showForm: {
+        name: 'setToday',
+        form: {
+          title: 'Dev: set today',
+          description: `Today is day ${currentDay(nowMs(), lastDay())}. Enter 0 to go back to real time.`,
+          acceptLabel: 'Set',
+          fields: [
+            {
+              type: 'number',
+              name: 'day',
+              label: `Day number, 1 to ${lastDay()} (0 = real time)`,
+              defaultValue: currentDay(nowMs(), lastDay()),
+              required: true,
+            },
+          ],
+        },
+      },
+    },
+    200
+  );
+});
+
+/**
+ * Playtest subreddit only: a clean start. Deletes every post this app made here, forgets each
+ * day's post, board, sky, counts and crowd, and resets the moderator's own progress on every
+ * day. Other accounts' own solves are not touched (they cannot be listed).
+ */
+menu.post('/clean-up', async (c) => {
+  if (context.subredditName !== DEV.resetSubreddit)
+    return c.json<UiResponse>(
+      { showToast: 'Only on the playtest subreddit' },
+      200
+    );
+  try {
+    const app = await reddit.getAppUser();
+    const posts = await reddit
+      .getNewPosts({ subredditName: context.subredditName, limit: 200 })
+      .all();
+    let deleted = 0;
+    for (const post of posts) {
+      if (app === undefined || post.authorId !== app.id) continue;
+      await post.delete().catch(() => post.remove());
+      deleted++;
+    }
+    const { userId } = context;
+    const username = await reddit.getCurrentUsername();
+    for (let day = 1; day <= lastDay(); day++) {
+      await Promise.all([
+        redisStore.del(KEYS.postForDay(day)),
+        redisStore.del(KEYS.postLock(day)),
+        redisStore.del(KEYS.leaderboard(day)),
+        redisStore.del(KEYS.sky(day)),
+        redisStore.del(KEYS.stats(day)),
+        redisStore.del(KEYS.heat(day)),
+      ]);
+      if (userId !== undefined && username !== undefined) {
+        await resetPlayer(redisStore, { userId, username }, day);
+        await redisStore.del(KEYS.shared(day, userId));
+        await redisStore.del(KEYS.progress(day, userId));
+      }
+    }
+    await redisStore.del(KEYS.allTime);
+    return c.json<UiResponse>(
+      { showToast: `Cleaned up: ${deleted} posts deleted, all days reset.` },
+      200
+    );
+  } catch (error) {
+    console.error(`Clean-up failed: ${String(error)}`);
+    return c.json<UiResponse>({ showToast: 'Clean-up failed' }, 200);
+  }
 });

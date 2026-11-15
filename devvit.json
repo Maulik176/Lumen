@@ -45,6 +45,20 @@
         "endpoint": "/internal/menu/reset-me"
       },
       {
+        "label": "Dev: set today to day N",
+        "description": "Playtest subreddit only: move the server's clock to any day",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/set-today"
+      },
+      {
+        "label": "Dev: clean up this subreddit",
+        "description": "Playtest subreddit only: delete every Lumen post and reset all days",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/clean-up"
+      },
+      {
         "label": "Play the Lumen trailer (once)",
         "description": "For the demo video: the next time you open the game it plays itself",
         "location": "subreddit",
@@ -54,7 +68,8 @@
     ]
   },
   "forms": {
-    "postDay": "/internal/form/post-day"
+    "postDay": "/internal/form/post-day",
+    "setToday": "/internal/form/set-today"
   },
   "triggers": {
     "onAppInstall": "/internal/triggers/on-app-install",

@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { nowMs } from '../core/clock';
 import type { TriggerResponse } from '@devvit/web/shared';
 import { lastDay } from '../core/content';
 import { currentDay } from '../core/game';
@@ -10,7 +11,7 @@ export const scheduler = new Hono();
 /** Make sure today's post exists. Safe to call from anywhere, any number of times. */
 async function ensureToday(): Promise<TriggerResponse> {
   try {
-    const day = currentDay(Date.now(), lastDay());
+    const day = currentDay(nowMs(), lastDay());
     const { postId, created } = await ensureDailyPost(day);
     return {
       status: 'success',
@@ -42,7 +43,7 @@ scheduler.post('/daily-post', async (c) => {
 scheduler.post('/daily-catch-up', async (c) => {
   await ensureToday();
   try {
-    const day = currentDay(Date.now(), lastDay());
+    const day = currentDay(nowMs(), lastDay());
     const { postId } = await ensureDailyPost(day);
     if (postId.startsWith('t3_'))
       await refreshResultsComment(`t3_${postId.slice(3)}`, day, true);

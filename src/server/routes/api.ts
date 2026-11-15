@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { nowMs } from '../core/clock';
 import { telemetry } from '@devvit/analytics/server/reddit';
 import { context, realtime, reddit } from '@devvit/web/server';
 import {
@@ -75,7 +76,7 @@ function requestedDay(explicit: unknown): number {
     explicit >= 1
   )
     return explicit;
-  return postDay() ?? currentDay(Date.now(), lastDay());
+  return postDay() ?? currentDay(nowMs(), lastDay());
 }
 
 async function body(request: {
@@ -117,7 +118,7 @@ api.get('/island', async (c) => {
   ]);
   const open =
     postDay() === day &&
-    rankedOpen(day, Date.now(), lastDay(), undefined) &&
+    rankedOpen(day, nowMs(), lastDay(), undefined) &&
     me.result === null;
   // Trailer mode plays once for the moderator who armed it; the flag is used up here.
   let armed = false;
@@ -139,7 +140,7 @@ api.post('/start', async (c) => {
   const fields = await body(c.req);
   const day = requestedDay(fields['day']);
   if (islandForDay(day) !== undefined && postDay() === day) {
-    await recordStart(store, await whoIsAsking(), day, Date.now()).catch(
+    await recordStart(store, await whoIsAsking(), day, nowMs()).catch(
       () => undefined
     );
   }
@@ -166,7 +167,7 @@ api.post('/lock-in', async (c) => {
       wantsRanked: fields['ranked'] !== false,
       postDay: postDay(),
       lastDay: lastDay(),
-      nowMs: Date.now(),
+      nowMs: nowMs(),
     },
     effects
   );
@@ -236,7 +237,7 @@ api.get('/heatmap', async (c) => {
     store,
     await whoIsAsking(),
     island,
-    Date.now(),
+    nowMs(),
     lastDay()
   );
   if (!heat.ok)
@@ -291,7 +292,7 @@ api.get('/card', async (c) => {
   const day = requestedDay(Number.isInteger(fromQuery) ? fromQuery : undefined);
   const island = islandForDay(day);
   if (island === undefined) return c.json({ ok: false }, 404);
-  const now = Date.now();
+  const now = nowMs();
   const [me, count] = await Promise.all([
     playerState(store, await whoIsAsking(), day),
     skyCount(store, day),

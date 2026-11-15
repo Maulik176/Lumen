@@ -95,6 +95,8 @@ export const KEYS = {
   user: (userId: string) => `user:${userId}`,
   /** Set once a player has shared a day's result: the counter is the one-share lock. */
   shared: (day: number, userId: string) => `shared:${day}:${userId}`,
+  /** Playtest subreddit only: milliseconds added to the clock by "Dev: set today". */
+  devShift: 'dev:shift',
   /** The unfinished board a player left on a day: JSON placements. */
   progress: (day: number, userId: string) => `prog:${day}:${userId}`,
   /** Set for a few minutes when a moderator arms trailer mode for themselves. */
