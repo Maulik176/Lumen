@@ -1163,3 +1163,22 @@ button.result-time:enabled {
   width: 40px;
   height: 47px;
 }
+
+/* A button with a drawn icon before its words (the share button once shared). */
+.button.with-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.button.with-icon svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}

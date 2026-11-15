@@ -23,7 +23,7 @@ import { flairText } from '../../shared/streak';
 import { islandForDay, lastDay } from '../core/content';
 import { refreshResultsComment, resultsComment } from '../core/post';
 import { isJourneyId } from './journey';
-import { shareText } from '../../shared/share';
+import { commentUrl, shareText } from '../../shared/share';
 import {
   currentDay,
   lockIn,
@@ -32,6 +32,7 @@ import {
   pastIslands,
   playerState,
   claimShare,
+  recordShare,
   releaseShare,
   readAllTime,
   readHeat,
@@ -147,6 +148,10 @@ api.get('/island', async (c) => {
     rankedOpen: open && me.loggedIn,
     skyCount: count,
     ...(await nightOf(day)),
+    sharedUrl:
+      me.sharedComment !== null && context.postId !== undefined
+        ? commentUrl(context.postId, me.sharedComment)
+        : null,
     ...(armed ? { trailer: { solution: island.solution } } : {}),
   });
 });
@@ -286,12 +291,18 @@ api.post('/share', async (c) => {
     });
   try {
     const parent = await resultsComment(postId, island.day);
-    await reddit.submitComment({
+    const reply = await reddit.submitComment({
       id: parent,
       text: shareText(claim.result, toPostData(island).lanterns),
       runAs: 'USER',
     });
-    return c.json<ShareResponse>({ ok: true });
+    await recordShare(store, player, island.day, reply.id).catch(
+      () => undefined
+    );
+    return c.json<ShareResponse>({
+      ok: true,
+      url: commentUrl(postId, reply.id),
+    });
   } catch (error) {
     console.error(`Share failed: ${String(error)}`);
     await releaseShare(store, player, island.day).catch(() => undefined);

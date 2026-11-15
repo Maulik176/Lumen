@@ -277,6 +277,7 @@ function localApi(): Plugin {
                   result: solved.get(day)?.result ?? null,
                   placements: solved.get(day)?.placements ?? null,
                   shared: false,
+                  sharedComment: null,
                   skyNoteSeen: false,
                   rulesSeen: [],
                   progress: solved.has(day)
@@ -287,6 +288,7 @@ function localApi(): Plugin {
                 skyCount: 140,
                 night: asked.get('night') === 'past' ? 'past' : 'tonight',
                 tonightPost: null,
+                sharedUrl: null,
                 ...(asked.get('trailer') === '1'
                   ? { trailer: { solution: island.solution } }
                   : {}),

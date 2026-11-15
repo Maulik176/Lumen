@@ -3,7 +3,7 @@ import { nowMs } from '../core/clock';
 import type { UiResponse } from '@devvit/web/shared';
 import { context, reddit } from '@devvit/web/server';
 import { DEV, TRAILER } from '../../shared/config';
-import { currentDay, resetPlayer } from '../core/game';
+import { currentDay, resetPlayer, sharedCommentOf } from '../core/game';
 import { KEYS, redisStore } from '../core/store';
 import { lastDay } from '../core/content';
 import { ensureDailyPost } from '../core/post';
@@ -67,11 +67,9 @@ menu.post('/reset-me', async (c) => {
     const username = await reddit.getCurrentUsername();
     if (userId === undefined || username === undefined)
       return c.json<UiResponse>({ showToast: 'Sign in first' }, 200);
-    await resetPlayer(
-      redisStore,
-      { userId, username },
-      currentDay(nowMs(), lastDay())
-    );
+    const day = currentDay(nowMs(), lastDay());
+    await removeSharedReply({ userId }, day);
+    await resetPlayer(redisStore, { userId, username }, day);
     return c.json<UiResponse>(
       { showToast: 'Reset. Reload the post to play as a first-timer.' },
       200
@@ -96,6 +94,24 @@ menu.post('/trailer', async (c) => {
     200
   );
 });
+
+/**
+ * A dev reset also takes back the player's shared reply. Deleting needs its author, which the
+ * app is not, so it falls back to removing it as a moderator (hidden from everyone). Fallible.
+ */
+async function removeSharedReply(
+  player: { userId: string },
+  day: number
+): Promise<void> {
+  const id = await sharedCommentOf(redisStore, player, day).catch(() => null);
+  if (id === null || !id.startsWith('t1_')) return;
+  try {
+    const reply = await reddit.getCommentById(`t1_${id.slice(3)}`);
+    await reply.delete().catch(() => reply.remove());
+  } catch (error) {
+    console.error(`Could not take back the shared reply: ${String(error)}`);
+  }
+}
 
 /** Playtest subreddit only: asks which day "today" should be. */
 menu.post('/set-today', (c) => {
@@ -155,6 +171,7 @@ menu.post('/clean-up', async (c) => {
     for (let day = 1; day <= lastDay(); day++) {
       // The moderator's own progress first, then the day's data: counts end at 0, never below.
       if (userId !== undefined && username !== undefined) {
+        await removeSharedReply({ userId }, day);
         await resetPlayer(redisStore, { userId, username }, day);
         await redisStore.del(KEYS.shared(day, userId));
         await redisStore.del(KEYS.progress(day, userId));

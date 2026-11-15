@@ -237,6 +237,8 @@ export const COPY = {
   resultsPar: ', {hits} hit par',
   sharing: 'Posting\u2026',
   shared: 'Shared in the comments',
+  /** After sharing, when the reply can be opened: a drawn tick comes before these words. */
+  sharedView: 'Shared \u00b7 View comment',
   /** The comment itself. Emoji are allowed here: it is a Reddit comment, not game UI. */
   shareLine:
     'Lumen #{day} \u00b7 {lanterns} \u00b7 {pieces} (par {par}) \u00b7 \u23f1 {time}',

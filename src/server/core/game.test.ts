@@ -17,10 +17,12 @@ import {
   readHeat,
   readLeaderboard,
   readSky,
+  recordShare,
   recordStart,
   releaseShare,
   resetPlayer,
   saveProgress,
+  sharedCommentOf,
   skyCount,
 } from './game';
 import { KEYS, type Ranked, type Store } from './store';
@@ -560,9 +562,25 @@ describe('share to comments', () => {
       ok: false,
       reason: 'already-shared',
     });
-    expect((await playerState(store, ana, 1)).shared).toBe(true);
+    // Posting failed: the share is given back.
     await releaseShare(store, { userId: 't2_ana' }, 1);
     expect((await claimShare(store, ana, 1)).ok).toBe(true);
+    // Posted: the reply is remembered, can be opened, and blocks a second share.
+    await recordShare(store, { userId: 't2_ana' }, 1, 't1_reply');
+    const state = await playerState(store, ana, 1);
+    expect(state.shared).toBe(true);
+    expect(state.sharedComment).toBe('t1_reply');
+    await releaseShare(store, { userId: 't2_ana' }, 1);
+    expect(await claimShare(store, ana, 1)).toEqual({
+      ok: false,
+      reason: 'already-shared',
+    });
+    expect(await sharedCommentOf(store, { userId: 't2_ana' }, 1)).toBe(
+      't1_reply'
+    );
+    // The developer reset forgets it, so the night can be shared again.
+    await resetPlayer(store, ana, 1);
+    expect(await sharedCommentOf(store, { userId: 't2_ana' }, 1)).toBeNull();
   });
 });
 

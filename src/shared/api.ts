@@ -89,6 +89,8 @@ export type PlayerState = {
   placements: Placement[] | null;
   /** True once they have shared that result in the comments. */
   shared: boolean;
+  /** Their shared reply's id (t1_...), when it is known, so it can be opened. */
+  sharedComment: string | null;
   /** True once they have been told, on their first release, what the sky of lanterns is. */
   skyNoteSeen: boolean;
   /** The one-time rule cards they have already been shown. */
@@ -98,7 +100,11 @@ export type PlayerState = {
 };
 
 export type ShareResponse =
-  | { ok: true }
+  | {
+      ok: true;
+      /** The reply's address, to open it. */
+      url: string | null;
+    }
   | {
       ok: false;
       reason: 'signed-out' | 'nothing-to-share' | 'already-shared' | 'failed';
@@ -181,6 +187,8 @@ export type IslandResponse =
       night: Night;
       /** Tonight's post, when this island is not tonight's and that post exists. */
       tonightPost: string | null;
+      /** The player's shared reply on this post, to open it again. */
+      sharedUrl: string | null;
       /**
        * Trailer mode: present only for a moderator who has just armed it from the menu. It
        * carries the island's answer, so it is never sent to anyone else.

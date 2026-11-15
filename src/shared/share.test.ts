@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { LockInResult } from './api';
-import { clock, resultsText, shareText } from './share';
+import { clock, commentUrl, resultsText, shareText } from './share';
 
 const result: LockInResult = {
   day: 12,
@@ -48,6 +48,14 @@ describe('resultsText', () => {
     );
     expect(resultsText(12, 'Moss Steps', 1284, 231)).toBe(
       "Tonight's results: 1,284 players lit Moss Steps, 231 hit par. Share yours below \u{1F447}"
+    );
+  });
+});
+
+describe('commentUrl', () => {
+  it('links straight to the reply', () => {
+    expect(commentUrl('t3_abc', 't1_xyz')).toBe(
+      'https://www.reddit.com/comments/abc/comment/xyz'
     );
   });
 });

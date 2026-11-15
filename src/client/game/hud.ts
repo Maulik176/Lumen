@@ -38,6 +38,8 @@ export type HudActions = {
   tonight?: () => void;
   /** Result card, ranked and signed in: post the result as the player's own comment. */
   share?: () => void;
+  /** Open the player's shared reply. */
+  openShared?: (url: string) => void;
 };
 
 export type Hud = {
@@ -58,7 +60,11 @@ export type Hud = {
   showSheet: (content: HTMLElement) => void;
   hideSheet: () => void;
   /** The share button's state: ready, posting, posted, or failed (ready again, with a note). */
-  setShare: (state: 'idle' | 'busy' | 'done' | 'failed') => void;
+  setShare: (
+    state: 'idle' | 'busy' | 'done' | 'failed',
+    /** Done, with the reply's address: the button opens it. */
+    url?: string | null
+  ) => void;
   /** The small "You" label on the player's own lantern; null hides it. */
   you: (spot: { x: number; y: number } | null) => void;
   /** A tapped lantern's name, shown beside it for a moment. */
@@ -79,6 +85,7 @@ export type Hud = {
 
 /** Hand-drawn style: single round strokes, slightly loose. Drawn on a 26 x 26 grid. */
 const ICONS = {
+  tick: 'M6.2 13.6l4.6 4.600 9-9.900',
   undo: 'M10.2 6.6 4.6 11.9l5.9 5M5 11.9c4.2-.5 8.4-.4 11.2.9 3.6 1.700 4.800 5.800 2.200 8.300',
   reset:
     'M5.200 5.400v6.100h6.200M5.600 11.300c1.400-3.600 5-6 9-5.400 4.700.7 7.900 5 7.200 9.700-.7 4.600-5 7.800-9.700 7.100-2.300-.3-4.300-1.500-5.600-3.200',
@@ -285,7 +292,19 @@ export function createHud(
   const againButton = button(COPY.playAgain, 'quiet', actions.playAgain);
   const exploreButton = button(COPY.explore, 'quiet', actions.explore);
   const crowdButton = button(COPY.crowd, 'main', actions.crowd);
-  const shareButton = button(COPY.share, 'quiet', actions.share);
+  /** Once shared, the reply's address: the share button then opens it instead of posting. */
+  let sharedAt: string | null = null;
+  const share = actions.share;
+  const shareButton = button(
+    COPY.share,
+    'quiet',
+    share === undefined
+      ? undefined
+      : () => {
+          if (sharedAt !== null) actions.openShared?.(sharedAt);
+          else share();
+        }
+  );
   let footerTimer = 0;
   const backButton = button(COPY.backToTonight, 'quiet', actions.back);
   const tonightButton = button(COPY.toTonight, 'main', actions.tonight);
@@ -461,15 +480,27 @@ export function createHud(
       root.classList.remove('resulting');
     },
 
-    setShare(state) {
+    setShare(state, url) {
       if (shareButton === null) return;
-      shareButton.disabled = state === 'busy' || state === 'done';
-      shareButton.textContent =
-        state === 'busy'
-          ? COPY.sharing
-          : state === 'done'
-            ? COPY.shared
-            : COPY.share;
+      sharedAt = state === 'done' && url != null ? url : null;
+      shareButton.disabled =
+        state === 'busy' || (state === 'done' && sharedAt === null);
+      if (state === 'done' && sharedAt !== null) {
+        // A drawn tick, then the words: the button now opens the reply.
+        shareButton.replaceChildren(
+          icon(ICONS.tick),
+          document.createTextNode(COPY.sharedView)
+        );
+        shareButton.classList.add('with-icon');
+      } else {
+        shareButton.classList.remove('with-icon');
+        shareButton.textContent =
+          state === 'busy'
+            ? COPY.sharing
+            : state === 'done'
+              ? COPY.shared
+              : COPY.share;
+      }
       if (state !== 'failed') return;
       resultFooter.textContent = COPY.shareFailed;
       window.clearTimeout(footerTimer);

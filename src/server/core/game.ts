@@ -178,6 +178,7 @@ export async function playerState(
       result: null,
       placements: null,
       shared: false,
+      sharedComment: null,
       skyNoteSeen: false,
       rulesSeen: [],
       progress: null,
@@ -201,6 +202,8 @@ export async function playerState(
     result: readResult(stored),
     placements: island === undefined ? null : readPlacements(stored, island),
     shared: shared !== undefined,
+    // Older shares stored only "1"; a reply id starts t1_.
+    sharedComment: shared?.startsWith('t1_') === true ? shared : null,
     skyNoteSeen: fields['rule:sky'] === '1',
     rulesSeen: RULE_KINDS.filter((kind) => fields[`rule:${kind}`] === '1'),
     progress:
@@ -481,6 +484,8 @@ export async function resetPlayer(
     store.del(KEYS.submission(day, player.userId)),
     store.del(KEYS.submitLock(day, player.userId)),
     store.del(KEYS.start(day, player.userId)),
+    store.del(KEYS.shared(day, player.userId)),
+    store.del(KEYS.shareLock(day, player.userId)),
     store.zRem(KEYS.leaderboard(day), player.username),
     ...mine.map((entry) => store.zRem(KEYS.sky(day), entry.member)),
     store.hSet(KEYS.user(player.userId), {
@@ -691,12 +696,38 @@ export async function claimShare(
     await store.get(KEYS.submission(day, player.userId))
   );
   if (result === null) return { ok: false, reason: 'nothing-to-share' };
+  if ((await store.get(KEYS.shared(day, player.userId))) !== undefined)
+    return { ok: false, reason: 'already-shared' };
   const first =
     (await store.count(
-      KEYS.shared(day, player.userId),
+      KEYS.shareLock(day, player.userId),
       KEEP.submissionSeconds
     )) === 1;
   return first ? { ok: true, result } : { ok: false, reason: 'already-shared' };
+}
+
+/** The share was posted: remember the reply, so it can be opened (and removed by a dev reset). */
+export async function recordShare(
+  store: Store,
+  player: { userId: string },
+  day: number,
+  commentId: string
+): Promise<void> {
+  await store.set(
+    KEYS.shared(day, player.userId),
+    commentId,
+    KEEP.submissionSeconds
+  );
+}
+
+/** The reply a player shared on a day, if its id is known. */
+export async function sharedCommentOf(
+  store: Store,
+  player: { userId: string },
+  day: number
+): Promise<string | null> {
+  const value = await store.get(KEYS.shared(day, player.userId));
+  return value?.startsWith('t1_') === true ? value : null;
 }
 
 export async function releaseShare(
@@ -704,7 +735,7 @@ export async function releaseShare(
   player: { userId: string },
   day: number
 ): Promise<void> {
-  await store.del(KEYS.shared(day, player.userId));
+  await store.del(KEYS.shareLock(day, player.userId));
 }
 
 /**

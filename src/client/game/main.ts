@@ -399,7 +399,8 @@ function mountIsland(
       // Shown as a failure; the button is ready again.
     }
     hud.setShare(
-      answer.ok || answer.reason === 'already-shared' ? 'done' : 'failed'
+      answer.ok || answer.reason === 'already-shared' ? 'done' : 'failed',
+      answer.ok ? answer.url : loaded.sharedUrl
     );
   };
 
@@ -457,7 +458,14 @@ function mountIsland(
   if (tonight) actions.board = showBoard;
   actions.crowd = () => void showCrowd();
   // Sharing is the player's own comment: only signed in, and only on its own tap.
-  if (tonight && me.loggedIn) actions.share = () => void share();
+  if (tonight && me.loggedIn) {
+    actions.share = () => void share();
+    actions.openShared = (url) => {
+      void import('@devvit/web/client')
+        .then(({ navigateTo }) => navigateTo(url))
+        .catch(() => undefined);
+    };
+  }
 
   // A post that is not tonight's says so, and always offers the way to tonight's island.
   const elsewhere = tonight && loaded.night !== 'tonight';
@@ -540,7 +548,7 @@ function mountIsland(
     hud.update(state);
     hud.quiet(true);
     hud.showResult(me.result);
-    if (me.shared) hud.setShare('done');
+    if (me.shared) hud.setShare('done', loaded.sharedUrl);
     rememberSolved(island.day, me.result);
   } else {
     const left = tonight ? (me.progress ?? localProgress(island.day)) : null;

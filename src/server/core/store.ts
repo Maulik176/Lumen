@@ -95,6 +95,8 @@ export const KEYS = {
   user: (userId: string) => `user:${userId}`,
   /** Set once a player has shared a day's result: the counter is the one-share lock. */
   shared: (day: number, userId: string) => `shared:${day}:${userId}`,
+  /** Counter: the first caller takes the one share of the night. `shared` then holds the reply id. */
+  shareLock: (day: number, userId: string) => `sharelock:${day}:${userId}`,
   /** Playtest subreddit only: milliseconds added to the clock by "Dev: set today". */
   devShift: 'dev:shift',
   /** The unfinished board a player left on a day: JSON placements. */

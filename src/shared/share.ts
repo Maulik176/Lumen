@@ -59,3 +59,8 @@ export function resultsText(
     .replace('{island}', island)
     .replace('{par}', par);
 }
+
+/** The address of one comment under a post, from their ids (with or without t3_/t1_). */
+export function commentUrl(postId: string, commentId: string): string {
+  return `https://www.reddit.com/comments/${postId.replace(/^t3_/, '')}/comment/${commentId.replace(/^t1_/, '')}`;
+}
