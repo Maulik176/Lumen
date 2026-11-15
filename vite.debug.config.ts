@@ -311,7 +311,8 @@ function localApi(): Plugin {
           'koi',
           'comet',
         ] as const;
-        const count = day === 6 ? 4 : 140;
+        // The hero island (days 900 and up, for scripts/hero.mjs) has an empty sky.
+        const count = day >= 900 ? 0 : day === 6 ? 4 : 140;
         const body: SkyResponse = {
           ok: true,
           day,

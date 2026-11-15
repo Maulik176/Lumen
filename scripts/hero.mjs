@@ -33,6 +33,15 @@ for (const [index, biome] of BIOMES.entries()) {
     `http://localhost:5199/game.html?day=${day}&tutorial=0&calm=1&perf=1&hero=1`,
     SIZE,
     async (page) => {
+      // A fresh browser would show the one-time rule cards, and a card on a wide view moves the
+      // island aside to make room for it. Mark them all seen, then load again.
+      await page.run(
+        `for (const rule of ['fixed', 'water', 'colour', 'mixed', 'sky']) localStorage.setItem('lumen.rule.' + rule, '1');
+         localStorage.setItem('lumen.hints.done', '1');
+         localStorage.setItem('lumen.tutorial.done', '1');
+         fetch('/api/forget').then(() => location.reload()); 1`
+      );
+      await page.sleep(4500);
       await page.run(
         `for (const [x, y, n] of ${JSON.stringify(taps)}) for (let i = 0; i < n; i++) window.lumenTap(x, y);
          document.getElementById('hud').style.display = 'none'; 1`
