@@ -175,7 +175,7 @@ export const COPY = {
   /** Result card: opens the list of earlier islands, where practice lives. */
   explore: 'Explore past islands',
   /** Trailer mode (moderators only, for the demo video). */
-  trailerStart: 'Tap to begin',
+  trailerStart: 'Tap to start trailer',
   trailerTitle: 'Lumen',
   trailerLine: 'A new island every night.',
   /** The Archipelago: the night map of past islands. */

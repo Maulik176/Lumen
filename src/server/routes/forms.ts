@@ -5,7 +5,7 @@ import { setToday } from '../core/clock';
 import { createIslandPost } from '../core/post';
 import { DEV } from '../../shared/config';
 import { context } from '@devvit/web/server';
-import { postAddress } from './menu';
+import { openPost } from './menu';
 
 export const forms = new Hono();
 
@@ -19,7 +19,7 @@ forms.post('/post-day', async (c) => {
   }
   try {
     return c.json<UiResponse>(
-      { navigateTo: postAddress(await createIslandPost(day)) },
+      { navigateTo: await openPost(await createIslandPost(day)) },
       200
     );
   } catch (error) {

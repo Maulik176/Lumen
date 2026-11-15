@@ -89,6 +89,8 @@ function ownPost(): PostData | null {
 let post: PostData | null = ownPost();
 let solved: CardResult | null = post === null ? null : recallSolved(post.day);
 let skyCount: number | null = null;
+/** The player's current streak (0 when signed out or none). */
+let streak = 0;
 /** When the next island arrives, on this page's own clock. */
 let nextAt: number | null = null;
 /** A night that has passed stays passed: remembered so the card never offers it as tonight's. */
@@ -177,7 +179,8 @@ function paint(): void {
         text('span', '·'),
         text('b', COPY.cardRank.replace('{rank}', String(solved.rank)))
       );
-    if (solved.streak > 1)
+    // The streak shows from the very first night.
+    if (solved.streak >= 1)
       parts.push(
         text('span', '·'),
         icon(FLAME),
@@ -207,7 +210,12 @@ function paint(): void {
           ? COPY.cardSkyOne
           : COPY.cardSky.replace('{count}', skyCount.toLocaleString('en'))
     );
-  crowd.textContent = words.join(' · ');
+  // Not lit yet tonight: the player's current streak leads the small line, so it is always there.
+  const lead: Node[] =
+    solved === null && streak > 0 && night === 'tonight'
+      ? [icon(FLAME), text('b', String(streak)), text('span', ' · ')]
+      : [];
+  crowd.replaceChildren(...lead, text('span', words.join(' · ')));
 }
 
 async function refresh(): Promise<void> {
@@ -223,6 +231,7 @@ async function refresh(): Promise<void> {
     post = post ?? body.post;
     if (post.rows === undefined) post = { ...post, rows: body.post.rows ?? [] };
     skyCount = body.skyCount;
+    streak = body.streak;
     night = body.night;
     tonightPost = body.tonightPost;
     if (night === 'past') {

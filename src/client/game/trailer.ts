@@ -48,7 +48,12 @@ export async function runTrailer(
   view.setSky(options.sky);
   frame();
 
-  const begin = element('p', 'trailer-begin', COPY.trailerStart);
+  // A quiet start screen, so the recording can begin before the first frame of the take.
+  const begin = element('div', 'trailer-begin');
+  begin.append(
+    element('h1', 'trailer-name', COPY.trailerTitle),
+    element('p', 'trailer-tap', COPY.trailerStart)
+  );
   root.append(begin);
   await new Promise<void>((resolve) =>
     window.addEventListener('click', () => resolve(), { once: true })

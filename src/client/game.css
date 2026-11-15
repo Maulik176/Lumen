@@ -1073,14 +1073,22 @@ button.result-time:enabled {
 /* Trailer mode: nothing on screen but the island, then the title. */
 .trailer-begin {
   position: absolute;
-  left: 50%;
-  bottom: 12%;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 18px;
+  text-align: center;
+  color: var(--light);
+  background: linear-gradient(180deg, #2b2459 0%, #63468c 55%, #f2876a 100%);
+  pointer-events: auto;
+}
+
+.trailer-tap {
   margin: 0;
-  padding: 6px 16px;
+  padding: 8px 18px;
   border-radius: var(--radius);
   background: var(--veil);
-  color: var(--light);
-  transform: translateX(-50%);
+  font-size: 15px;
 }
 
 .trailer-title {

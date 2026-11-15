@@ -12,14 +12,30 @@ export const menu = new Hono();
 
 /** A post's page address. The id comes with a "t3_" prefix that the address must not carry. */
 export function postAddress(postId: string): string {
-  return `https://reddit.com/r/${context.subredditName}/comments/${postId.replace(/^t3_/, '')}`;
+  return `https://www.reddit.com/r/${context.subredditName}/comments/${postId.replace(/^t3_/, '')}`;
+}
+
+/**
+ * Where to send the moderator after posting: the post itself, as Reddit describes it (its own
+ * url and permalink), which opens it directly in the app and on the web. The hand-built address
+ * is the fallback.
+ */
+export async function openPost(
+  postId: string
+): Promise<string | { url: string; permalink: string }> {
+  try {
+    const post = await reddit.getPostById(`t3_${postId.replace(/^t3_/, '')}`);
+    return { url: post.url, permalink: post.permalink };
+  } catch {
+    return postAddress(postId);
+  }
 }
 
 /** Manual fallback for the scheduler: makes today's post, or opens it if it already exists. */
 menu.post('/post-today', async (c) => {
   try {
     const { postId } = await ensureDailyPost(currentDay(nowMs(), lastDay()));
-    return c.json<UiResponse>({ navigateTo: postAddress(postId) }, 200);
+    return c.json<UiResponse>({ navigateTo: await openPost(postId) }, 200);
   } catch (error) {
     console.error(`Error creating today's post: ${String(error)}`);
     return c.json<UiResponse>(
