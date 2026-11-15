@@ -125,6 +125,9 @@ is too much for 300 lanterns, so the sky draws snoovatars only for the nearest f
   932 px phone. The game must fit 430 x 701 there, and proportionally less on a 360 x 640 phone
   (expect roughly 360 x 410–480). Camera framing and the two bars are designed for that, and
   measured at run time, never assumed.
+- **Update Nov 15:** Maulik's desktop test of v0.0.1.48 showed the expanded view as a wide
+  dialog (about 1100 px, with a size selector reading "Desktop"), and the landscape layout
+  switched on there. The 375 px measurement below was the dialog's phone size.
 - Desktop expanded is a phone-shaped modal, 375 px wide (measured Nov 12, Chrome, as the app
   owner). The phone layout serves it.
 - **Landscape layout (added Nov 15).** The game measures its view and switches to a landscape

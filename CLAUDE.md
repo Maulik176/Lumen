@@ -73,6 +73,14 @@ Few screenshots, short reports.
   lanterns shown faintly when fewer than `SKY.quietBelow` tonight. (E) The 2-second timing test
   re-times a slow reading instead of failing on machine load. 323 tests. **Left for Monday:
   M8 judge review and M9 handoff. Nothing in A–E is verified on Reddit yet.**
+- **Nov 15, M8 (Fable): judge review in `REVIEW.md`** (scores, P0/P1/P2 with fixes and costs,
+  Monday order). Five P0s fixed: posts that are not tonight's say so and lead to tonight's
+  (`Night` in api, `nightOf` in routes/api.ts); dev time travel and subreddit clean-up from the
+  mod menu (`core/clock.ts`: **server code must use `nowMs()`, never `Date.now()`**); sound after
+  lock and unlock (context closed when hidden, rebuilt in the next tap); phone ending (7 s rise,
+  hover, `RELEASE.hoverMs`/`lookBelow`); other players as paper lanterns painted into one sheet
+  (`skyfield.ts`, `SKY.cellPx`). 326 tests. Left: REVIEW.md's P0 list (mostly phone checks) and
+  P1 list, then M9.
 - **Nov 15 fixes after Maulik's test:** snoovatars sit on paper lanterns; own lantern has a "You"
   label; tapping a lantern shows its name; unranked solves send a faint practice lantern; rank
   on the card; "?" How to play
