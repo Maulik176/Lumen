@@ -4,7 +4,10 @@
  * coloured per biome; nothing here is loaded from a file.
  */
 import {
+  AdditiveBlending,
   BoxGeometry,
+  type BufferGeometry,
+  CircleGeometry,
   Color,
   ConeGeometry,
   CylinderGeometry,
@@ -14,13 +17,13 @@ import {
   InstancedMesh,
   Matrix4,
   Mesh,
+  MeshBasicMaterial,
   MeshStandardMaterial,
   Quaternion,
   Sprite,
   SpriteMaterial,
-  Vector3,
-  type BufferGeometry,
   type Texture,
+  Vector3,
 } from 'three';
 import { ART, HEAT, type BiomeLook } from '../../shared/config';
 import type { Puzzle } from '../../shared/types';
@@ -140,11 +143,24 @@ export function createGround(
   // --- Tiles. The box is painted lighter on top than on its sides, then tinted per tile. -----
   // Tiles meet edge to edge: no grid lines. Each differs a little from its neighbours in height
   // and tone, which is all that marks the squares.
-  const tileBox = new BoxGeometry(1, 0.5, 1).toNonIndexed();
+  // The top is cut three by three and its inner corners pushed out toward the edge, leaving a
+  // narrow band all round that darkens to the edge: a soft seam between neighbours.
+  const tileBox = new BoxGeometry(1, 0.5, 1, 3, 1, 3).toNonIndexed();
   const tileNormals = tileBox.getAttribute('normal');
+  const tilePoints = tileBox.getAttribute('position');
+  const inner = 0.5 - ART.seamWidth;
+  for (let i = 0; i < tilePoints.count; i++) {
+    const x = tilePoints.getX(i);
+    const z = tilePoints.getZ(i);
+    if (Math.abs(x) < 0.4) tilePoints.setX(i, Math.sign(x) * inner);
+    if (Math.abs(z) < 0.4) tilePoints.setZ(i, Math.sign(z) * inner);
+  }
   const tilePaint = new Float32Array(tileNormals.count * 3);
   for (let i = 0; i < tileNormals.count; i++) {
-    const shade = tileNormals.getY(i) > 0.5 ? 1 : 0.78;
+    const atEdge =
+      Math.abs(tilePoints.getX(i)) > 0.49 ||
+      Math.abs(tilePoints.getZ(i)) > 0.49;
+    const shade = tileNormals.getY(i) > 0.5 ? (atEdge ? ART.seam : 1) : 0.78;
     tilePaint[i * 3] = shade;
     tilePaint[i * 3 + 1] = shade;
     tilePaint[i * 3 + 2] = shade;
@@ -183,7 +199,21 @@ export function createGround(
   }
   group.add(tiles);
   // The painted colours, kept so a tint can always be taken off again.
-  const tileColours = Float32Array.from(tiles.instanceColor?.array ?? []);
+  // "Where did others place mirrors?": a soft pool of warm light on each used tile.
+  const poolMaterial = keeper.keep(
+    new MeshBasicMaterial({
+      map: blob,
+      blending: AdditiveBlending,
+      transparent: true,
+      depthWrite: false,
+    })
+  );
+  const poolShape = keeper.keep(new CircleGeometry(0.5, 20));
+  poolShape.rotateX(-Math.PI / 2);
+  const pools = new InstancedMesh(poolShape, poolMaterial, width * height);
+  pools.count = 0;
+  pools.renderOrder = 1;
+  group.add(pools);
   const heat = new Color(HEAT.colour);
 
   // --- The earth rim and the rock underneath, as one painted shape. --------------------------
@@ -513,20 +543,37 @@ export function createGround(
       mistMaterial.opacity = 0.55 - dusk * 0.25;
     },
     tint(counts) {
-      const busiest = counts === null ? 1 : Math.max(1, ...counts);
-      for (let tile = 0; tile < width * height; tile++) {
-        colour.fromArray(tileColours, tile * 3);
-        if (counts !== null && puzzle.terrain[tile] === 'grass') {
+      let shown = 0;
+      if (counts !== null) {
+        const busiest = Math.max(1, ...counts);
+        for (let tile = 0; tile < width * height; tile++) {
           const share = (counts[tile] ?? 0) / busiest;
-          if (share > 0)
+          if (share <= 0 || puzzle.terrain[tile] !== 'grass') continue;
+          const [worldX, worldZ] = tileCentre(
+            tile % width,
+            Math.floor(tile / width),
+            width,
+            height
+          );
+          const size = HEAT.poolMin + (HEAT.poolMax - HEAT.poolMin) * share;
+          position.set(worldX, 0.06, worldZ);
+          matrix.compose(position, turn.identity(), scale.set(size, 1, size));
+          pools.setMatrixAt(shown, matrix);
+          // The light adds to what is there, so a darker colour is a fainter pool.
+          pools.setColorAt(
+            shown,
             colour
-              .lerp(heat, HEAT.mix * share)
-              .multiplyScalar(1 + (HEAT.boost - 1) * share);
-          else colour.multiplyScalar(HEAT.unused);
+              .copy(heat)
+              .multiplyScalar(
+                HEAT.glowMin + (HEAT.glowMax - HEAT.glowMin) * share
+              )
+          );
+          shown++;
         }
-        tiles.setColorAt(tile, colour);
       }
-      if (tiles.instanceColor !== null) tiles.instanceColor.needsUpdate = true;
+      pools.count = shown;
+      pools.instanceMatrix.needsUpdate = true;
+      if (pools.instanceColor !== null) pools.instanceColor.needsUpdate = true;
     },
   };
 }

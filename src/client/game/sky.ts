@@ -44,6 +44,7 @@ const VERTEX = /* glsl */ `
 `;
 
 const FRAGMENT = /* glsl */ `
+  precision highp float;
   uniform vec3 uTop;
   uniform vec3 uHorizon;
   uniform vec3 uDeep;
@@ -55,8 +56,11 @@ const FRAGMENT = /* glsl */ `
   uniform float uMilky;
   varying vec3 vDirection;
 
+  // No sin() of large numbers here: on phone graphics chips that turns to speckle.
   float hash(vec2 p) {
-    return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+    vec3 q = fract(vec3(p.xyx) * 0.1031);
+    q += dot(q, q.yzx + 33.33);
+    return fract((q.x + q.y) * q.z);
   }
   float soft(vec2 p) {
     vec2 i = floor(p);

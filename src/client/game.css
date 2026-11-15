@@ -1149,3 +1149,17 @@ button.result-time:enabled {
   padding: 4px 8px;
   line-height: 1.2;
 }
+
+/* The drawn medal sits beside its name on the result card. */
+.result-medal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.emblem {
+  flex: none;
+  width: 40px;
+  height: 47px;
+}

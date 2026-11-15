@@ -14,6 +14,7 @@ import {
   type PlayState,
 } from '../../shared/play';
 import type { Medal } from '../../shared/types';
+import { medalEmblem } from './emblem';
 import { formatTime } from './fit';
 
 export type HudActions = {
@@ -404,7 +405,10 @@ export function createHud(
     },
 
     showResult(outcome) {
-      resultMedal.textContent = MEDAL_NAME[outcome.medal];
+      resultMedal.replaceChildren(
+        medalEmblem(outcome.medal),
+        document.createTextNode(MEDAL_NAME[outcome.medal])
+      );
       resultMedal.dataset['medal'] = outcome.medal;
       resultLine.textContent =
         outcome.pieces <= outcome.par

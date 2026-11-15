@@ -521,6 +521,10 @@ export const UI = {
   medalLamplighter: '#a8530f',
   medalGlow: '#7a5a12',
   medalSpark: '#5f566b',
+  /** The drawn emblems: gold for Lamplighter, silver for Glow, bronze for Spark. */
+  emblemGold: '#e0a526',
+  emblemSilver: '#aeb4c2',
+  emblemBronze: '#b9743f',
   radiusPx: 14,
   gapPx: 10,
   /** Smallest tap target, in CSS pixels. */
@@ -536,6 +540,12 @@ export const ART = {
   chequer: 0.22,
   /** Each tile is this much lighter or darker than its neighbours at most, and this much higher or lower (tiles). */
   tileShade: 0.1,
+  /**
+   * Soft seams: each tile's top darkens to this share of its colour at its very edge, over this
+   * much of a tile's width. Enough to see the squares, never a drawn line.
+   */
+  seam: 0.8,
+  seamWidth: 0.1,
   tileLift: 0.09,
   /** Lanterns are drawn this many times their modelled size. */
   lanternScale: 1.45,
@@ -933,10 +943,14 @@ export const KEEP = {
 export const HEAT = {
   /** The warm colour tiles move toward, how far at the busiest tile, and how much brighter. */
   colour: 0xffb347,
-  mix: 0.9,
-  boost: 2.3,
-  /** Tiles nobody used are dimmed to this share, so the used ones stand out at night. */
-  unused: 0.55,
+  /**
+   * Each used tile gets a soft pool of warm light: its width in tiles at the least-used and
+   * the most-used tile, and its brightness at each.
+   */
+  poolMin: 0.9,
+  poolMax: 2.3,
+  glowMin: 0.3,
+  glowMax: 1,
   /** Below this many solves the share at par is not shown; a gentler line is. */
   fewSolves: 5,
   /** How long the camera takes to come down to the island, or go back up, in ms. */
