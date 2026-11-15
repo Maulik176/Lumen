@@ -20,6 +20,12 @@ maintains Lumen until submission (Devpost by Dec 7). Start every session by read
 - **Server time:** server code uses `nowMs()` from `src/server/core/clock.ts`, never
   `Date.now()` (the playtest subreddit can move "today").
 - Finished briefs and old notes: `docs/HANDOFF-ARCHIVE.md`.
+- **Nov 16 (Opus):** Android sky bug fixed (lanterns were placed outside a portrait phone's view;
+  placement is now `shared/skyspot.ts`, tested), iPhone sky speckle fixed (canvas gradient
+  textures replaced by computed ones), negative counts fixed (`skyCount` is the board's size),
+  hero renderer fixed, own lantern sharper; README; briefs O-3, O-4, O-5 and "post opens"
+  built; O-14 Island Builder brief written in full (not built); `docs/LAUNCH.md` for the public
+  subreddit.
 
 **History** (what each session built; kept for context, oldest first, M8 last):
 - **Island Builder is cut.** Sunday uses a generated island. Brief kept in `docs/HANDOFF-ARCHIVE.md`.

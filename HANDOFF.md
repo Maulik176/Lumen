@@ -90,6 +90,7 @@ Every number lives here with a comment. Change one, run `npm test`, look at it l
 Reddit reviews the app before it can run outside the playtest subreddit and before Journeys
 record anything. Do this in order.
 
+0. Paste-ready subreddit texts and the install steps are in `docs/LAUNCH.md`.
 1. **Maulik creates r/LumenGame** (needed by Nov 24; also the demo subreddit for submission,
    which must stay under 200 members or have dr-admin-approve installed).
 2. **Remove the dev items from public builds?** The four "Dev:"/testing items in `devvit.json`
