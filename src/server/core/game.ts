@@ -232,9 +232,18 @@ export async function markTutorialDone(
   await store.hSet(KEYS.user(player.userId), { tutorialDone: '1' });
 }
 
+/**
+ * How many players lit a day: the real board itself (one entry per ranked player), never a
+ * running tally that a reset or clean-up could drive below zero.
+ */
 export async function skyCount(store: Store, day: number): Promise<number> {
-  const stats = await store.hGetAll(KEYS.stats(day));
-  return Number(stats['solves'] ?? 0) || 0;
+  return Math.max(0, await store.zCard(KEYS.leaderboard(day)));
+}
+
+/** A tally from a stats hash, read safely: a missing, damaged or negative value is 0. */
+function tally(fields: Record<string, string>, field: string): number {
+  const value = Number(fields[field] ?? 0);
+  return Number.isFinite(value) ? Math.max(0, value) : 0;
 }
 
 /** Tonight's lanterns, newest last, at most SKY.maxLanterns. */
@@ -381,7 +390,8 @@ export async function lockIn(
     style,
     percentile,
     rank: (rank ?? 0) + 1,
-    skyCount: solves,
+    // The real board's size, not the running tally (which a dev reset can disturb).
+    skyCount: Math.max(solves, total),
   };
   const clean: Placement[] = score.placements;
   const lantern: SkyLantern = {
@@ -482,7 +492,11 @@ export async function resetPlayer(
       graceWeek: String(NEW_STREAK.graceWeek),
     }),
   ]);
-  if (had) await store.hIncrBy(KEYS.stats(day), 'solves', -1);
+  // Take the solve back out of the tally, but never below zero (the day may have been cleared).
+  if (had) {
+    const left = await store.hIncrBy(KEYS.stats(day), 'solves', -1);
+    if (left < 0) await store.hSet(KEYS.stats(day), { solves: '0' });
+  }
 }
 
 /** Earlier islands, newest first, with the player's medal on each night they played. */
@@ -650,8 +664,11 @@ export async function readHeat(
   return {
     ok: true,
     tiles,
-    solves: Number(stats['solves'] ?? 0) || 0,
-    parHits: Number(stats['parHits'] ?? 0) || 0,
+    solves: Math.max(
+      tally(stats, 'solves'),
+      await store.zCard(KEYS.leaderboard(island.day))
+    ),
+    parHits: tally(stats, 'parHits'),
     parSolution: over ? island.solution : null,
   };
 }

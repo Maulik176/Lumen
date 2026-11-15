@@ -153,6 +153,12 @@ menu.post('/clean-up', async (c) => {
     const { userId } = context;
     const username = await reddit.getCurrentUsername();
     for (let day = 1; day <= lastDay(); day++) {
+      // The moderator's own progress first, then the day's data: counts end at 0, never below.
+      if (userId !== undefined && username !== undefined) {
+        await resetPlayer(redisStore, { userId, username }, day);
+        await redisStore.del(KEYS.shared(day, userId));
+        await redisStore.del(KEYS.progress(day, userId));
+      }
       await Promise.all([
         redisStore.del(KEYS.postForDay(day)),
         redisStore.del(KEYS.postLock(day)),
@@ -161,11 +167,6 @@ menu.post('/clean-up', async (c) => {
         redisStore.del(KEYS.stats(day)),
         redisStore.del(KEYS.heat(day)),
       ]);
-      if (userId !== undefined && username !== undefined) {
-        await resetPlayer(redisStore, { userId, username }, day);
-        await redisStore.del(KEYS.shared(day, userId));
-        await redisStore.del(KEYS.progress(day, userId));
-      }
     }
     await redisStore.del(KEYS.allTime);
     return c.json<UiResponse>(

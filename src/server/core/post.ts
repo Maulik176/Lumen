@@ -9,6 +9,7 @@ import { weekdayLabel } from '../../shared/calendar';
 import { COMMENT, COPY } from '../../shared/config';
 import { resultsText } from '../../shared/share';
 import { islandForDay } from './content';
+import { skyCount } from './game';
 import { KEYS, redisStore as store } from './store';
 
 /** Seconds a claim on "I am creating today's post" lasts before another caller may try. */
@@ -55,12 +56,16 @@ export async function resultsComment(
 }
 
 async function resultsNow(day: number): Promise<string> {
-  const stats = await store.hGetAll(KEYS.stats(day));
+  const [stats, solves] = await Promise.all([
+    store.hGetAll(KEYS.stats(day)),
+    skyCount(store, day),
+  ]);
+  const parHits = Math.max(0, Number(stats['parHits'] ?? 0) || 0);
   return resultsText(
     day,
     islandForDay(day)?.name ?? 'the island',
-    Number(stats['solves'] ?? 0) || 0,
-    Number(stats['parHits'] ?? 0) || 0
+    solves,
+    Math.min(parHits, solves)
   );
 }
 

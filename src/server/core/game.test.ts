@@ -4,23 +4,24 @@ import type { DailyIsland } from '../../shared/daily';
 import type { Placement } from '../../shared/types';
 import { islandForDay, lastDay } from './content';
 import {
-  lockIn,
-  markRuleSeen,
-  playerState,
   claimShare,
+  type Effects,
+  lockIn,
+  type LockInInput,
+  markRuleSeen,
   pastIslands,
+  type Player,
+  playerState,
   rankedOpen,
-  releaseShare,
   readAllTime,
   readHeat,
   readLeaderboard,
   readSky,
+  recordStart,
+  releaseShare,
   resetPlayer,
   saveProgress,
-  recordStart,
-  type Effects,
-  type LockInInput,
-  type Player,
+  skyCount,
 } from './game';
 import { KEYS, type Ranked, type Store } from './store';
 
@@ -95,6 +96,8 @@ function memoryStore(): Store & { writes: () => number } {
     async del(key) {
       writes++;
       strings.delete(key);
+      hashes.delete(key);
+      sets.delete(key);
     },
     async zRem(key, member) {
       writes++;
@@ -622,5 +625,22 @@ describe('the Android sky report (Nov 16)', () => {
       'https://i.redd.it/snoovatar/avatars/dry.png'
     );
     expect(sky.lanterns[1]?.a).toBe('');
+  });
+});
+
+describe('counts never go below zero (the "-1 lanterns" report)', () => {
+  it('a reset after the day was already cleared leaves 0, and the count is the real board', async () => {
+    const { store, effects, input } = setup();
+    await recordStart(store, ana, 1, DAY_ONE);
+    await lockIn(store, ana, input(1, DAY_ONE + HOUR), effects);
+    expect(await skyCount(store, 1)).toBe(1);
+    // What "Dev: clean up" did: clear the day's counts and board first, then reset the player.
+    await store.del(KEYS.stats(1));
+    await store.del(KEYS.leaderboard(1));
+    await resetPlayer(store, ana, 1);
+    expect(await skyCount(store, 1)).toBe(0);
+    expect(
+      Number((await store.hGetAll(KEYS.stats(1)))['solves'] ?? 0)
+    ).toBeGreaterThanOrEqual(0);
   });
 });
