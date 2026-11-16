@@ -37,6 +37,12 @@ maintains Lumen until submission (Devpost by Dec 7). Start every session by read
   runs alone after every other test (`vitest.config.ts` projects, `groupOrder`), so the suite no
   longer starves it; it passes on battery. `npm run gen -- --only N,M` replaces single days.
 
+- **Nov 16, approved by Maulik (exceptions to the freeze), start after Wed Nov 18** once the app
+  review form is in: O-16 logo, O-15 top boards as pictures, O-14 Island Builder (recommended:
+  the app posts community islands and credits the maker, so no new permission). Briefs in
+  `HANDOFF.md`; why in `docs/SUBMISSION.md` (lessons from BridgeDit, the last winner). O-2 phone
+  checks still come first.
+
 **History** (what each session built; kept for context, oldest first, M8 last):
 - **Island Builder is cut.** Sunday uses a generated island. Brief kept in `docs/HANDOFF-ARCHIVE.md`.
 - Onboarding (Nov 14): first visit runs three tutorial islands (`src/shared/tutorial.ts`,

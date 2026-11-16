@@ -131,8 +131,15 @@ walkthrough can be linked from the write-up.
 - Feed card already shows how many lit it tonight. A clear rate or "at par" share would be a
   new feature: ask first.
 
-### Open decisions (need Maulik)
+### Approved by Maulik (Nov 16), to build after Wed Nov 18
 
-- Island Builder (lesson 15, brief O-14).
-- Showing the top player's finished board after Lock in (lesson 9's leaderboard pictures).
-- The logo (an asset, not a game feature, but new work).
+Briefs in `HANDOFF.md` section 6.
+
+- **O-16 logo** (lesson 4). Gallery item 2, Devpost thumbnail, subreddit icon.
+- **O-15 top boards as pictures** (lesson 9). Gallery item 6 then shows other players' actual
+  islands, as BridgeDit's leaderboard did.
+- **O-14 Island Builder** (lessons 9, 12 and 15), posted by the app with the maker credited on
+  the card, as BridgeDit did. Once it ships, add gallery pictures for the Builder (with its
+  "Check" and "Publish" buttons visible, like BridgeDit's "Test Level" and "Post Level") and a
+  community island's feed card ("An island by u/name"), and a "Build your own island" heading
+  to the write-up. The tagline may then name it too.

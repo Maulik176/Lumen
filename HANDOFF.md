@@ -22,7 +22,8 @@ superseded by O-14 below.
   lanterns, tile seams, medal emblems, crowd pools, the sky noise fix, the live results comment,
   trailer mode, warm-up offer, Archipelago map, day rollover by cron.
 - **Never run:** Android; two phones at once (live sky); frame rate on any real device.
-- **Cut:** Island Builder and the Sunday community island (Sunday uses a generated island).
+- **Cut, now approved to build after Wed Nov 18:** Island Builder and the Sunday community island
+  (O-14). Until it ships, Sunday uses a generated island.
 
 ## 2. The freeze
 
@@ -31,6 +32,12 @@ numbers in `src/shared/config.ts`, bug fixes that start with a failing test, cop
 submission tasks. Several briefs below are small features that REVIEW.md ranks as needed to
 win. **Each one needs Maulik's explicit yes before it is built** (he decides; say what the brief
 costs and what it changes). Briefs marked *fix* are bug fixes and need only a failing test.
+
+**Approved exceptions (Maulik, Mon Nov 16):** O-14 Island Builder, O-15 top boards as pictures,
+O-16 logo. **Start after Wed Nov 18**, once the app review form is in. Order: O-16 (small),
+O-15 (small to medium), O-14 (large, about two days). The phone checks in O-2 still come first
+on any day they compete. Why: every one of them comes from what BridgeDit, the last Best Daily
+Game winner, did (`docs/SUBMISSION.md` lessons 4, 9 and 15).
 
 ## 3. Tools
 
@@ -227,12 +234,24 @@ amber button text (AA). Record numbers in `PLAN.md`; adjust `UI` colours only if
 - Signed-out result: one line inviting sign-in (`COPY`).
 - Feed card attribution "A daily island by r/{sub}" (brief: start screen item).
 
-### O-14 · Island Builder and the Sunday community island (CUT — build only on Maulik's go) — L
+### O-14 · Island Builder and the Sunday community island (APPROVED Nov 16 — start after Wed Nov 18) — L
 
-Cut on Nov 14 and frozen since Nov 16. This brief replaces the shorter one in the archive. It is
-written so it can be built in about two days without changing anything already shipped. Do
-not start it until Maulik says go, after O-1 to O-13; it touches the server, a new entry point,
-two new permissions and app review.
+Cut on Nov 14, frozen on Nov 16, **approved by Maulik on Nov 16** after studying BridgeDit,
+whose judges opened and closed their praise on its level builder. This brief replaces the
+shorter one in the archive. It is written so it can be built in about two days without
+changing anything already shipped. It touches the server, a new entry point, and possibly
+permissions (see "Who posts" below).
+
+**Who posts (decide at the start, recommended: the app).** BridgeDit's player levels are posted
+by the app's own account, and the feed card says "CREATED BY" with the maker's snoovatar and
+name. Doing the same here (`submitCustomPost` without `runAs: 'USER'`, the maker credited in
+`postData`, the title and the feed card) needs **no new permission**, so the app review form
+sent on Nov 17–18 stays true. Posting from the player's account (step 3 below as first
+written) needs `SUBMIT_POST` in `asUser`, a changed review form, and a check with Maulik. If the
+app posts, the island name is no longer filtered as the user's own post: keep the 24-character
+letters-digits-spaces rule and also refuse names that Reddit's own filters would hold (test by
+posting; if unsure, title the post "An island by u/{user}" and show the name only inside the
+card).
 
 **Goal.** A player builds a small island on their phone with taps only; the server proves it
 solvable and sets its par; it is posted from the player's own account; each Saturday the best
@@ -331,8 +350,10 @@ HUD) works unchanged because it is just a `PublicIsland`.
 top bar and on the result card's last row (only after a ranked solve, so newcomers are not
 distracted), plus a mod-menu item "Post the Island Builder" that makes a pinned builder post.
 
-**7. Journeys.** Builder use is not in `JOURNEY_MAP.md`. Either add a "build" journey to the
-map before review, or send nothing from the Builder. Do not send unlisted events.
+**7. Journeys.** Builder use is not in `JOURNEY_MAP.md`, and the map goes to review before the
+Builder is built, so **send nothing from the Builder.** Do not send unlisted events. Playing a
+community post is an ordinary play journey only if `JOURNEY_MAP.md` already covers it word for
+word; otherwise send nothing there either.
 
 **8. Tests** (Vitest, memory store as in `game.test.ts`):
 - Check refuses: malformed rows, too large, no lanterns, a lantern lit with no pieces,
@@ -351,8 +372,46 @@ map before review, or send nothing from the Builder. Do not send unlisted events
 from their account, plays unranked, and with "Dev: set today" to a Saturday and the pick task
 run by hand, Sunday's post is that island with "by u/name" and the maker has "Islandwright".
 
-### Not to do
+### O-15 · Top boards as pictures (APPROVED Nov 16 — start after Wed Nov 18) — S/M
 
-- Island Builder unless Maulik says go (O-14). The README says it was cut.
+**Why.** BridgeDit's leaderboard shows each player's actual bridge as a picture ("Compare
+solutions and be inspired!", `docs/SUBMISSION.md` lesson 9). Ours lists names, pieces and time.
+
+**What.** On Tonight's board, the top three rows each show a small outline of that player's
+finished island with their pieces on it; tapping one draws it large on the same layer, with
+the name and "{pieces} pieces · {time}". Close returns to the board unchanged.
+
+**Spoiler rule.** Pictures are sent only to a player who has a ranked Lock in for that night,
+or for a night that is over. Everyone else (including signed out) gets the board without
+pictures, exactly as today. The server decides; the client never asks for placements it may
+not see.
+
+**Server.** `/api/leaderboard` reads the top three user ids from the night's board, then their
+`KEYS.submission(day, userId)` records (placements are already stored there at Lock in), one
+grouped read. Return `placements` per top row only when the spoiler rule allows. Missing or
+expired record: that row has no picture (never an error).
+
+**Client.** Merge placements into the island rows for drawing and draw with
+`drawIslandOutline` (`src/client/outline.ts`); placed pieces in a warm colour so they read as
+the player's, fixed mirrors in stone as now. Sizes and colours in `config.ts`. Works at
+360x460 and in the wide layout.
+
+**Tests.** Spoiler rule (no ranked Lock in → no placements; past night → placements; signed
+out → none), missing submission record, top three only. Pure merge of placements into rows in
+`src/shared` with its own test.
+
+### O-16 · Lumen logo (APPROVED Nov 16 — start after Wed Nov 18) — S
+
+**Why.** BridgeDit has a real wordmark (a bridge drawn into the letters) and it is its own
+gallery item (`docs/SUBMISSION.md` lesson 4). Lumen has none.
+
+**What.** A wordmark "Lumen" in Young Serif (bundled, OFL; turning letters into outlines is
+allowed) with one paper lantern drawn into it, in the UI palette (`UI` in `config.ts`). Drawn
+as SVG by hand in code, no generated images. Files: `content/brand/lumen-logo.svg`, plus PNG
+exports with a transparent background (wide wordmark about 2000 px, square icon 256 px for the
+subreddit). Uses: Devpost gallery item 2, Devpost thumbnail, r/LumenGame icon and banner
+(Maulik uploads). Putting it on the feed card or in the game is a separate change: ask first.
+
+### Not to do
 - Anything that changes `content/puzzles.json` after launch.
 - New entry points, new screens, new server routes beyond the briefs above without Maulik.
