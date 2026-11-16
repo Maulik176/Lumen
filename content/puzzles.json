@@ -2140,15 +2140,14 @@
    "biome": "dune",
    "name": "Sun Spring",
    "rows": [
-    "T#~.v.#v.",
-    "~..~.....",
-    ".....~~..",
-    "...~.~.\\Y",
-    "..~..~...",
-    ">....~...",
-    ".T.....~#",
-    ".W.~.~...",
-    "...B~TW~."
+    "~...Wv.~",
+    ".~..T...",
+    "..\\....<",
+    "...MT..W",
+    ".~#.~...",
+    "....#...",
+    "...~.\\.G",
+    ".~#T.~.."
    ],
    "inventory": {
     "mirrors": 7,
@@ -2156,77 +2155,76 @@
    },
    "sourceColours": [
     "white",
-    "white",
     "white"
    ],
    "par": 5,
    "solution": [
     {
-     "x": 3,
-     "y": 2,
+     "x": 2,
+     "y": 0,
      "piece": {
       "kind": "mirror",
       "orientation": "slash"
      }
     },
     {
+     "x": 3,
+     "y": 2,
+     "piece": {
+      "kind": "prism"
+     }
+    },
+    {
+     "x": 3,
+     "y": 4,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "backslash"
+     }
+    },
+    {
+     "x": 5,
+     "y": 4,
+     "piece": {
+      "kind": "prism"
+     }
+    },
+    {
      "x": 7,
-     "y": 2,
-     "piece": {
-      "kind": "prism"
-     }
-    },
-    {
-     "x": 8,
-     "y": 2,
+     "y": 4,
      "piece": {
       "kind": "mirror",
-      "orientation": "backslash"
-     }
-    },
-    {
-     "x": 6,
-     "y": 5,
-     "piece": {
-      "kind": "mirror",
-      "orientation": "backslash"
-     }
-    },
-    {
-     "x": 6,
-     "y": 7,
-     "piece": {
-      "kind": "prism"
+      "orientation": "slash"
      }
     }
    ],
    "difficulty": {
-    "score": 95.4,
+    "score": 99.4,
     "factors": {
      "par": 5,
-     "firstMoves": 45,
-     "minimumSolutions": 8,
+     "firstMoves": 33,
+     "minimumSolutions": 2,
      "prismNeeded": 1,
      "mixedLanterns": 1,
      "decoys": 2,
      "prismsAsTurns": 0,
      "lanterns": 4,
-     "fixedMirrors": 1
+     "fixedMirrors": 2
     },
     "points": {
      "par": 50,
-     "firstMoves": 16.5,
-     "minimumSolutions": 2.9,
+     "firstMoves": 15.1,
+     "minimumSolutions": 7.3,
      "prismNeeded": 6,
      "mixedLanterns": 7,
      "decoys": 6,
      "prismsAsTurns": 0,
      "lanterns": 6,
-     "fixedMirrors": 1
+     "fixedMirrors": 2
     }
    },
-   "attempts": 172,
-   "solveNodes": 89097
+   "attempts": 370,
+   "solveNodes": 16048
   },
   {
    "day": 27,
@@ -3954,68 +3952,69 @@
    "biome": "snow",
    "name": "Still Hearth",
    "rows": [
-    "...v.~.~~",
-    ">...~../T",
-    "BT.....W.",
-    ".#T....~.",
-    ".........",
-    "...~..T~.",
-    "...\\..C.~",
-    "T.~..#.~#",
-    "#~..^W..."
+    "..v..v#..",
+    "..~...R..",
+    "...T.~~#.",
+    ".C..~..~#",
+    "~T~B..~..",
+    "~..T.....",
+    "~.~.#.T..",
+    ".~.../.~.",
+    "..\\...B^."
    ],
    "inventory": {
     "mirrors": 8,
-    "prisms": 2
+    "prisms": 1
    },
    "sourceColours": [
     "white",
     "blue",
-    "white"
+    "blue"
    ],
    "par": 6,
    "solution": [
     {
-     "x": 4,
-     "y": 2,
+     "x": 0,
+     "y": 3,
      "piece": {
       "kind": "mirror",
       "orientation": "slash"
      }
     },
     {
+     "x": 2,
+     "y": 3,
+     "piece": {
+      "kind": "prism"
+     }
+    },
+    {
+     "x": 6,
+     "y": 3,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "slash"
+     }
+    },
+    {
+     "x": 7,
+     "y": 4,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "backslash"
+     }
+    },
+    {
      "x": 0,
-     "y": 4,
+     "y": 7,
      "piece": {
       "kind": "mirror",
       "orientation": "backslash"
      }
     },
     {
-     "x": 3,
-     "y": 4,
-     "piece": {
-      "kind": "prism"
-     }
-    },
-    {
-     "x": 7,
-     "y": 4,
-     "piece": {
-      "kind": "mirror",
-      "orientation": "backslash"
-     }
-    },
-    {
-     "x": 4,
-     "y": 6,
-     "piece": {
-      "kind": "prism"
-     }
-    },
-    {
-     "x": 7,
-     "y": 8,
+     "x": 2,
+     "y": 7,
      "piece": {
       "kind": "mirror",
       "orientation": "slash"
@@ -4023,32 +4022,32 @@
     }
    ],
    "difficulty": {
-    "score": 114.4,
+    "score": 111.3,
     "factors": {
      "par": 6,
-     "firstMoves": 44,
+     "firstMoves": 43,
      "minimumSolutions": 1,
      "prismNeeded": 1,
      "mixedLanterns": 1,
-     "decoys": 3,
+     "decoys": 2,
      "prismsAsTurns": 0,
      "lanterns": 4,
      "fixedMirrors": 2
     },
     "points": {
      "par": 60,
-     "firstMoves": 16.4,
+     "firstMoves": 16.3,
      "minimumSolutions": 8,
      "prismNeeded": 6,
      "mixedLanterns": 7,
-     "decoys": 9,
+     "decoys": 6,
      "prismsAsTurns": 0,
      "lanterns": 6,
      "fixedMirrors": 2
     }
    },
-   "attempts": 109,
-   "solveNodes": 138355
+   "attempts": 631,
+   "solveNodes": 52744
   },
   {
    "day": 48,
@@ -7551,37 +7550,29 @@
    "biome": "blossom",
    "name": "Bloom Pool",
    "rows": [
-    ".v.~.#WR.",
-    ".~.TG.~..",
-    "..~~..~..",
-    "...\\....<",
-    "C.~..~...",
-    "T........",
-    ".....##.T",
-    "...~#.#..",
-    "./~^.~#.#"
+    ".~v.#~...",
+    "....../~<",
+    "..~....TR",
+    "...C~....",
+    ".........",
+    "~..~...~#",
+    "...~.~..W",
+    "....T..#.",
+    "W#..T.^.~"
    ],
    "inventory": {
     "mirrors": 7,
-    "prisms": 2
+    "prisms": 1
    },
    "sourceColours": [
+    "green",
     "white",
-    "white",
-    "green"
+    "white"
    ],
    "par": 5,
    "solution": [
     {
-     "x": 0,
-     "y": 3,
-     "piece": {
-      "kind": "mirror",
-      "orientation": "slash"
-     }
-    },
-    {
-     "x": 4,
+     "x": 2,
      "y": 3,
      "piece": {
       "kind": "mirror",
@@ -7596,15 +7587,24 @@
      }
     },
     {
-     "x": 1,
-     "y": 4,
+     "x": 8,
+     "y": 3,
      "piece": {
-      "kind": "prism"
+      "kind": "mirror",
+      "orientation": "slash"
      }
     },
     {
-     "x": 7,
-     "y": 4,
+     "x": 0,
+     "y": 6,
+     "piece": {
+      "kind": "mirror",
+      "orientation": "slash"
+     }
+    },
+    {
+     "x": 6,
+     "y": 6,
      "piece": {
       "kind": "mirror",
       "orientation": "slash"
@@ -7612,32 +7612,32 @@
     }
    ],
    "difficulty": {
-    "score": 101.3,
+    "score": 98.3,
     "factors": {
      "par": 5,
-     "firstMoves": 43,
-     "minimumSolutions": 1,
+     "firstMoves": 32,
+     "minimumSolutions": 2,
      "prismNeeded": 1,
      "mixedLanterns": 1,
      "decoys": 2,
      "prismsAsTurns": 0,
      "lanterns": 4,
-     "fixedMirrors": 2
+     "fixedMirrors": 1
     },
     "points": {
      "par": 50,
-     "firstMoves": 16.3,
-     "minimumSolutions": 8,
+     "firstMoves": 15,
+     "minimumSolutions": 7.3,
      "prismNeeded": 6,
      "mixedLanterns": 7,
      "decoys": 6,
      "prismsAsTurns": 0,
      "lanterns": 6,
-     "fixedMirrors": 2
+     "fixedMirrors": 1
     }
    },
-   "attempts": 115,
-   "solveNodes": 96064
+   "attempts": 752,
+   "solveNodes": 62559
   },
   {
    "day": 90,

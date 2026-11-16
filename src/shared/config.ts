@@ -687,10 +687,13 @@ export const GENERATOR = {
   /** Reject an island with more distinct minimum solutions than this: too loose to be a puzzle. */
   maxMinimumSolutions: 20,
   /**
-   * Reject an island the solver needs more nodes than this to prove. Keeps every published day
-   * under about a second to solve (about 5 microseconds per node), with a wide margin on 2 s.
+   * Reject an island the solver needs more nodes than this to prove. Measured Nov 16 on a laptop
+   * running on battery: 8x8 and 9x9 islands cost 13 to 20 microseconds per node, so 66,000 nodes
+   * is about 1.3 s, inside the 2 s check even off the mains. (It was 150,000, assuming 5 us per
+   * node; days 26, 47 and 89 were regenerated under the new limit. Day 46, at 65,648 nodes, is
+   * the costliest day kept, so the limit must not go below that without regenerating it too.)
    */
-  maxSolveNodes: 150_000,
+  maxSolveNodes: 66_000,
   /**
    * Each day first aims at one par picked evenly from its weekday's band, so a weekday does not
    * always sit at the bottom of its band. After this many tries any par in the band will do.

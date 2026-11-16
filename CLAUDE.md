@@ -31,6 +31,12 @@ maintains Lumen until submission (Devpost by Dec 7). Start every session by read
   faint lantern rises through the empty sky above the island (`shared/arrival.ts`, skipped when
   there is no room, and with reduced motion). Local hook `window.lumenArrive(name)` with `?perf=1`.
 
+- **Nov 16, approved by Maulik:** Saturdays 26, 47 and 89 regenerated under a lower solver limit
+  (`GENERATOR.maxSolveNodes` 150,000 → 66,000; must stay ≥ 65,648, day 46's cost, unless day 46
+  is regenerated too). All other 87 days unchanged. The 2-second check stays time-based and now
+  runs alone after every other test (`vitest.config.ts` projects, `groupOrder`), so the suite no
+  longer starves it; it passes on battery. `npm run gen -- --only N,M` replaces single days.
+
 **History** (what each session built; kept for context, oldest first, M8 last):
 - **Island Builder is cut.** Sunday uses a generated island. Brief kept in `docs/HANDOFF-ARCHIVE.md`.
 - Onboarding (Nov 14): first visit runs three tutorial islands (`src/shared/tutorial.ts`,

@@ -44,6 +44,7 @@ All need Node 22.12+ and `npm install` once.
 | Headless screenshots | `node scripts/shoot.mjs "<url>" out.png steps.json 430x701` | Chrome headless with scripted steps (`[{ "js": "...", "wait": ms }]`). Use when the browser pane is hidden or for exact sizes. Needs Google Chrome |
 | Feed card pictures | `npm run debug` running, then `npm run hero` | Renders `src/client/assets/hero/<biome>.webp` from the hand-made island in `content/hero.json` (never a daily island). **Re-run after any change to the look.** Needs Chrome and `cwebp` (Homebrew `webp`) |
 | Difficulty report | `npm run report`; `-- --show 12` prints a day; `-- --verify` re-solves and times all | Par and difficulty per weekday |
+| Regenerate a few days | `npm run gen -- --only 26,47,89` | Replaces only those days, keeps every other day exactly as stored |
 | Regenerate days | `npm run gen -- --from 1 --to 90` | Only after changing `CALENDAR`, `GENERATOR` or `DIFFICULTY`; commit `content/puzzles.json`; `tests/content.test.ts` fails until you do |
 | Solver bench | `npm run bench` | Speed by par |
 | Playtest upload | `npm run dev`, wait for "Playtest ready", then **stop it** (Ctrl-C) | Uploads to r/lumen_game_dev. A 401 means `npx devvit login` again. Never leave it running: edits stream to Reddit |
