@@ -118,7 +118,8 @@ record anything. Do this in order.
 **Submission (from SPEC "Hackathon submission checklist"):** README.md (brief O-1), app listing
 link developers.reddit.com/apps/lumen-game, demo post in r/LumenGame, written description, demo
 video under 1 minute (record with the trailer), public repo link, developer feedback survey,
-Devpost by Dec 7.
+Devpost by Dec 7. **`docs/SUBMISSION.md`** has what past winners did (BridgeDit so far) and
+Lumen's gallery shot list, write-up and video plan built from it.
 
 ---
 
