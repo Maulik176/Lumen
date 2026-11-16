@@ -4,10 +4,9 @@
  * coloured per biome; nothing here is loaded from a file.
  */
 import {
-  AdditiveBlending,
   BoxGeometry,
+  BufferAttribute,
   type BufferGeometry,
-  CircleGeometry,
   Color,
   ConeGeometry,
   CylinderGeometry,
@@ -20,12 +19,14 @@ import {
   MeshBasicMaterial,
   MeshStandardMaterial,
   Quaternion,
+  RingGeometry,
   Sprite,
   SpriteMaterial,
   type Texture,
   Vector3,
 } from 'three';
 import { ART, HEAT, type BiomeLook } from '../../shared/config';
+import { poolColour } from '../../shared/heat';
 import type { Puzzle } from '../../shared/types';
 import { tileCentre } from './fit';
 import { at, merge, noise, paint, place, type Keeper } from './kit';
@@ -199,22 +200,38 @@ export function createGround(
   }
   group.add(tiles);
   // The painted colours, kept so a tint can always be taken off again.
-  // "Where did others place mirrors?": a soft pool of warm light on each used tile.
+  // "Where did others place mirrors?": a soft orange pool laid over each used tile. Laid over,
+  // not added as light: added light washed pale snow out to white (see shared/heat.ts).
   const poolMaterial = keeper.keep(
     new MeshBasicMaterial({
-      map: blob,
-      blending: AdditiveBlending,
+      vertexColors: true,
       transparent: true,
+      opacity: HEAT.poolOpacity,
       depthWrite: false,
     })
   );
-  const poolShape = keeper.keep(new CircleGeometry(0.5, 20));
+  // A flat disc whose own edge fades out: full in its inner half, clear at its rim. (No texture:
+  // with the soft-disc texture these pools never showed.)
+  const poolShape = keeper.keep(new RingGeometry(0, 0.5, 24, 2));
   poolShape.rotateX(-Math.PI / 2);
+  const ringPoints = poolShape.getAttribute('position');
+  const ringFade = new Float32Array(ringPoints.count * 4);
+  for (let i = 0; i < ringPoints.count; i++) {
+    const r = Math.hypot(ringPoints.getX(i), ringPoints.getZ(i)) / 0.5;
+    ringFade.set([1, 1, 1, r < 0.75 ? 1 : 0], i * 4);
+  }
+  poolShape.setAttribute('color', new BufferAttribute(ringFade, 4));
   const pools = new InstancedMesh(poolShape, poolMaterial, width * height);
+  // The colour buffer must exist before the pools are first drawn, or the graphics card is never
+  // told to use it and every pool comes out plain white (the original snow glare).
+  for (let tile = 0; tile < width * height; tile++)
+    pools.setColorAt(tile, colour.setHex(HEAT.colour));
   pools.count = 0;
   pools.renderOrder = 1;
+  // It starts with no pools, so its bounds would be worked out as empty and the whole mesh culled
+  // as off-screen for good. It always sits on the island, so it is never culled.
+  pools.frustumCulled = false;
   group.add(pools);
-  const heat = new Color(HEAT.colour);
 
   // --- The earth rim and the rock underneath, as one painted shape. --------------------------
   const span = Math.max(width, height) + RIM * 2;
@@ -559,15 +576,8 @@ export function createGround(
           position.set(worldX, 0.06, worldZ);
           matrix.compose(position, turn.identity(), scale.set(size, 1, size));
           pools.setMatrixAt(shown, matrix);
-          // The light adds to what is there, so a darker colour is a fainter pool.
-          pools.setColorAt(
-            shown,
-            colour
-              .copy(heat)
-              .multiplyScalar(
-                HEAT.glowMin + (HEAT.glowMax - HEAT.glowMin) * share
-              )
-          );
+          // Pale amber on a little-used tile, deep orange on the busiest.
+          pools.setColorAt(shown, colour.setHex(poolColour(share)));
           shown++;
         }
       }

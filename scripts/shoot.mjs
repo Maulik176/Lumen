@@ -51,8 +51,15 @@ export async function withPage(url, { width, height, scale = 2 }, use) {
     await new Promise((resolve) => socket.addEventListener('open', resolve));
     let id = 0;
     const waiting = new Map();
+    const logs = [];
     socket.addEventListener('message', (event) => {
       const message = JSON.parse(event.data);
+      if (message.method === 'Runtime.consoleAPICalled')
+        logs.push(
+          `${message.params.type}: ${message.params.args.map((arg) => arg.value ?? arg.description ?? '').join(' ')}`
+        );
+      if (message.method === 'Runtime.exceptionThrown')
+        logs.push(`exception: ${message.params.exceptionDetails.exception?.description ?? message.params.exceptionDetails.text}`);
       waiting.get(message.id)?.(message);
       waiting.delete(message.id);
     });
@@ -68,10 +75,13 @@ export async function withPage(url, { width, height, scale = 2 }, use) {
       deviceScaleFactor: scale,
       mobile: width < 600,
     });
+    await send('Runtime.enable');
     await send('Page.navigate', { url });
     await sleep(3500);
     const page = {
       sleep,
+      /** Console messages and uncaught errors from the page so far. */
+      logs: () => logs.slice(),
       async run(js) {
         const answer = await send('Runtime.evaluate', {
           expression: js,

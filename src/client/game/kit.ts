@@ -7,12 +7,8 @@ import {
   BufferGeometry,
   CanvasTexture,
   Color,
-  DataTexture,
-  LinearFilter,
-  LinearMipmapLinearFilter,
   Matrix4,
   type Object3D,
-  RGBAFormat,
 } from 'three';
 
 export type Keeper = {
@@ -116,34 +112,40 @@ export function at(x: number, y: number, z: number): Matrix4 {
 /**
  * A soft round blob that fades to nothing at its edge, for glows, mist and light spill.
  *
- * Computed pixel by pixel, not drawn with a canvas gradient: Safari dithers canvas gradients,
- * and where alpha is near zero the browser's un-premultiply turns that dither into wild
- * per-channel colours, which showed as coloured speckle across the whole daytime sky on iPhone.
- * Here the colour is always white and only alpha changes, smoothly, so nothing can speckle.
+ * Its pixels are computed one by one and written with putImageData, never drawn with a canvas
+ * gradient: Safari dithers gradients, and where alpha is near zero the browser's un-premultiply
+ * turned that dither into coloured speckle across the daytime sky on iPhone. Here every pixel is
+ * white and only alpha changes, so nothing can speckle. (A DataTexture also avoided the speckle,
+ * but transparent sprites and meshes drawn with it did not show at all: the clouds, the mist and
+ * the crowd pools vanished. A canvas texture renders everywhere.)
  */
-export function softDisc(size = 64, inner = 0.0, hold = 0.3): DataTexture {
-  const data = new Uint8Array(size * size * 4);
-  const half = size / 2;
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const r = Math.hypot(x + 0.5 - half, y + 0.5 - half) / half;
-      // The same stops the canvas gradient had: 1 at `inner`, 0.5 at `hold`, 0 at the edge.
-      const t = Math.min(1, Math.max(0, (r - inner) / (1 - inner)));
-      const alpha =
-        t <= hold ? 1 - (0.5 * t) / hold : 0.5 * (1 - (t - hold) / (1 - hold));
-      const at = (y * size + x) * 4;
-      data[at] = 255;
-      data[at + 1] = 255;
-      data[at + 2] = 255;
-      data[at + 3] = Math.round(Math.max(0, alpha) * 255);
+export function softDisc(size = 64, inner = 0.0, hold = 0.3): CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const pen = canvas.getContext('2d');
+  if (pen !== null) {
+    const pixels = pen.createImageData(size, size);
+    const half = size / 2;
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const r = Math.hypot(x + 0.5 - half, y + 0.5 - half) / half;
+        // The stops the gradient had: 1 at `inner`, 0.5 at `hold`, 0 at the edge.
+        const t = Math.min(1, Math.max(0, (r - inner) / (1 - inner)));
+        const alpha =
+          t <= hold
+            ? 1 - (0.5 * t) / hold
+            : 0.5 * (1 - (t - hold) / (1 - hold));
+        const at = (y * size + x) * 4;
+        pixels.data[at] = 255;
+        pixels.data[at + 1] = 255;
+        pixels.data[at + 2] = 255;
+        pixels.data[at + 3] = Math.round(Math.max(0, alpha) * 255);
+      }
     }
+    pen.putImageData(pixels, 0, 0);
   }
-  const texture = new DataTexture(data, size, size, RGBAFormat);
-  texture.magFilter = LinearFilter;
-  texture.minFilter = LinearMipmapLinearFilter;
-  texture.generateMipmaps = true;
-  texture.needsUpdate = true;
-  return texture;
+  return new CanvasTexture(canvas);
 }
 
 /** A four-pointed sparkle, for the place where a prism splits the light. */

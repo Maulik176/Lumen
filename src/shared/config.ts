@@ -201,7 +201,7 @@ export const COPY = {
   crowdParPast: '{percent}% hit par that night',
   crowdFew: 'You are among the first tonight.',
   crowdFewPast: 'Only a few lit it that night.',
-  crowdHint: 'Warmer tiles held more pieces.',
+  crowdHint: 'Orange pools show where others placed pieces.',
   /** Past islands only: lays the par answer on the island, and back. */
   showPar: 'Show par',
   showMine: 'Show mine',
@@ -988,16 +988,22 @@ export const KEEP = {
 
 /** "See how everyone solved it": tiles warm by how often players put a piece there. */
 export const HEAT = {
-  /** The warm colour tiles move toward, how far at the busiest tile, and how much brighter. */
-  colour: 0xffb347,
+  /**
+   * Pools are laid over the ground, not added to it as light (added light washed pale snow out
+   * to white). Their colour runs from pale amber on the least-used tile to deep orange on the
+   * busiest, at this opacity at their centre. A used tile must end up at least this much warmer
+   * (red minus blue, 0..255) than its bare ground on every biome; tested.
+   */
+  colour: 0xf07a1a,
+  paleColour: 0xf5c46a,
+  poolOpacity: 0.7,
+  minWarmthGain: 60,
   /**
    * Each used tile gets a soft pool of warm light: its width in tiles at the least-used and
    * the most-used tile, and its brightness at each.
    */
   poolMin: 0.9,
   poolMax: 2.3,
-  glowMin: 0.3,
-  glowMax: 1,
   /** Below this many solves the share at par is not shown; a gentler line is. */
   fewSolves: 5,
   /** How long the camera takes to come down to the island, or go back up, in ms. */

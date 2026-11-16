@@ -137,6 +137,12 @@ is too much for 300 lanterns, so the sky draws snoovatars only for the nearest f
   Whether Reddit ever gives the expanded view more width on desktop (a larger modal, a
   fullscreen control; `devvit.json`'s schema speaks of entry points "opened fullscreen") is
   **not known**: Claude cannot open reddit.com.
+- **The app cannot choose the expanded view's size (checked Nov 16, SDK 0.15.2).**
+  `requestExpandedMode(event, entry, options)` accepts only `{ title }`; an entry point's
+  `styles.height` applies inline and is "ignored when the entrypoint is opened fullscreen". The
+  "Desktop / Mobile" choice in the expanded dialog's header belongs to Reddit, not the app.
+  What the app does instead: it measures the view at run time and switches to the landscape
+  layout at 760 px wide (`VIEW.wideMinWidth`); a phone-sized dialog gets the phone layout.
 - **What a normal user sees on desktop: NOT YET CHECKED.** To check, Maulik opens the post in a
   private window with a second, non-moderator account (and once signed out) and notes: (1) is the
   playtest version's post visible at all to them; (2) the feed card's size and whether "Light the
