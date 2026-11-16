@@ -16,7 +16,7 @@ import {
   toPostData,
   type SkyResponse,
 } from '../../shared/api';
-import { COPY, PAST } from '../../shared/config';
+import { COPY, DEV, PAST } from '../../shared/config';
 import type { DailyIsland } from '../../shared/daily';
 import { isRuleKind } from '../../shared/rules';
 import { flairText } from '../../shared/streak';
@@ -141,6 +141,13 @@ api.get('/island', async (c) => {
     armed = (await store.get(KEYS.trailer(player.userId))) !== undefined;
     if (armed) await store.del(KEYS.trailer(player.userId));
   }
+  // Playtest subreddit only: the lantern-style preview a moderator turned on from the menu.
+  const stylePreview =
+    player !== null &&
+    context.subredditName === DEV.resetSubreddit &&
+    (await store
+      .get(KEYS.stylePreview(player.userId))
+      .catch(() => undefined)) !== undefined;
   return c.json<IslandResponse>({
     ok: true,
     island: toPublicIsland(island),
@@ -148,6 +155,7 @@ api.get('/island', async (c) => {
     rankedOpen: open && me.loggedIn,
     skyCount: count,
     ...(await nightOf(day)),
+    ...(stylePreview ? { stylePreview: true } : {}),
     sharedUrl:
       me.sharedComment !== null && context.postId !== undefined
         ? commentUrl(context.postId, me.sharedComment)

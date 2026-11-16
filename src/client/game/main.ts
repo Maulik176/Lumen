@@ -13,6 +13,7 @@ import {
   type ShareResponse,
   type SkyLantern,
   type SkyResponse,
+  stylePreviewLanterns,
 } from '../../shared/api';
 import { arrivalPath } from '../../shared/arrival';
 import { warmUpDay, type Biome } from '../../shared/calendar';
@@ -103,8 +104,10 @@ type Loaded = Extract<IslandResponse, { ok: true }>;
 
 async function loadIsland(day: string | null): Promise<Loaded | null> {
   try {
-    // ?trailer=1 is honoured only by the local test server; Reddit's decides for itself.
-    const trailer = query.get('trailer') === '1' ? '&trailer=1' : '';
+    // ?trailer=1 and ?styles=1 are honoured only by the local test server; Reddit's decides.
+    const trailer =
+      (query.get('trailer') === '1' ? '&trailer=1' : '') +
+      (query.get('styles') === '1' ? '&styles=1' : '');
     const response = await fetch(
       day === null
         ? '/api/island'
@@ -608,6 +611,9 @@ function mountIsland(
     (lanterns) => {
       if (disposed) return;
       view.setSky(lanterns);
+      // Playtest subreddit, moderator's preview: one lantern of each streak style.
+      if (tonight && loaded.stylePreview === true)
+        view.setSky(stylePreviewLanterns());
       // A quiet night: last night's lanterns keep tonight's company, faintly.
       if (tonight && lanterns.length < SKY.quietBelow && island.day > 1)
         void joinSky(

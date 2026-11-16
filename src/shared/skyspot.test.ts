@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { stylePreviewLanterns } from './api';
 import { SKY } from './config';
 import {
   arrivalPhase,
@@ -100,5 +101,21 @@ describe('othersInSky', () => {
   });
   it('shows each name once', () => {
     expect(othersInSky([...sky, ...sky], null)).toHaveLength(2);
+  });
+});
+
+describe('the lantern style preview (dev only)', () => {
+  it('has one lantern of each style, each labelled as a preview, never a player name', () => {
+    const lanterns = stylePreviewLanterns();
+    expect(lanterns.map((lantern) => lantern.s)).toEqual([
+      'plain',
+      'paper',
+      'star',
+      'koi',
+      'comet',
+    ]);
+    expect(lanterns.every((lantern) => lantern.u.endsWith('(preview)'))).toBe(
+      true
+    );
   });
 });

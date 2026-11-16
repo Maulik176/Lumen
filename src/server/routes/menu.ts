@@ -211,3 +211,32 @@ menu.post('/clean-up', async (c) => {
     return c.json<UiResponse>({ showToast: 'Clean-up failed' }, 200);
   }
 });
+
+/**
+ * Playtest subreddit only: for the next 30 minutes, the moderator's sky also shows one lantern
+ * of each streak style (plain, paper, star, koi, comet), labelled "(preview)". Tapping the item
+ * again turns it off.
+ */
+menu.post('/style-preview', async (c) => {
+  if (context.subredditName !== DEV.resetSubreddit)
+    return c.json<UiResponse>(
+      { showToast: 'Only on the playtest subreddit' },
+      200
+    );
+  const { userId } = context;
+  if (userId === undefined)
+    return c.json<UiResponse>({ showToast: 'Sign in first' }, 200);
+  const key = KEYS.stylePreview(userId);
+  if ((await redisStore.get(key)) !== undefined) {
+    await redisStore.del(key);
+    return c.json<UiResponse>({ showToast: 'Lantern style preview off.' }, 200);
+  }
+  await redisStore.set(key, '1', DEV.previewSeconds);
+  return c.json<UiResponse>(
+    {
+      showToast:
+        'Lantern style preview on for 30 minutes. Open a post you have solved to see the night sky.',
+    },
+    200
+  );
+});

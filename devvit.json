@@ -64,6 +64,13 @@
         "location": "subreddit",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/trailer"
+      },
+      {
+        "label": "Dev: preview lantern styles",
+        "description": "Playtest subreddit only: one lantern of each streak style in your sky for 30 minutes (tap again to turn off)",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/style-preview"
       }
     ]
   },

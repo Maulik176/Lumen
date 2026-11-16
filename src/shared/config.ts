@@ -1071,4 +1071,6 @@ export const TRAILER = {
 export const DEV = {
   /** "Reset my Lumen progress" works in this subreddit and nowhere else. */
   resetSubreddit: 'lumen_game_dev',
+  /** "Dev: preview lantern styles" lasts this long (seconds) for the moderator who turned it on. */
+  previewSeconds: 1800,
 } as const;

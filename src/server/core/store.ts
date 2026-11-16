@@ -103,6 +103,8 @@ export const KEYS = {
   progress: (day: number, userId: string) => `prog:${day}:${userId}`,
   /** Set for a few minutes when a moderator arms trailer mode for themselves. */
   trailer: (userId: string) => `trailer:${userId}`,
+  /** Playtest subreddit only: a moderator is previewing the lantern styles. */
+  stylePreview: (userId: string) => `dev:styles:${userId}`,
   /** Hash: username -> snoovatar address, for drawing boards without one read per row. */
   avatars: 'avatars',
   postForDay: (day: number) => `post:day:${day}`,

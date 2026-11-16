@@ -194,6 +194,11 @@ export type IslandResponse =
        * carries the island's answer, so it is never sent to anyone else.
        */
       trailer?: { solution: Placement[] };
+      /**
+       * Playtest subreddit only: a moderator asked to see one lantern of each streak style in
+       * the sky. They are labelled as a preview, never shown as players.
+       */
+      stylePreview?: boolean;
     }
   | { ok: false; reason: 'not-found' };
 
@@ -298,4 +303,13 @@ export function cleanSnoovatar(value: unknown): string {
   return /^https:\/\/i\.redd\.it\/snoovatar\/[\w\-./]+\.png$/.test(value)
     ? value
     : '';
+}
+
+/** The lanterns shown by "Dev: preview lantern styles": one per style, named as a preview. */
+export function stylePreviewLanterns(): SkyLantern[] {
+  return (['plain', 'paper', 'star', 'koi', 'comet'] as const).map((style) => ({
+    u: `${style} (preview)`,
+    s: style,
+    a: '',
+  }));
 }

@@ -289,6 +289,7 @@ function localApi(): Plugin {
                 night: asked.get('night') === 'past' ? 'past' : 'tonight',
                 tonightPost: null,
                 sharedUrl: null,
+                ...(asked.get('styles') === '1' ? { stylePreview: true } : {}),
                 ...(asked.get('trailer') === '1'
                   ? { trailer: { solution: island.solution } }
                   : {}),

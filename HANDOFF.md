@@ -59,6 +59,9 @@ minutes, tap once. It plays dusk, the answer, nightfall, the release and the tit
   the moderator's own progress. Cannot be undone.
 - "Reset my Lumen progress (dev)" forgets the moderator's tutorial, rule cards and today's solve.
 - "Post a Lumen island (testing)" posts any day.
+- "Dev: preview lantern styles" shows one lantern of each streak style (plain, paper, star, koi,
+  comet), labelled "(preview)", in the moderator's own sky for 30 minutes; tap again to turn
+  off. Locally: `?styles=1`.
 
 ## 4. Tuning guide (`src/shared/config.ts`)
 
