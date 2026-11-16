@@ -6,6 +6,7 @@
  * the interface is taking at the top and the bottom right now.
  */
 import type { LockInResult, PublicIsland } from '../../shared/api';
+import type { ArrivalPath } from '../../shared/arrival';
 import { COPY, SKY, UI, VIEW } from '../../shared/config';
 import {
   canLockIn,
@@ -75,6 +76,11 @@ export type Hud = {
    * pixels. Also switches between the phone layout and the landscape one to suit the view.
    */
   insets: () => { top: number; bottom: number; right: number };
+  /**
+   * A faint lantern rising through the empty sky above the island, for another player's solve.
+   * Never over the island or the bars, never takes a tap.
+   */
+  arrival: (path: ArrivalPath) => void;
   /** "u/name lit Moss Steps": shown briefly, never more than one at a time. */
   skyLine: (text: string) => void;
   /** A line that shows even while everything else is hidden, for `ms` milliseconds. */
@@ -85,6 +91,9 @@ export type Hud = {
 
 /** Hand-drawn style: single round strokes, slightly loose. Drawn on a 26 x 26 grid. */
 const ICONS = {
+  /** A small paper sky lantern: crown, shade, hoop. */
+  lantern:
+    'M7.200 9.400q5.800-5.200 11.600 0l-1.700 11.400H8.900zM8.900 20.800h8.200M13 13.600c1.300-1 1.400-2.700 0-4.400-1.400 1.700-1.300 3.400 0 4.400z',
   tick: 'M6.2 13.6l4.6 4.600 9-9.900',
   undo: 'M10.2 6.6 4.6 11.9l5.9 5M5 11.9c4.2-.5 8.4-.4 11.2.9 3.6 1.700 4.800 5.800 2.200 8.300',
   reset:
@@ -358,7 +367,7 @@ export function createHud(
     muteButton.setAttribute('aria-label', muted ? COPY.unmute : COPY.mute);
   }
 
-  const showLine = (text: string, kind: 'hint' | 'notice'): void => {
+  const showLine = (text: string, kind: 'hint' | 'notice' | 'sky'): void => {
     line.textContent = text;
     line.dataset['kind'] = kind;
     line.classList.toggle('visible', text.length > 0);
@@ -554,12 +563,44 @@ export function createHud(
 
     skyLine(text) {
       const now = performance.now();
-      // One at a time, with a breath between them, so a busy night never becomes a ticker.
+      // One at a time, with a breath between them, so a busy night never becomes a ticker. It
+      // never interrupts a notice, and only shows while the island is being played.
       if (now < skyUntil + SKY.lineGapMs || hushed || resultShown) return;
+      if (now < noticeUntil) return;
       skyUntil = now + SKY.lineMs;
-      skyLine.textContent = text;
-      skyLine.classList.add('visible');
-      window.setTimeout(() => skyLine.classList.remove('visible'), SKY.lineMs);
+      // It borrows the hint row, which is always kept free, so the island never moves; the hint
+      // comes back after.
+      noticeUntil = now + SKY.lineMs;
+      showLine(text, 'sky');
+      window.clearTimeout(noticeTimer);
+      noticeTimer = window.setTimeout(
+        () => showLine(lastHint, 'hint'),
+        SKY.lineMs
+      );
+    },
+
+    arrival(path) {
+      if (hushed || resultShown) return;
+      if (root.querySelectorAll('.arrival').length >= SKY.arrivalMax) return;
+      const lantern = element('div', 'arrival');
+      lantern.setAttribute('aria-hidden', 'true');
+      lantern.append(icon(ICONS.lantern));
+      lantern.style.width = `${SKY.arrivalPx}px`;
+      lantern.style.height = `${SKY.arrivalPx}px`;
+      lantern.style.left = `${path.x}px`;
+      lantern.style.top = `${path.from}px`;
+      root.append(lantern);
+      const rise = path.to - path.from;
+      const travel = lantern.animate(
+        [
+          { transform: 'translate(-50%, 0)', opacity: 0 },
+          { opacity: SKY.arrivalOpacity, offset: 0.2 },
+          { opacity: SKY.arrivalOpacity, offset: 0.75 },
+          { transform: `translate(-50%, ${rise}px)`, opacity: 0 },
+        ],
+        { duration: SKY.arrivalMs, easing: 'ease-in-out', fill: 'forwards' }
+      );
+      travel.onfinish = () => lantern.remove();
     },
 
     you(spot) {

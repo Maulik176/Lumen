@@ -26,6 +26,10 @@ maintains Lumen until submission (Devpost by Dec 7). Start every session by read
   hero renderer fixed, own lantern sharper; README; briefs O-3, O-4, O-5 and "post opens"
   built; O-14 Island Builder brief written in full (not built); `docs/LAUNCH.md` for the public
   subreddit.
+- **Nov 16, approved by Maulik:** live arrivals while playing. A `sky_{day}` message shows
+  "u/name just lit <island>" for 3 s in the reserved hint row (never shifts the board), and a
+  faint lantern rises through the empty sky above the island (`shared/arrival.ts`, skipped when
+  there is no room, and with reduced motion). Local hook `window.lumenArrive(name)` with `?perf=1`.
 
 **History** (what each session built; kept for context, oldest first, M8 last):
 - **Island Builder is cut.** Sunday uses a generated island. Brief kept in `docs/HANDOFF-ARCHIVE.md`.

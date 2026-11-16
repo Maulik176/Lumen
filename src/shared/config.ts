@@ -167,7 +167,7 @@ export const COPY = {
   /** Feed card: the whole game in one line. */
   previewGoal: 'Place mirrors. Bend the light into every lantern.',
   /** A quiet line when someone else's lantern rises. {name} is a username, {island} today's island. */
-  skyLine: 'u/{name} lit {island}',
+  skyLine: 'u/{name} just lit {island}',
   /** Result card footer. */
   comeBack: 'Come back at nightfall tomorrow.',
   /** Result card: replay without ranking. */
@@ -943,8 +943,22 @@ export const SKY = {
   portraitHigh: 12,
   portraitSize: 1.5,
   /** How long "u/name lit Moss Steps" stays on screen, and the least time between two of them. */
-  lineMs: 3200,
+  lineMs: 3000,
   lineGapMs: 1500,
+  /**
+   * While you play, another player's solve also sends a small faint lantern up through the
+   * empty sky above the island: its height and how faint (CSS pixels, 0..1), how long it takes,
+   * how far in from the side (share of the width), the space kept clear above and below it, and
+   * the least gap that has room for it. Reduced motion: no lantern, the line only.
+   */
+  arrivalPx: 22,
+  arrivalOpacity: 0.55,
+  arrivalMs: 5200,
+  arrivalSide: 0.1,
+  arrivalClearPx: 6,
+  arrivalMinGapPx: 64,
+  /** At most this many such lanterns in the air at once. */
+  arrivalMax: 3,
   /** A tapped lantern shows its player's name for this long; a tap counts within this many pixels. */
   nameMs: 2000,
   /**

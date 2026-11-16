@@ -14,6 +14,7 @@ import {
   type SkyLantern,
   type SkyResponse,
 } from '../../shared/api';
+import { arrivalPath } from '../../shared/arrival';
 import { warmUpDay, type Biome } from '../../shared/calendar';
 import { BIOMES, COPY, SKY, VIEW } from '../../shared/config';
 import {
@@ -580,6 +581,26 @@ function mountIsland(
   };
   if (lessons.length > 0) nextLesson();
 
+  /** Another player has just lit tonight's island. */
+  const welcome = (lantern: SkyLantern): void => {
+    if (disposed) return;
+    view.addSky(lantern);
+    // While the island is being played: a quiet line at the top and, with motion allowed, a
+    // faint lantern rising through the empty sky above the island.
+    if (state.phase === 'locked' || paused) return;
+    hud.skyLine(
+      COPY.skyLine.replace('{name}', lantern.u).replace('{island}', island.name)
+    );
+    if (calm) return;
+    const path = arrivalPath(
+      window.innerWidth,
+      hud.insets().top,
+      view.islandTop(),
+      lantern.u.length % 2 === 0
+    );
+    if (path !== null) hud.arrival(path);
+  };
+
   void joinSky(
     island.day,
     tonight,
@@ -599,15 +620,7 @@ function mountIsland(
           () => undefined
         );
     },
-    (lantern) => {
-      if (disposed) return;
-      view.addSky(lantern);
-      hud.skyLine(
-        COPY.skyLine
-          .replace('{name}', lantern.u)
-          .replace('{island}', island.name)
-      );
-    }
+    welcome
   );
 
   // The "You" label rides the player's own lantern.
@@ -627,6 +640,8 @@ function mountIsland(
     Object.assign(window, {
       lumenTap: (x: number, y: number) => apply(tapTile(state, x, y)),
       lumenLockIn: () => void commit(),
+      // Stands in for a realtime message: another player has just lit the island.
+      lumenArrive: (name: string) => welcome({ u: name, s: 'plain', a: '' }),
     });
     perfTimer = window.setInterval(() => {
       const stats = view.stats();

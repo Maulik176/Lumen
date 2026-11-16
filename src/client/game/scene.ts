@@ -54,6 +54,9 @@ const RELEASE_ZOOM = 0.55;
 
 type PieceView = { group: Group; code: string; bornAt: number };
 
+/** The tallest thing on an island (trees, lanterns), in tiles above the ground. */
+const ISLAND_TALLEST = 1.15;
+
 export type ViewStats = {
   fps: number;
   calls: number;
@@ -112,6 +115,8 @@ export type IslandView = {
   /** `past`: lanterns from the night before, drawn faintly behind tonight's. */
   setSky: (lanterns: readonly SkyLantern[], past?: boolean) => void;
   addSky: (lantern: SkyLantern) => void;
+  /** The highest point of the island on screen (rim corners, with room for trees), CSS pixels. */
+  islandTop: () => number;
   /** Where a tile's centre is on the screen, in CSS pixels. For pointing at it. */
   screenOf: (x: number, y: number) => { x: number; y: number };
   stats: () => ViewStats;
@@ -669,6 +674,23 @@ export function createIslandView(
 
     addSky(lantern) {
       skyField.add(lantern);
+    },
+
+    islandTop() {
+      // The camera may have moved since it last drew (reframing): measure from where it is now.
+      applyCamera();
+      camera.updateMatrixWorld();
+      const bounds = canvas.getBoundingClientRect();
+      let top = Number.POSITIVE_INFINITY;
+      const halfW = width / 2 + RIM;
+      const halfH = height / 2 + RIM;
+      for (const cornerX of [-halfW, halfW])
+        for (const cornerZ of [-halfH, halfH])
+          for (const lift of [0, ISLAND_TALLEST]) {
+            hit.set(cornerX, lift + island.position.y, cornerZ).project(camera);
+            top = Math.min(top, bounds.top + ((1 - hit.y) / 2) * bounds.height);
+          }
+      return top;
     },
 
     screenOf(x, y) {
