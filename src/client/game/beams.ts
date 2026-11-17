@@ -62,6 +62,7 @@ const FRAGMENT = /* glsl */ `
   uniform float uWidth;
   uniform float uNight;
   uniform float uReveal;
+  uniform float uEdge;
   varying vec2 vUv;
 
   float triangle(vec2 p, float r) {
@@ -107,7 +108,13 @@ const FRAGMENT = /* glsl */ `
       coreColour = mix(coreColour, vec3(1.0), mark);
     }
 
-    gl_FragColor = vec4(coreColour * coreAlpha + glow, coreAlpha);
+    // On pale ground, a soft band of shade either side of the core, so white light keeps an
+    // edge (nothing is drawn there; the ground beneath is darkened). Fades away at night.
+    float lining = smoothstep(0.2, 0.3, across) * smoothstep(0.75, 0.36, across)
+      * uEdge * ends * (1.0 - 0.8 * uNight);
+    float alpha = coreAlpha + lining * (1.0 - coreAlpha);
+
+    gl_FragColor = vec4(coreColour * coreAlpha + glow * (1.0 - 0.6 * uEdge), alpha);
   }
 `;
 
@@ -138,11 +145,17 @@ export type Beams = {
   update: (timeMs: number, night: number, calm: boolean) => void;
 };
 
-export function createBeams(sparkleMap: Texture, keeper: Keeper): Beams {
+export function createBeams(
+  sparkleMap: Texture,
+  keeper: Keeper,
+  /** Shaded lining beside each beam on pale ground, 0 for none (shared/glare.ts). */
+  edge: number
+): Beams {
   const group = new Group();
   const time = { value: 0 };
   const night = { value: 0 };
   const widthUniform = { value: WIDTH };
+  const edgeUniform = { value: edge };
   let syncedAt = 0;
   const geometry = keeper.keep(new PlaneGeometry(1, 1));
   geometry.rotateX(-Math.PI / 2);
@@ -165,6 +178,7 @@ export function createBeams(sparkleMap: Texture, keeper: Keeper): Beams {
           uTime: time,
           uWidth: widthUniform,
           uNight: night,
+          uEdge: edgeUniform,
         },
         transparent: true,
         depthWrite: false,

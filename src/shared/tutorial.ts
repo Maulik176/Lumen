@@ -3,6 +3,8 @@
  * place a mirror, turn a mirror, make a prism. One tile matters on each, and tapping it the
  * stated number of times lights every lantern.
  */
+import { COPY } from './config';
+import { piecesLeft, type PlayEvent, type PlayState } from './play';
 import type { PuzzleText } from './puzzle-text';
 
 export type TutorialHint = 'mirror' | 'turn' | 'prism';
@@ -55,3 +57,26 @@ export const TUTORIAL_SOLO: PuzzleText = {
   inventory: { mirrors: 2, prisms: 0 },
   sourceColours: [],
 };
+
+/**
+ * The line under "Your turn", which has no hand and no Undo: how many mirrors are left, and once
+ * they are all down without lighting the lantern, how to get one back, with "Start again"
+ * offered. Before this, a tap on empty grass with nothing left looked like it did nothing.
+ */
+export function soloLine(
+  state: PlayState,
+  events: readonly PlayEvent[]
+): { text: string; again: boolean } {
+  const stuck = !state.light.solved && piecesLeft(state).mirrors === 0;
+  if (events.some((event) => event.type === 'no-pieces-left'))
+    return { text: COPY.tutorialSoloStuck, again: true };
+  if (stuck) return { text: COPY.tutorialSoloNone, again: true };
+  const left = piecesLeft(state).mirrors;
+  return {
+    text:
+      left === 1
+        ? COPY.tutorialSoloLeftOne
+        : COPY.tutorialSoloLeft.replace('{count}', String(left)),
+    again: false,
+  };
+}

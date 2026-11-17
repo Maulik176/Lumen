@@ -29,6 +29,8 @@ export type HudActions = {
   /** Top bar, right: tonight's island offers How to play; a past island offers Back. */
   howToPlay?: () => void;
   back?: () => void;
+  /** Where `back` leads, for its label. "Back to tonight" when left out. */
+  backLabel?: string;
   /** Result card: the list of earlier islands. Left out on day 1, when there are none. */
   explore?: () => void;
   /** Result card: tapping the time and place opens tonight's board. */
@@ -231,7 +233,9 @@ export function createHud(
     help.type = 'button';
     help.setAttribute(
       'aria-label',
-      actions.back === undefined ? COPY.howToPlay : COPY.backToTonight
+      actions.back === undefined
+        ? COPY.howToPlay
+        : (actions.backLabel ?? COPY.backToTonight)
     );
     help.addEventListener('click', corner);
     top.append(help);
@@ -318,7 +322,11 @@ export function createHud(
         }
   );
   let footerTimer = 0;
-  const backButton = button(COPY.backToTonight, 'quiet', actions.back);
+  const backButton = button(
+    actions.backLabel ?? COPY.backToTonight,
+    'quiet',
+    actions.back
+  );
   const tonightButton = button(COPY.toTonight, 'main', actions.tonight);
   result.append(
     resultMedal,

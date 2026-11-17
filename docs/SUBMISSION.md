@@ -94,7 +94,7 @@ appear.
 | # | Picture | Caption | Criterion | How | When |
 |---|---|---|---|---|---|
 | 1 | **Cover GIF:** your lantern rises into a sky full of lanterns | ONE SKY / everyone who lit tonight's island | Reddity | Trailer mode, screen recording | After launch (needs a full sky) |
-| 2 | Lumen logo | — | Identity | **Made:** `content/brand/png/wordmark-on-dark-1600.png` (Devpost thumbnail: `devpost-thumbnail-1500x1000.png`) | Done |
+| 2 | Lumen logo | — | Identity | **Made:** `content/brand/png/wordmark-on-dark-1600.png` (Devpost thumbnail: `devpost-thumbnail-game-1500x1000.png`, the real island; the sky-only `devpost-thumbnail-1500x1000.png` is the spare) | Done |
 | 3 | Five biomes side by side | A NEW ISLAND EVERY NIGHT / gentle Monday, demanding Saturday | Recurring content | `npm run hero` renders | Any time |
 | 4 | Light travelling, a mirror turning, a prism splitting | BEND THE LIGHT / tap to place, tap to turn | Delightful UX | `scripts/shoot.mjs` at exact size | Any time |
 | 5 | Colour shapes close up | COLOUR IS NEVER THE ONLY CLUE / triangle, circle, square | Polish | Local screenshot | Any time |

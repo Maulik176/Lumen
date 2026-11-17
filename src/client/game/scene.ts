@@ -34,6 +34,7 @@ import {
 import type { SkyLantern } from '../../shared/api';
 import type { SkyView } from '../../shared/skyspot';
 import type { Biome } from '../../shared/calendar';
+import { beamEdge, sunGlow } from '../../shared/glare';
 import type { PlayState } from '../../shared/play';
 import type { Puzzle } from '../../shared/types';
 import { createBeams } from './beams';
@@ -175,7 +176,9 @@ export function createIslandView(
   const ground = createGround(puzzle, look, blobMap, keeper);
   island.add(ground.group);
 
-  const kit = createPieceKit(glowMap, keeper.keep(rays()), keeper);
+  // On pale ground suns glow less and beams get a shaded lining, so light stays readable.
+  const sunStrength = sunGlow(look.groundA);
+  const kit = createPieceKit(glowMap, keeper.keep(rays()), keeper, sunStrength);
   const crystals: { crystal: Mesh; halo: Sprite; rays: SpriteMaterial }[] = [];
   for (const source of puzzle.sources) {
     const [x, z] = tileCentre(source.x, source.y, width, height);
@@ -193,7 +196,7 @@ export function createIslandView(
 
   const lanterns = createLanterns(puzzle, glowMap, keeper, calm);
   island.add(lanterns.group);
-  const beams = createBeams(sparkleMap, keeper);
+  const beams = createBeams(sparkleMap, keeper, beamEdge(look.groundA));
   island.add(beams.group);
   const skyLantern = createSkyLantern(options.rider, glowMap, keeper);
   island.add(skyLantern.group);
@@ -383,7 +386,10 @@ export function createIslandView(
         ? 0
         : (time / ART.sunTurnMs) * Math.PI * 2;
       sunCrystal.rays.opacity =
-        ART.sunRayOpacity * (0.6 + 0.4 * breath) * (1 - 0.45 * night);
+        ART.sunRayOpacity *
+        sunStrength *
+        (0.6 + 0.4 * breath) *
+        (1 - 0.45 * night);
     }
     lanterns.update(time, delta, allLit, nightAt >= 0, teaching);
     beams.update(time, night, calm);

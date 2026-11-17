@@ -49,13 +49,18 @@ body {
   opacity: 1;
 }
 
+/* The island at feed size looked dim (review, Nov 17): a little lift, and the scrim starts lower. */
+.card:not(.solved) .hero {
+  filter: brightness(1.1) saturate(1.05);
+}
+
 .scrim {
   position: absolute;
   inset: 0;
   background: linear-gradient(
     180deg,
     transparent 0%,
-    transparent 36%,
+    transparent 42%,
     var(--night-soft) 60%,
     var(--night) 77%
   );

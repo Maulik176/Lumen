@@ -50,6 +50,11 @@ maintains Lumen until submission (Devpost by Dec 7). Start every session by read
   Logo built (option C, Maulik's pick: the light's path is the L): `content/brand/`, rebuilt by
   `node content/brand/build.mjs`; app listing icon set in `devvit.json` `marketingAssets`.
 
+- **Nov 17, outside review refinements:** light readable on pale ground (`shared/glare.ts`,
+  `GLARE`), "Your turn" mistake recovery (`soloLine`, "Start again"), "Practice · Name" and
+  "Back to islands" on map islands, brighter feed card picture, Devpost thumbnail with the real
+  island. 349 tests. Human checks from the review are in `docs/TESTS-TO-RUN.md` section 1b.
+
 **History** (what each session built; kept for context, oldest first, M8 last):
 - **Island Builder is cut.** Sunday uses a generated island. Brief kept in `docs/HANDOFF-ARCHIVE.md`.
 - Onboarding (Nov 14): first visit runs three tutorial islands (`src/shared/tutorial.ts`,

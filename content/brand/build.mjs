@@ -12,7 +12,7 @@
  *   python outline-font.py ../../src/client/assets/fonts/young-serif.woff2 umen > umen.json
  * (`pip install fonttools brotli`). Rebuild it only if the font or the word changes.
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { withPage } from '../../scripts/shoot.mjs';
@@ -245,6 +245,39 @@ function clearPage(svgText, width) {
 </style></head><body>${svgText}</body></html>`;
 }
 
+/**
+ * The Devpost thumbnail that shows play: the real hero island (island-render.png, made by
+ * island.mjs) with light turning into lit lanterns, and the wordmark in a night corner.
+ */
+function gamePage(width, height) {
+  const picture = readFileSync(join(here, 'island-render.png')).toString(
+    'base64'
+  );
+  const word = files['lumen-wordmark-on-dark.svg'].replace(
+    '<svg ',
+    `<svg width="${Math.round(width * 0.28)}" `
+  );
+  // The render is 4:3; it is drawn a little larger than the frame and to the right, so the
+  // island sits clear of the words. Its left edge fades into the render's own sky colours.
+  const scale = 0.66;
+  const left = Math.round(width * 0.1);
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>
+  @font-face { font-family: 'Young Serif'; src: url(data:font/woff2;base64,${font}) format('woff2'); }
+  html, body { margin: 0; width: ${width}px; height: ${height}px; overflow: hidden; }
+  body { position: relative; background: linear-gradient(180deg, #e8a469 0%, #e39f63 25%, #da9a61 50%, #d39865 75%, #c88c5a 100%); }
+  .island { position: absolute; left: ${left}px; top: -${Math.round(height * 0.04)}px; width: ${Math.round(2400 * scale)}px;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 ${Math.round(width * 0.08)}px); mask-image: linear-gradient(90deg, transparent 0, #000 ${Math.round(width * 0.08)}px); }
+  .corner { position: absolute; inset: 0; background: radial-gradient(ellipse 48% 40% at 0% 0%, rgba(26, 20, 48, 0.92) 0%, rgba(26, 20, 48, 0.78) 55%, rgba(26, 20, 48, 0) 100%); }
+  .words { position: absolute; left: ${Math.round(width * 0.035)}px; top: ${Math.round(height * 0.035)}px; }
+  .words svg { display: block; height: auto; }
+  p { margin: 0 0 0 ${Math.round(width * 0.008)}px; font: ${Math.round(width * 0.018)}px 'Young Serif', serif; color: ${C.paper}; }
+</style></head><body>
+  <img class="island" src="data:image/png;base64,${picture}" alt="">
+  <div class="corner"></div>
+  <div class="words">${word}<p>Bend the light into every lantern</p></div>
+</body></html>`;
+}
+
 const renders = [
   ['app-icon-1024', 1024, 1024, iconPage(1024), false],
   ['subreddit-icon-512', 512, 512, iconPage(512), false],
@@ -257,6 +290,14 @@ const renders = [
     false,
   ]),
 ];
+if (existsSync(join(here, 'island-render.png')))
+  renders.push([
+    'devpost-thumbnail-game-1500x1000',
+    1500,
+    1000,
+    gamePage(1500, 1000),
+    false,
+  ]);
 // Transparent wordmarks for slides, the README and anywhere else.
 for (const [name, file] of [
   ['wordmark-on-dark-1600', 'lumen-wordmark-on-dark.svg'],

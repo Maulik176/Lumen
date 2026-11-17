@@ -536,6 +536,11 @@ canvas {
   font-size: 17px;
 }
 
+.lesson-again {
+  margin-left: auto;
+  padding: 0 12px;
+}
+
 .lesson-dots {
   display: flex;
   gap: 7px;
@@ -1251,4 +1256,9 @@ div.others-row {
   stroke: currentColor;
   stroke-width: 1.4;
   stroke-linejoin: round;
+}
+
+.lesson-again[hidden],
+.lesson.offering .lesson-dots {
+  display: none;
 }

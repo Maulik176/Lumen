@@ -24,6 +24,20 @@ lanterns in the sky (three accounts on Lumen #8), "Dev: set today".
 | 8 | **Android** | Play one island start to finish in the Reddit app: smooth? sky lanterns visible (the Nov 16 fix)? | Android owner |
 | 9 | **App listing page** | Open developers.reddit.com/apps/lumen-game signed out: does it load, with the new icon? | Maulik |
 
+## 1b. Strangers playing (the strongest evidence; Nov 17 review)
+
+Watch, don't coach. Note the first independent move, any request for help, whether they finish,
+and whether they can say what the night sky is. Then ask them to come back another day and see
+whether they do (saying they will is not the same).
+
+| # | Test | Who |
+| --- | --- | --- |
+| S1 | A friend who has never seen Lumen, on their own phone, from a direct post link: tutorial, "Your turn", tonight's island, Lock in, See others' islands, Share | Friend |
+| S2 | On "Your turn", ask them to put both mirrors somewhere wrong first: do they find "Start again" or tap a mirror to lift it, without help? | Friend |
+| S3 | A newcomer on a Saturday: four rule cards in a row. Once playing, ask what the stone mirror and the water do. Do they remember? (A question to answer, not a reason to redesign) | Friend |
+| S4 | Finger accuracy on the densest Saturday board on a small phone: can they hit the tile they mean, first time? | Friend |
+| S5 | Does anyone come back the next day without being reminded? | Maulik |
+
 ## 2. Fixed in code, never confirmed on a phone
 
 | # | Test | How |
@@ -33,6 +47,8 @@ lanterns in the sky (three accounts on Lumen #8), "Dev: set today".
 | 12 | Sky lanterns smooth and sharp | Your own lantern rising, others' lanterns, no jagged edges |
 | 13 | Slow ending on a phone | The 7-second rise and hover after Lock in, with Reduce Motion on and off |
 | 14 | Frame rate | Does anything stutter on iPhone or Android? (No number available on Reddit: judge by eye) |
+| 14b | Light readable on snow (Nov 17 fix) | A snow day: beams have a soft shaded edge, two suns side by side stay two suns, on a real phone in daylight |
+| 14c | "Practice · Name" and "Back to islands" (Nov 17 fix) | Explore past islands, open one: the top bar says Practice, the arrow and the result card's button go back to the map |
 
 ## 3. Built, never opened on Reddit
 

@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { startPlay, tapTile } from './play';
+import { COPY } from './config';
+import { reset, startPlay, tapTile } from './play';
 import { puzzleFromText } from './puzzle-text';
 import { solve } from './solve';
-import { TUTORIAL, TUTORIAL_SOLO } from './tutorial';
+import { soloLine, TUTORIAL, TUTORIAL_SOLO } from './tutorial';
 
 describe('tutorial islands', () => {
   it('there are three: mirror, turn, prism', () => {
@@ -54,6 +55,54 @@ describe('the "Your turn" island', () => {
     expect(solve(puzzle)).toMatchObject({ status: 'solved', par: 1 });
     let state = tapTile(startPlay(puzzle), 1, 1).state;
     expect(state.light.solved).toBe(false);
+    state = tapTile(state, 1, 1).state;
+    expect(state.light.solved).toBe(true);
+  });
+});
+
+describe('"Your turn" when a newcomer goes wrong', () => {
+  const puzzle = puzzleFromText(TUTORIAL_SOLO);
+  // The sun at (0, 1) shines east; the lantern is at (1, 3). These two tiles help nothing.
+  const wrong = [
+    { x: 3, y: 3 },
+    { x: 2, y: 0 },
+  ];
+
+  it('says how many mirrors are left to place', () => {
+    let state = startPlay(puzzle);
+    expect(soloLine(state, [])).toEqual({
+      text: COPY.tutorialSoloLeft.replace('{count}', '2'),
+      again: false,
+    });
+    state = tapTile(state, 3, 3).state;
+    expect(soloLine(state, []).text).toBe(COPY.tutorialSoloLeftOne);
+  });
+
+  it('spending both mirrors badly explains the way back and offers to start again', () => {
+    let state = startPlay(puzzle);
+    for (const tile of wrong) state = tapTile(state, tile.x, tile.y).state;
+    expect(state.light.solved).toBe(false);
+    expect(soloLine(state, [])).toEqual({
+      text: COPY.tutorialSoloNone,
+      again: true,
+    });
+    // An empty tile now takes nothing: before, this tap looked like it did nothing at all.
+    const step = tapTile(state, 2, 2);
+    expect(step.events).toContainEqual({ type: 'no-pieces-left' });
+    expect(soloLine(step.state, step.events)).toEqual({
+      text: COPY.tutorialSoloStuck,
+      again: true,
+    });
+  });
+
+  it('starting again gives both mirrors back, and the island can still be lit', () => {
+    let state = startPlay(puzzle);
+    for (const tile of wrong) state = tapTile(state, tile.x, tile.y).state;
+    state = reset(state).state;
+    expect(soloLine(state, []).text).toBe(
+      COPY.tutorialSoloLeft.replace('{count}', '2')
+    );
+    state = tapTile(state, 1, 1).state;
     state = tapTile(state, 1, 1).state;
     expect(state.light.solved).toBe(true);
   });

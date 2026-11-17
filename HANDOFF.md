@@ -23,6 +23,14 @@ superseded by O-14 below.
   trailer mode, warm-up offer, Archipelago map, day rollover by cron.
 - **Never run:** Android; two phones at once (live sky); frame rate on any real device.
 - **Everything still untested, with how to test it: `docs/TESTS-TO-RUN.md`** (Nov 17).
+- **Nov 17, after an outside review** (`docs/TESTS-TO-RUN.md` 1b lists its human checks):
+  light on pale ground (`shared/glare.ts`: beams get a shaded lining and suns glare less as the
+  ground gets lighter, so snow reads and moss is unchanged; sun rays 3.1 to 2.4 tiles);
+  "Your turn" shows mirrors left, explains the way back once both are down, and offers "Start
+  again" (`soloLine` in `shared/tutorial.ts`, tested); islands from the map say "Practice ·
+  Name" and their way back is "Back to islands"; the feed card's scrim starts lower (title
+  contrast measured 6.2:1, tagline 12.2:1); a Devpost thumbnail with the real hero island
+  (`content/brand/island.mjs`, then `build.mjs`). Feed pictures re-rendered.
 - **Cut, now approved to build after Wed Nov 18:** Island Builder and the Sunday community island
   (O-14). Until it ships, Sunday uses a generated island.
 
@@ -86,6 +94,7 @@ Every number lives here with a comment. Change one, run `npm test`, look at it l
 | The ending feels slow / fast | `RELEASE.riseMs` (7000), `RELEASE.hoverMs` (2600), `RELEASE.lookBelow`, `RELEASE.driftSpeed`, `RELEASE.driftHeight` | Calm path: `calmRiseMs`, `calmHoldRise` |
 | Other lanterns too big / small / many | `SKY.pointSize` (42), `SKY.fullSizeAt`, `SKY.maxLanterns` (300), `SKY.snoovatarLoads` (60) | One draw call whatever the count |
 | Quiet-night threshold | `SKY.quietBelow` (10), `SKY.lastNightOpacity` | Last night's lanterns are real players only |
+| Light on pale ground | `GLARE.paleFrom`, `paleTo`, `edgeMax` (beam lining), `sunMin` (sun glare) | `shared/glare.ts`, tested; then `npm run hero` |
 | See others' islands | `OTHERS.top`, `previewWidth`, `previewHeight`, `previewMirror`, `previewPrism`, `previewGlow`, `fewSolves` | |
 | Medal colours | `UI.emblemGold`, `emblemSilver`, `emblemBronze`; name colours `UI.medal*` | |
 | Medal thresholds | `SCORING.lamplighterOverPar`, `glowOverPar` | |
@@ -436,7 +445,9 @@ only; drawn in code, no generated images. Reads at 32 px; at 16 px it is a glowi
 - PNG (`png/`): `app-icon-1024.png` (Devvit listing: 1024 square, under 500 KB, set as
   `marketingAssets.icon` in `devvit.json`), `subreddit-icon-512.png` and `-256.png` (the mark
   sits inside the circle Reddit crops icons to), `subreddit-banner-1920x384.png` (everything
-  in the middle band: Reddit crops banners to about 25:3), `devpost-thumbnail-1500x1000.png`
+  in the middle band: Reddit crops banners to about 25:3), `devpost-thumbnail-game-1500x1000.png`
+  (the real hero island with light turning into lit lanterns, wordmark in a night corner; made
+  from `island-render.png` by `island.mjs`, needs `npm run debug`), `devpost-thumbnail-1500x1000.png`
   (3:2), `trailer-title-1920x1080.png` (for the video edit), transparent wordmarks
   `wordmark-on-dark-1600.png` and `wordmark-on-light-1600.png`.
 - `drafts/`: the three options shown to Maulik and `check-small-sizes.png` (32 and 16 px test).

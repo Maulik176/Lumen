@@ -75,7 +75,9 @@ function frameGeometry(
 export function createPieceKit(
   glow: Texture,
   rayMap: Texture,
-  keeper: Keeper
+  keeper: Keeper,
+  /** Share of full halo and ray strength, lower on pale ground (shared/glare.ts). */
+  sunStrength: number
 ): PieceKit {
   const painted = keeper.keep(
     new MeshStandardMaterial({
@@ -193,7 +195,7 @@ export function createPieceKit(
           color: BEAM_HEX[colour],
           blending: AdditiveBlending,
           depthWrite: false,
-          opacity: 0.75,
+          opacity: ART.sunHaloOpacity * sunStrength,
         })
       );
       const halo = new Sprite(haloMaterial);

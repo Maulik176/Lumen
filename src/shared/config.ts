@@ -120,6 +120,12 @@ export const COPY = {
   tutorialSkip: 'Skip',
   /** The fourth tutorial island: no hints, no hand. */
   tutorialSolo: 'Your turn',
+  /** Its line: mirrors left; then, once both are down and the lantern is still dark, the way back. */
+  tutorialSoloLeft: 'Your turn · {count} mirrors to place',
+  tutorialSoloLeftOne: 'Your turn · 1 mirror to place',
+  tutorialSoloNone: 'Your turn · no mirrors left',
+  tutorialSoloStuck: 'Tap a placed mirror to turn or lift it',
+  tutorialAgain: 'Start again',
   /** One-time rule cards: one line each, the first time a player meets the thing. */
   ruleFixed: 'Stone mirrors are fixed. They turn the light, but never move.',
   ruleWater: 'Light crosses water. Pieces cannot stand on it.',
@@ -215,6 +221,11 @@ export const COPY = {
   back: 'Back',
   /** Leaves a past island and returns to tonight's. */
   backToTonight: 'Back to tonight',
+  /** Leaves an island opened from the map and returns to the map. */
+  backToIslands: 'Back to islands',
+  /** Top bar of an island opened from the map, and of a newcomer's warm-up island. */
+  practiceNamed: 'Practice · {name}',
+  warmUpNamed: 'Warm-up · {name}',
   /** If the island cannot be loaded. */
   loadFailed: 'The island is hidden in mist. Try again in a moment.',
   /** If Lock in cannot reach the server. */
@@ -560,9 +571,13 @@ export const ART = {
   tileLift: 0.09,
   /** Lanterns are drawn this many times their modelled size. */
   lanternScale: 1.45,
-  /** Sun crystals: halo size in tiles, ray size, one slow pulse in ms, one turn of the rays in ms. */
-  sunHalo: 1.7,
-  sunRays: 3.1,
+  /**
+   * Sun crystals: halo size in tiles and its brightness, ray size, one slow pulse in ms, one turn
+   * of the rays in ms. Rays were 3.1 tiles: two suns side by side merged into one flare.
+   */
+  sunHalo: 1.5,
+  sunHaloOpacity: 0.7,
+  sunRays: 2.4,
   sunPulseMs: 2800,
   sunTurnMs: 46_000,
   sunRayOpacity: 0.5,
@@ -576,6 +591,19 @@ export const ART = {
   /** Day and dusk sky: strength of the thin cloud wisps, and of the darkening below the island. */
   wisps: 0.2,
   deepSky: 0.7,
+} as const;
+
+/**
+ * Light on pale ground (shared/glare.ts). Ground lighter than `paleFrom` (relative luminance,
+ * 0 to 1) starts to get help, reaching full help at `paleTo`: beams get a soft shaded lining up
+ * to `edgeMax` (share of the ground darkened beside the beam), and suns' halos and rays drop to
+ * `sunMin` of their strength. Moss (0.36) gets nothing; snow (0.9) gets the most.
+ */
+export const GLARE = {
+  paleFrom: 0.4,
+  paleTo: 0.85,
+  edgeMax: 0.5,
+  sunMin: 0.5,
 } as const;
 
 /** First-time teaching: the goal shown before any words. Times in milliseconds. */

@@ -242,6 +242,10 @@ type IslandOptions = {
   /** Opens the Archipelago map of past islands. */
   explore?: () => void;
   back?: () => void;
+  /** What the back arrow and the result card's back button say: where `back` goes. */
+  backLabel?: string;
+  /** Shown in the top bar in place of the island's name (e.g. "Practice · Name"). */
+  note?: string;
 };
 
 type Mounted = {
@@ -450,6 +454,7 @@ function mountIsland(
   };
   if (options.howToPlay !== undefined) actions.howToPlay = options.howToPlay;
   if (options.back !== undefined) actions.back = options.back;
+  if (options.backLabel !== undefined) actions.backLabel = options.backLabel;
   if (options.explore !== undefined && island.day > 1)
     actions.explore = options.explore;
   if (tonight) actions.board = showBoard;
@@ -482,7 +487,7 @@ function mountIsland(
     island,
     actions,
     options.hints,
-    elsewhere ? COPY.practiceShort : undefined
+    elsewhere ? COPY.practiceShort : options.note
   );
   if (elsewhere)
     hud.notice(
@@ -775,6 +780,7 @@ async function start(): Promise<void> {
           hints: true,
           hand: false,
           journey: createJourney('archive', log),
+          note: COPY.warmUpNamed.replace('{name}', warm.island.name),
           back: () => {
             practice?.dispose();
             layer.close();
@@ -849,6 +855,9 @@ async function start(): Promise<void> {
       hints: false,
       hand: false,
       journey: createJourney('archive', log),
+      // An island from the map says it is practice, and its way back leads to the map.
+      note: COPY.practiceNamed.replace('{name}', past.island.name),
+      backLabel: COPY.backToIslands,
       back: () => {
         practice?.dispose();
         layer.close();

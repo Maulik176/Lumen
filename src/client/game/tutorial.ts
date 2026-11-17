@@ -4,11 +4,12 @@
  * the tile that matters. Skippable at any moment.
  */
 import { COPY, ONBOARD, UI, VIEW } from '../../shared/config';
-import { snapTile, startPlay, tapTile } from '../../shared/play';
+import { reset, snapTile, startPlay, tapTile } from '../../shared/play';
 import { puzzleFromText } from '../../shared/puzzle-text';
 import {
   TUTORIAL,
   TUTORIAL_SOLO,
+  soloLine,
   type TutorialHint,
 } from '../../shared/tutorial';
 import type { Sound } from './audio';
@@ -176,7 +177,30 @@ export function runTutorial(
       });
       let state = startPlay(puzzle);
       let done = false;
-      line.textContent = COPY.tutorialSolo;
+      // No hand and no Undo here, so the line says how many mirrors are left and, if both are
+      // down and the lantern is still dark, how to get one back; "Start again" appears too.
+      const again = element(
+        'button',
+        'button button-quiet lesson-again',
+        COPY.tutorialAgain
+      );
+      again.type = 'button';
+      again.hidden = true;
+      skip.before(again);
+      const show = (events: Parameters<typeof soloLine>[1]): void => {
+        const said = soloLine(state, events);
+        line.textContent = said.text;
+        again.hidden = !said.again;
+        // On a narrow phone the progress dots make room for the button.
+        bar.classList.toggle('offering', said.again);
+      };
+      again.addEventListener('click', () => {
+        if (done) return;
+        state = reset(state).state;
+        sound.click();
+        view.sync(state);
+        show([]);
+      });
       const frame = (): void => {
         root.classList.toggle('wide', wideView());
         view.resize(
@@ -191,11 +215,15 @@ export function runTutorial(
         const point = view.pick(clientX, clientY);
         const tile = point === null ? null : snapTile(puzzle, point.x, point.y);
         if (tile === null) return;
-        state = tapTile(state, tile.x, tile.y).state;
+        const step = tapTile(state, tile.x, tile.y);
+        state = step.state;
         sound.click();
         view.sync(state);
+        show(step.events);
         if (!state.light.solved) return;
         done = true;
+        again.hidden = true;
+        bar.classList.remove('offering');
         sound.chime(0);
         dotList[TUTORIAL.length]?.classList.add('done');
         window.setTimeout(() => end('done'), ONBOARD.tutorialNextMs);
@@ -203,11 +231,13 @@ export function runTutorial(
       window.addEventListener('resize', frame);
       leave = (): void => {
         stopTaps();
+        again.remove();
         window.removeEventListener('resize', frame);
         view.dispose();
         leave = null;
       };
       view.sync(state);
+      show([]);
       frame();
     };
 
