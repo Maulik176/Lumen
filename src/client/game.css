@@ -873,6 +873,14 @@ button.result-time:enabled {
   background: var(--night);
 }
 
+/* A solve whose pieces were never stored: the same night tile, empty. */
+.others-missing {
+  display: block;
+  width: calc(var(--preview-width) * 1px);
+  height: calc(var(--preview-height) * 1px);
+  opacity: 0.45;
+}
+
 /* The par answer has no player: a quiet lantern-coloured seal in the portrait's place. */
 .others-par {
   display: block;

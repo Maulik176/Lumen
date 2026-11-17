@@ -648,7 +648,8 @@ function readBoardPieces(
 /**
  * Work out the top of the night's board with each player's pieces, and keep it, so the list
  * opens with one read. Called after a Lock in that reaches the top, and when the kept list is
- * missing. A row whose pieces are missing is left out rather than shown without them.
+ * missing or shorter than the board. A player whose pieces were never stored is still listed,
+ * with none.
  */
 export async function rebuildOthers(
   store: Store,
@@ -660,11 +661,10 @@ export async function rebuildOthers(
     KEYS.boards(island.day),
     rows.map((row) => row.username)
   );
-  const islands: OtherIsland[] = [];
-  rows.forEach((row, index) => {
-    const placements = readBoardPieces(island, pieces[index]);
-    if (placements !== null) islands.push({ ...row, placements });
-  });
+  const islands: OtherIsland[] = rows.map((row, index) => ({
+    ...row,
+    placements: readBoardPieces(island, pieces[index]),
+  }));
   await store.set(
     KEYS.othersTop(island.day),
     JSON.stringify(islands),
@@ -694,11 +694,12 @@ function readOthersTop(
         typeof timeMs !== 'number'
       )
         return null;
-      const placements = readBoardPieces(
-        island,
-        JSON.stringify(fields['placements'])
-      );
-      if (placements === null) return null;
+      const stored = fields['placements'];
+      const placements =
+        stored === null
+          ? null
+          : readBoardPieces(island, JSON.stringify(stored));
+      if (stored !== null && placements === null) return null;
       islands.push({ rank, username, snoovatar, pieces, timeMs, placements });
     }
     return islands;
@@ -740,8 +741,13 @@ export async function readOthers(
     store.zCard(KEYS.leaderboard(island.day)),
   ]);
   if (!over && mine === undefined) return { ok: false };
+  // A kept list shorter than the board is out of date (an older version kept it, or two Lock
+  // ins crossed): work it out again.
+  const keptTop = readOthersTop(island, kept);
   const top =
-    readOthersTop(island, kept) ?? (await rebuildOthers(store, island));
+    keptTop !== null && keptTop.length >= Math.min(total, OTHERS.top)
+      ? keptTop
+      : await rebuildOthers(store, island);
 
   let me: OtherIsland | null = null;
   const result = readResult(mine);

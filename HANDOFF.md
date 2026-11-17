@@ -34,7 +34,7 @@ win. **Each one needs Maulik's explicit yes before it is built** (he decides; sa
 costs and what it changes). Briefs marked *fix* are bug fixes and need only a failing test.
 
 **Approved exceptions (Maulik, Mon Nov 16):** O-14 Island Builder, O-15 top boards as pictures,
-O-16 logo. **Start after Wed Nov 18**, once the app review form is in. Order: O-16 (small),
+O-16 logo. **Start after Wed Nov 18** (there is no app review during the event any more; see section 5). Order: O-16 (small),
 O-15 (small to medium), O-14 (large, about two days). **O-15 was built on Nov 17 at Maulik's
 request** (redesigned as "See others' islands"); O-16 logo built the same day (option C). The phone checks in O-2 still come first
 on any day they compete. Why: every one of them comes from what BridgeDit, the last Best Daily
@@ -57,7 +57,7 @@ All need Node 22.12+ and `npm install` once.
 | Solver bench | `npm run bench` | Speed by par |
 | Playtest upload | `npm run dev`, wait for "Playtest ready", then **stop it** (Ctrl-C) | Uploads to r/lumen_game_dev. A 401 means `npx devvit login` again. Never leave it running: edits stream to Reddit |
 | Upload a version | `npm run deploy` | Types, lint, tests, then `devvit upload` |
-| Publish for review | `npm run launch` | Deploy, then `devvit publish` (check `npx devvit publish --help` first: it asks questions) |
+| Publish for review | `npm run launch` | **Not during the event** (organizers prefer upload and playtest). Deploy, then `devvit publish` |
 
 **Trailer on Reddit:** mod menu "Play the Lumen trailer (once)", then open the game within 10
 minutes, tap once. It plays dusk, the answer, nightfall, the release and the title.
@@ -97,31 +97,49 @@ Every number lives here with a comment. Change one, run `npm test`, look at it l
 | Daily post time | `devvit.json` scheduler (`0 0 * * *`, catch-up `7,37 * * * *`) | |
 | Difficulty, par bands | `GENERATOR`, `DIFFICULTY` | Needs `npm run gen` and a commit of `content/puzzles.json`. Avoid after launch: it changes days players may have seen |
 
-## 5. App review checklist (Nov 17–18)
+## 5. Demo subreddit checklist (no app review during the event)
 
-Reddit reviews the app before it can run outside the playtest subreddit and before Journeys
-record anything. Do this in order.
+**Changed Nov 17:** the organizers prefer uploading and playtesting to requesting app-review
+publication during the event; judges need an accessible demo post. So Lumen is **not** sent for
+review before judging. It is uploaded (`devvit upload`) and installed on a public subreddit
+Maulik moderates. What this changes:
+
+- **Share as a judge (re-test first).** Until a version is approved, `runAs: 'USER'` is said to
+  post as the app account for anyone but the app owner (Devvit docs; never observed: only the
+  owner has shared so far). A judge's Share would then appear as a `lumen-game` reply with no
+  name in it. Test with a second account; if it falls back, put the player's name in the share
+  text (copy in `COPY.shareLine`, allowed under the freeze) and ask Maulik.
+- **Journeys** never record without a published version (receipts stay
+  `JOURNEY_RECEIPT_DENIED_PLAYTEST` or similar). Harmless to players; keep the code and
+  `JOURNEY_MAP.md` for a later publish.
+- **App listing page and icon:** check whether developers.reddit.com/apps/lumen-game is visible
+  to someone signed out before linking it on Devpost; the `marketingAssets.icon` may only show
+  after a publish.
+- **Island Builder (O-14):** posting as the app with the maker credited was already the plan,
+  and it is the only way that works before approval.
+- **Unchanged:** scheduler, realtime, flair, Redis and the sticky results comment all run in an
+  uploaded version (the scheduler fired in playtest within a minute, PLATFORM.md section 5).
+
+Steps, in order:
 
 0. Paste-ready subreddit texts and the install steps are in `docs/LAUNCH.md`.
-1. **Maulik creates r/LumenGame** (needed by Nov 24; also the demo subreddit for submission,
-   which must stay under 200 members or have dr-admin-approve installed).
-2. **Remove the dev items from public builds?** The four "Dev:"/testing items in `devvit.json`
-   refuse to run outside r/lumen_game_dev, but they still show in every moderator's menu. Ask
-   Maulik; the safe default is to keep them for judging and remove before any public listing.
-3. `npm run deploy`, then install on r/LumenGame, then mod menu "Post today's Lumen".
-4. Open the post signed out and with a second account: card, tutorial, play, Lock in, Share.
-5. **Journeys:** `JOURNEY_MAP.md` is the document Reddit approves. It must match the code:
-   events in `src/shared/journey.ts`, routes in `src/server/routes/journey.ts` (fixed words
-   only), completed end inside `/api/lock-in`. Permission `"journeys": true` is in `devvit.json`.
-   In playtest every receipt says `JOURNEY_RECEIPT_DENIED_PLAYTEST`: that is expected.
-6. **Permissions to explain in the review form:** `redis`, `realtime`, `reddit` with
-   `asUser: ["SUBMIT_COMMENT"]` (Share posts the player's own reply only on their tap, under the
-   app's stickied results comment), `journeys`. Flair is set by the app after a ranked solve.
-7. **Data:** only Reddit user id, username and snoovatar address are stored (`CLAUDE.md` rule 14).
-   No personal data in Journeys fields.
-8. `npm run launch` (or `npx devvit publish`) and answer its questions; attach `JOURNEY_MAP.md`.
-9. After approval, receipts should read `DENIED_NOT_ALLOWLISTED` until the journey allowlist is
-   granted, then `VALID`. `?perf=1` logs them in the console.
+1. **Maulik creates r/LumenGame** (public, Gaming; needed by Nov 24; must stay under 200 members
+   or have dr-admin-approve installed until judging is over).
+2. **Dev items:** the four "Dev:"/testing items refuse to run outside r/lumen_game_dev but still
+   show in the moderator's menu there. Judges are not moderators, so they never see them.
+3. `npm run deploy` (checks, then `devvit upload`), then
+   `npx devvit install r/LumenGame lumen-game`, then mod menu "Post today's Lumen" if no post
+   appears. If install refuses an unapproved app, try `npx devvit playtest r/LumenGame` and ask
+   in the Devvit Discord; tell Maulik before anything else.
+4. Open the post signed out and with a second account (not a moderator): card, tutorial, play,
+   Lock in, See others' islands, Share (see above).
+5. **The demo post for judges:** judging runs Dec 9–16, after the night the link was made, so a
+   linked daily post will open as "Practice" with a way to tonight's island. Decide with Maulik
+   what to link (the subreddit, today's post, or both) and test that path as a stranger.
+6. **Data:** only Reddit user id, username and snoovatar address are stored (`CLAUDE.md` rule 14).
+7. **Not during the event:** `npm run launch` / `devvit publish`. Publish after judging if
+   Maulik wants the app public; then Journeys receipts should read `DENIED_NOT_ALLOWLISTED`
+   until the journey map is approved, then `VALID` (`?perf=1` logs them).
 
 **Submission (from SPEC "Hackathon submission checklist"):** README.md (brief O-1), app listing
 link developers.reddit.com/apps/lumen-game, demo post in r/LumenGame, written description, demo
@@ -246,8 +264,8 @@ permissions (see "Who posts" below).
 **Who posts (decide at the start, recommended: the app).** BridgeDit's player levels are posted
 by the app's own account, and the feed card says "CREATED BY" with the maker's snoovatar and
 name. Doing the same here (`submitCustomPost` without `runAs: 'USER'`, the maker credited in
-`postData`, the title and the feed card) needs **no new permission**, so the app review form
-sent on Nov 17–18 stays true. Posting from the player's account (step 3 below as first
+`postData`, the title and the feed card) needs **no new permission**, and before approval it is
+the only way that works. Posting from the player's account (step 3 below as first
 written) needs `SUBMIT_POST` in `asUser`, a changed review form, and a check with Maulik. If the
 app posts, the island name is no longer filtered as the user's own post: keep the 24-character
 letters-digits-spaces rule and also refuse names that Reddit's own filters would hold (test by
@@ -351,8 +369,7 @@ HUD) works unchanged because it is just a `PublicIsland`.
 top bar and on the result card's last row (only after a ranked solve, so newcomers are not
 distracted), plus a mod-menu item "Post the Island Builder" that makes a pinned builder post.
 
-**7. Journeys.** Builder use is not in `JOURNEY_MAP.md`, and the map goes to review before the
-Builder is built, so **send nothing from the Builder.** Do not send unlisted events. Playing a
+**7. Journeys.** Builder use is not in `JOURNEY_MAP.md`, so **send nothing from the Builder.** Do not send unlisted events. Playing a
 community post is an ordinary play journey only if `JOURNEY_MAP.md` already covers it word for
 word; otherwise send nothing there either.
 
@@ -392,7 +409,9 @@ an earlier night is open to everyone. The server decides.
 **How it stays fast.** At a ranked Lock in the pieces go into `boards:{day}` (hash, username
 to placements). If the Lock in reaches the top 10, the list is rebuilt once and kept as
 `others:{day}`; opening the list is then one read (tested: opening writes nothing). A missing
-list is rebuilt on read. "Dev: reset" and clean-up drop the kept list. Code:
+list, or one shorter than the board, is rebuilt on read. A player whose pieces were never stored
+(solves before v0.0.1.64) is still named, with an empty picture, and cannot be opened (fix after
+Maulik's Nov 17 test, where three solves from before the upload left the list empty). "Dev: reset" and clean-up drop the kept list. Code:
 `readOthers` / `rebuildOthers` in `src/server/core/game.ts`, `/api/others`,
 `src/client/game/others.ts`, pieces drawn by `drawIslandOutline` (`pieces` option). Numbers in
 `OTHERS` in `config.ts`.

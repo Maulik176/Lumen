@@ -575,6 +575,36 @@ describe("see others' islands", () => {
     expect(others.me?.rank).toBe(OTHERS.top + 1);
   });
 
+  it('names every player on the board, even one whose pieces were never stored', async () => {
+    // Solves locked in before pieces were stored (before v0.0.1.64) have a board entry only.
+    const { store, effects, input } = setup();
+    await recordStart(store, ben, 1, DAY_ONE);
+    await lockIn(store, ben, input(1, DAY_ONE + HOUR), effects);
+    await store.del(KEYS.boards(1));
+    await store.del(KEYS.othersTop(1));
+    await recordStart(store, ana, 1, DAY_ONE);
+    await lockIn(store, ana, input(1, DAY_ONE + 2 * HOUR), effects);
+    const others = await open(store, ana, DAY_ONE + 2 * HOUR);
+    if (!others.ok) throw new Error('should be open');
+    expect(others.top.map((row) => [row.username, row.placements])).toEqual([
+      ['ben', null],
+      ['ana', island(1).solution],
+    ]);
+  });
+
+  it('rebuilds a kept list that is shorter than the board', async () => {
+    const { store, effects, input } = setup();
+    await recordStart(store, ben, 1, DAY_ONE);
+    await lockIn(store, ben, input(1, DAY_ONE + HOUR), effects);
+    await recordStart(store, ana, 1, DAY_ONE);
+    await lockIn(store, ana, input(1, DAY_ONE + HOUR), effects);
+    // A list kept empty by an older version, before anyone's pieces were stored.
+    await store.set(KEYS.othersTop(1), '[]');
+    const others = await open(store, ana);
+    if (!others.ok) throw new Error('should be open');
+    expect(others.top.map((row) => row.username)).toEqual(['ana', 'ben']);
+  });
+
   it('keeps practice solves out, and a reset takes the player off the list', async () => {
     const { store, effects, input } = setup();
     await recordStart(store, ana, 1, DAY_ONE);

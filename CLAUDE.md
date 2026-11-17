@@ -8,7 +8,7 @@ Vite). It is an entry for Reddit's Game of the Day hackathon; submission closes 
 **As of Mon Nov 16, 2026 (M9 done, feature freeze in force). Resume from `HANDOFF.md`.**
 All nine milestones are built except the cut Island Builder. Fable's work is finished; Opus 5.5
 maintains Lumen until submission (Devpost by Dec 7). Start every session by reading, in order:
-`HANDOFF.md` (state, tools, tuning guide, app-review checklist, ranked Opus briefs O-1 to O-13),
+`HANDOFF.md` (state, tools, tuning guide, demo subreddit checklist, ranked Opus briefs),
 `REVIEW.md` (the M8 judge review and why each brief matters), then the rules below.
 
 - **Freeze:** numbers in `config.ts`, bug fixes that start with a failing test, copy, submission
@@ -42,6 +42,8 @@ maintains Lumen until submission (Devpost by Dec 7). Start every session by read
   the app posts community islands and credits the maker, so no new permission). Briefs in
   `HANDOFF.md`; why in `docs/SUBMISSION.md` (lessons from BridgeDit, the last winner). O-2 phone
   checks still come first.
+- **Nov 17: no app review during the event** (organizers prefer upload and playtest; a demo post
+  must be accessible). v0.0.1.64 uploaded. See HANDOFF section 5.
 - **Nov 17 (Opus), at Maulik's request:** O-15 built as "See others' islands" (replaces the
   crowd pools: your island plus the top 10 with pictures, tap to see one lit, read-only; list
   kept at Lock in in `others:{day}`, pieces in `boards:{day}`). 341 tests. Not seen on Reddit.
@@ -218,7 +220,9 @@ How the work is laid out (so a fresh session can continue):
   "Too complex to verify. Try removing a piece."
 - **Share:** the app posts one stickied "Lumen #N results" comment at post creation; shares are
   replies under it.
-- **App review submitted Nov 17–18**, with `JOURNEY_MAP.md`.
+- **No app review during the event (Nov 17, organizers):** upload and playtest only; judges need
+  an accessible demo post in a public subreddit. Publish (with `JOURNEY_MAP.md`) only after
+  judging, if at all. HANDOFF section 5 lists what this changes (Share as a non-owner first).
 - **Snoovatars:** texture from `i.redd.it` with `crossOrigin` (proven). Client sends its own
   `context.snoovatar` at Lock in; server validates the host. Glyph when an account has none.
 - **Prisms** can turn light as well as split it. Generator treats them as scarce;
@@ -237,7 +241,7 @@ How the work is laid out (so a fresh session can continue):
 - `PLAN.md` — the nine milestones, their tests and exit criteria, and the fixed cut line.
 - `PLATFORM.md` (after M1) — what Devvit really allows. Trust it over memory and over SPEC.
 - `JOURNEY_MAP.md` — the Journeys events, triggers and fields sent to Reddit for approval.
-- `HANDOFF.md` — start here: state, tools, tuning guide, app-review checklist, Opus briefs.
+- `HANDOFF.md` — start here: state, tools, tuning guide, demo subreddit checklist, Opus briefs.
 - `REVIEW.md` — the M8 judge review: scores and every remaining issue ranked.
 - `AGENTS.md` came with the template. Its Devvit limitations list is right; its mentions of React
   and tRPC are not (this repo uses neither).

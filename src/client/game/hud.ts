@@ -7,7 +7,7 @@
  */
 import type { LockInResult, PublicIsland } from '../../shared/api';
 import type { ArrivalPath } from '../../shared/arrival';
-import { COPY, SKY, UI, VIEW } from '../../shared/config';
+import { COPY, OTHERS, SKY, UI, VIEW } from '../../shared/config';
 import {
   canLockIn,
   hintFor,
@@ -176,6 +176,8 @@ export function applyTheme(root: HTMLElement): void {
   set('--light', UI.light);
   set('--veil', UI.veil);
   set('--night', UI.night);
+  set('--preview-width', String(OTHERS.previewWidth));
+  set('--preview-height', String(OTHERS.previewHeight));
   set('--medal-lamplighter', UI.medalLamplighter);
   set('--medal-glow', UI.medalGlow);
   set('--medal-spark', UI.medalSpark);

@@ -162,8 +162,12 @@ export type BoardResponse =
       total: number;
     };
 
-/** One island in "See others' islands": a row of the board and the pieces as they were placed. */
-export type OtherIsland = BoardRow & { placements: Placement[] };
+/**
+ * One island in "See others' islands": a row of the board and the pieces as they were placed.
+ * `placements` is null when they were never stored (solves locked in before v0.0.1.64): the
+ * player is still named, without a picture.
+ */
+export type OtherIsland = BoardRow & { placements: Placement[] | null };
 
 /**
  * "See others' islands": the top of the night's board with each player's pieces, and the

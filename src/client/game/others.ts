@@ -43,7 +43,8 @@ type Shown = {
   username: string | null;
   snoovatar: string;
   detail: string;
-  placements: Placement[];
+  /** Null for a solve whose pieces were never stored: named, but with nothing to show. */
+  placements: Placement[] | null;
   mine: boolean;
 };
 
@@ -118,14 +119,19 @@ export function othersSheet(
       element('span', 'sheet-name', row.name),
       element('span', 'sheet-detail', row.detail)
     );
-    const picture = element('canvas', 'others-preview');
-    drawIslandOutline(picture, island.rows, {
-      width: OTHERS.previewWidth,
-      height: OTHERS.previewHeight,
-      lit: true,
-      land: css(BIOME_LOOK[island.biome].groundA),
-      pieces: row.placements,
-    });
+    // No stored pieces: an empty night tile keeps the column straight, and the row is not a button.
+    const picture =
+      row.placements === null
+        ? element('span', 'others-preview others-missing')
+        : element('canvas', 'others-preview');
+    if (picture instanceof HTMLCanvasElement)
+      drawIslandOutline(picture, island.rows, {
+        width: OTHERS.previewWidth,
+        height: OTHERS.previewHeight,
+        lit: true,
+        land: css(BIOME_LOOK[island.biome].groundA),
+        pieces: row.placements ?? [],
+      });
     node.append(
       element('span', 'board-rank', row.rank === null ? '' : String(row.rank)),
       row.username === null
@@ -150,11 +156,17 @@ export function othersSheet(
     const rows = othersRows(others, island.par);
     const list = element('div', 'sheet-list');
     for (const row of rows) {
-      const node = line(row, true);
-      node.addEventListener('click', () => showOne(row));
+      const placements = row.placements;
+      const node = line(row, placements !== null);
+      if (placements !== null)
+        node.addEventListener('click', () => showOne(row, placements));
       list.append(node);
     }
-    if (others.top.length === 0 && others.parSolution === null)
+    const own = others.me?.username;
+    if (
+      others.top.every((entry) => entry.username === own) &&
+      others.parSolution === null
+    )
       list.append(element('p', 'sheet-empty', COPY.othersEmpty));
     holder.replaceChildren(
       element('h2', 'sheet-title', crowdLine(others, tonight)),
@@ -165,8 +177,8 @@ export function othersSheet(
     on.change();
   };
 
-  const showOne = (row: Shown): void => {
-    on.look(row.placements);
+  const showOne = (row: Shown, placements: Placement[]): void => {
+    on.look(placements);
     const back = element('button', 'button button-main', COPY.othersList);
     back.type = 'button';
     back.addEventListener('click', showList);

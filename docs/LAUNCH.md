@@ -7,9 +7,13 @@ Replace `LumenGame` below with the name you got (LumenGame, LumenDaily or PlayLu
 - **Hackathon:** the demo post must be in a **public** subreddit with **fewer than 200 members**
   (or one with the `dr-admin-approve` app installed). Keep it small until judging is over: don't
   advertise it widely yet.
-- **Devvit:** until Reddit approves the app, it can only be installed by you on subreddits you
-  moderate, and it runs as a test version there. (As far as I know, unapproved apps are also
-  limited to small subreddits, which matches the rule above. Check what `devvit install` says.)
+- **Devvit:** Lumen is **not** sent for app review during the event (the organizers prefer
+  uploading and playtesting). An unapproved app can be installed only by you, on subreddits you
+  moderate, and runs as a test version there. Check what `devvit install` says; if it refuses,
+  `npx devvit playtest r/LumenGame` is the fallback (then check that the game still loads after
+  playtest is stopped, before relying on it for judging).
+- **Judges need an accessible demo post:** keep the subreddit public, and test the post signed
+  out and from an account that is not a moderator.
 - **Content:** Lumen is a game post; mark the community as Gaming, not NSFW.
 
 ## 1. Create the community (you, in the Reddit app)

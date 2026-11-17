@@ -189,7 +189,7 @@ function localApi(): Plugin {
         response.end(JSON.stringify(body));
       });
       // Made-up islands for "See others' islands": the first three at par, the rest with one
-      // extra mirror on a spare grass tile. A day solved here with a ranked Lock in counts as
+      // extra mirror on a spare grass tile (the fifth with no stored pieces). A day solved here with a ranked Lock in counts as
       // tonight (with the player's own island, no par answer); any other day as an earlier night.
       server.middlewares.use('/api/others', (request, response) => {
         const day = Number(
@@ -236,7 +236,8 @@ function localApi(): Plugin {
               snoovatar: '',
               pieces: island.par + extra.length,
               timeMs: 41_000 + i * 9_000,
-              placements: [...island.solution, ...extra],
+              // The fifth stands for a solve locked in before pieces were stored.
+              placements: i === 4 ? null : [...island.solution, ...extra],
             };
           });
           const mine = solved.get(day);
