@@ -21,10 +21,14 @@ Replace `LumenGame` below with the name you got (LumenGame, LumenDaily or PlayLu
 Create a community → name it → **Public** → topic **Gaming**. Then on the web
 (new.reddit.com or reddit.com → Mod Tools):
 
-**Icon and banner** (Mod Tools → Community appearance): upload
-`content/brand/png/subreddit-icon-512.png` as the icon and
-`content/brand/png/subreddit-banner-1920x384.png` as the banner. If Reddit asks for other sizes,
-`node content/brand/build.mjs` can render them (edit the sizes at the bottom of that file).
+**Icon and banner** (pencil on the banner, or Mod Tools → Community appearance):
+- Avatar: `content/brand/png/subreddit-icon-512.png`.
+- Banner image (desktop, Reddit asks for at least 1072 x 128):
+  `content/brand/png/subreddit-banner-desktop-2144x256.png`.
+- Mobile banner image (the Reddit app, at least 1080 x 128):
+  `content/brand/png/subreddit-banner-mobile-2160x256.png`.
+`node content/brand/build.mjs` renders other sizes if Reddit ever asks (sizes at the bottom of
+that file).
 
 **Community description** (paste, under 500 characters):
 

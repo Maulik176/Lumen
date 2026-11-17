@@ -445,8 +445,9 @@ only; drawn in code, no generated images. Reads at 32 px; at 16 px it is a glowi
   `lumen-wordmark-on-dark.svg`, `lumen-wordmark-on-light.svg`.
 - PNG (`png/`): `app-icon-1024.png` (Devvit listing: 1024 square, under 500 KB, set as
   `marketingAssets.icon` in `devvit.json`), `subreddit-icon-512.png` and `-256.png` (the mark
-  sits inside the circle Reddit crops icons to), `subreddit-banner-1920x384.png` (everything
-  in the middle band: Reddit crops banners to about 25:3), `devpost-thumbnail-game-1500x1000.png`
+  sits inside the circle Reddit crops icons to), `subreddit-banner-desktop-2144x256.png` and
+  `subreddit-banner-mobile-2160x256.png` (Reddit's banner editor asks for at least 1072 x 128
+  and 1080 x 128), `devpost-thumbnail-game-1500x1000.png`
   (the real hero island with light turning into lit lanterns, wordmark in a night corner; made
   from `island-render.png` by `island.mjs`, needs `npm run debug`), `devpost-thumbnail-1500x1000.png`
   (3:2), `trailer-title-1920x1080.png` (for the video edit), transparent wordmarks

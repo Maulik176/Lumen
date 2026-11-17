@@ -210,12 +210,19 @@ function skyPage(width, height, { wordWidth, tagline, lanterns }) {
 
 const TAGLINE = 'A new island every night';
 const pages = [
-  // Reddit crops banners to about 25:3, so everything that matters sits in the middle band.
+  // Reddit's banner editor asks for at least 1072 x 128 (desktop) and 1080 x 128 (the Reddit
+  // app), about 8.4 to 1. Drawn at twice that so they stay sharp; the wordmark fills the height.
   [
-    'subreddit-banner-1920x384',
-    1920,
-    384,
-    { wordWidth: 560, tagline: '', lanterns: 14 },
+    'subreddit-banner-desktop-2144x256',
+    2144,
+    256,
+    { wordWidth: 600, tagline: '', lanterns: 16 },
+  ],
+  [
+    'subreddit-banner-mobile-2160x256',
+    2160,
+    256,
+    { wordWidth: 600, tagline: '', lanterns: 16 },
   ],
   [
     'devpost-thumbnail-1500x1000',
