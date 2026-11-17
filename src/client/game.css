@@ -14,6 +14,7 @@
   --amber-ink: #2a2233;
   --light: #fbeed2;
   --veil: rgba(30, 22, 50, 0.6);
+  --night: #1a1430;
   --medal-lamplighter: #a8530f;
   --medal-glow: #7a5a12;
   --medal-spark: #5f566b;
@@ -860,6 +861,30 @@ button.result-time:enabled {
 .crowd-hint {
   margin: 0 0 10px;
   font-size: 13.5px;
+}
+
+/* See others' islands: each row ends in a small picture of that island at night. */
+.others-preview {
+  position: static;
+  inset: auto;
+  touch-action: auto;
+  flex: none;
+  border-radius: calc(var(--radius) - 6px);
+  background: var(--night);
+}
+
+/* The par answer has no player: a quiet lantern-coloured seal in the portrait's place. */
+.others-par {
+  display: block;
+  box-sizing: border-box;
+  border: 2px solid var(--amber);
+  background: color-mix(in srgb, var(--amber) 30%, var(--paper));
+}
+
+/* Looking at one island: its row sits above the buttons, not in a list. */
+div.others-row {
+  margin-bottom: 8px;
+  border-bottom: 0;
 }
 
 /*

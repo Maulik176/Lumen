@@ -20,7 +20,7 @@ function hueOf(name: string): number {
   return sum;
 }
 
-function portrait(username: string, snoovatar: string): HTMLElement {
+export function portrait(username: string, snoovatar: string): HTMLElement {
   const address = cleanSnoovatar(snoovatar);
   if (address !== '') {
     const image = element('img', 'board-avatar');
@@ -63,7 +63,7 @@ function row(
   return line;
 }
 
-function dayDetail(entry: BoardRow): string {
+export function dayDetail(entry: BoardRow): string {
   return (entry.pieces === 1 ? COPY.boardRowOne : COPY.boardRow)
     .replace('{pieces}', String(entry.pieces))
     .replace('{time}', formatTime(entry.timeMs));

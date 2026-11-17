@@ -12,6 +12,7 @@ import {
   type AllTimeRow,
   type BoardRow,
   type LockInResult,
+  type OtherIsland,
   type PastIsland,
   type PlayerState,
   type SkyLantern,
@@ -21,6 +22,7 @@ import {
   CALENDAR,
   KEEP,
   LEADERBOARD,
+  OTHERS,
   RULES,
   SCORING,
   SKY,
@@ -301,7 +303,8 @@ export type LockInInput = {
 
 /**
  * Lock in. Re-traces the placements, and if the solve is ranked, records it everywhere:
- * submission, leaderboard, all-time medals, heatmap, stats, streak, sky.
+ * submission, leaderboard, the pieces for "See others' islands", all-time medals, stats, streak,
+ * sky.
  */
 export async function lockIn(
   store: Store,
@@ -372,6 +375,11 @@ export async function lockIn(
   const boardKey = KEYS.leaderboard(island.day);
   const statsKey = KEYS.stats(island.day);
 
+  // The pieces go in before the board entry, so whoever rebuilds the top of the board next
+  // always finds them.
+  await store.hSet(KEYS.boards(island.day), {
+    [player.username]: JSON.stringify(score.placements),
+  });
   await store.zAdd(boardKey, player.username, boardScore);
   const [solves, rank, total] = await Promise.all([
     store.hIncrBy(statsKey, 'solves', 1),
@@ -429,16 +437,11 @@ export async function lockIn(
       store.zIncrBy(KEYS.allTime, player.username, 1)
     );
   }
-  for (const placement of clean) {
-    writes.push(
-      store.hIncrBy(
-        KEYS.heat(island.day),
-        String(placement.y * puzzleOfDaily(island).width + placement.x),
-        1
-      )
-    );
-  }
+  writes.push(store.expire(KEYS.boards(island.day), KEEP.submissionSeconds));
   await Promise.all(writes);
+  // A Lock in that reaches the top of the board rebuilds the cached list once, here, so opening
+  // "See others' islands" is a single read.
+  if (result.rank <= OTHERS.top) await rebuildOthers(store, island);
 
   // Keep only the newest lanterns; the count lives in stats.
   const kept = await store.zCard(KEYS.sky(island.day));
@@ -487,6 +490,7 @@ export async function resetPlayer(
     store.del(KEYS.shared(day, player.userId)),
     store.del(KEYS.shareLock(day, player.userId)),
     store.zRem(KEYS.leaderboard(day), player.username),
+    store.del(KEYS.othersTop(day)),
     ...mine.map((entry) => store.zRem(KEYS.sky(day), entry.member)),
     store.hSet(KEYS.user(player.userId), {
       tutorialDone: '0',
@@ -627,10 +631,87 @@ export async function readAllTime(
   return { top, me, total };
 }
 
-export type HeatOutcome =
+/** Pieces stored as JSON, checked again against the island: anything odd reads as none. */
+function readBoardPieces(
+  island: DailyIsland,
+  text: string | null | undefined
+): Placement[] | null {
+  if (text === null || text === undefined) return null;
+  try {
+    const check = validatePlacements(puzzleOfDaily(island), JSON.parse(text));
+    return check.ok ? check.placements : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Work out the top of the night's board with each player's pieces, and keep it, so the list
+ * opens with one read. Called after a Lock in that reaches the top, and when the kept list is
+ * missing. A row whose pieces are missing is left out rather than shown without them.
+ */
+export async function rebuildOthers(
+  store: Store,
+  island: DailyIsland
+): Promise<OtherIsland[]> {
+  const { top } = await readLeaderboard(store, island.day, null);
+  const rows = top.slice(0, OTHERS.top);
+  const pieces = await store.hMGet(
+    KEYS.boards(island.day),
+    rows.map((row) => row.username)
+  );
+  const islands: OtherIsland[] = [];
+  rows.forEach((row, index) => {
+    const placements = readBoardPieces(island, pieces[index]);
+    if (placements !== null) islands.push({ ...row, placements });
+  });
+  await store.set(
+    KEYS.othersTop(island.day),
+    JSON.stringify(islands),
+    KEEP.submissionSeconds
+  );
+  return islands;
+}
+
+function readOthersTop(
+  island: DailyIsland,
+  text: string | undefined
+): OtherIsland[] | null {
+  if (text === undefined) return null;
+  try {
+    const value: unknown = JSON.parse(text);
+    if (!Array.isArray(value)) return null;
+    const islands: OtherIsland[] = [];
+    for (const entry of value) {
+      if (typeof entry !== 'object' || entry === null) return null;
+      const fields: Record<string, unknown> = { ...entry };
+      const { rank, username, snoovatar, pieces, timeMs } = fields;
+      if (
+        (rank !== null && typeof rank !== 'number') ||
+        typeof username !== 'string' ||
+        typeof snoovatar !== 'string' ||
+        typeof pieces !== 'number' ||
+        typeof timeMs !== 'number'
+      )
+        return null;
+      const placements = readBoardPieces(
+        island,
+        JSON.stringify(fields['placements'])
+      );
+      if (placements === null) return null;
+      islands.push({ rank, username, snoovatar, pieces, timeMs, placements });
+    }
+    return islands;
+  } catch {
+    return null;
+  }
+}
+
+export type OthersOutcome =
   | {
       ok: true;
-      tiles: number[];
+      top: OtherIsland[];
+      me: OtherIsland | null;
       solves: number;
       parHits: number;
       parSolution: Placement[] | null;
@@ -638,41 +719,57 @@ export type HeatOutcome =
   | { ok: false };
 
 /**
- * Where everyone built. Tonight's island stays hidden until the player has a ranked solve of it;
- * an island from an earlier night is open to everyone, with its par answer.
+ * "See others' islands". Tonight's stays closed until the player has a ranked Lock in of it; an
+ * island from an earlier night is open to everyone, with its par answer. The player's own island
+ * is always included when they have one, to compare.
  */
-export async function readHeat(
+export async function readOthers(
   store: Store,
   player: Player,
   island: DailyIsland,
   nowMs: number,
   lastDay: number
-): Promise<HeatOutcome> {
+): Promise<OthersOutcome> {
   const over = island.day < currentDay(nowMs, lastDay);
-  if (!over) {
-    if (player === null) return { ok: false };
-    const mine = await store.get(KEYS.submission(island.day, player.userId));
-    if (mine === undefined) return { ok: false };
-  }
-  const [heat, stats] = await Promise.all([
-    store.hGetAll(KEYS.heat(island.day)),
+  const [mine, kept, stats, total] = await Promise.all([
+    player === null
+      ? undefined
+      : store.get(KEYS.submission(island.day, player.userId)),
+    store.get(KEYS.othersTop(island.day)),
     store.hGetAll(KEYS.stats(island.day)),
+    store.zCard(KEYS.leaderboard(island.day)),
   ]);
-  const { width, height } = puzzleOfDaily(island);
-  const tiles = new Array<number>(width * height).fill(0);
-  for (const [field, value] of Object.entries(heat)) {
-    const tile = Number(field);
-    const count = Number(value);
-    if (Number.isInteger(tile) && tile >= 0 && tile < tiles.length)
-      tiles[tile] = Number.isFinite(count) ? Math.max(0, count) : 0;
+  if (!over && mine === undefined) return { ok: false };
+  const top =
+    readOthersTop(island, kept) ?? (await rebuildOthers(store, island));
+
+  let me: OtherIsland | null = null;
+  const result = readResult(mine);
+  if (player !== null && mine !== undefined && result !== null) {
+    const placements = readPlacements(mine, island);
+    const [position, avatar] = await Promise.all([
+      store.zRank(KEYS.leaderboard(island.day), player.username),
+      store.hMGet(KEYS.avatars, [player.username]),
+    ]);
+    if (placements !== null)
+      me = {
+        // As on the board: a time too fast to be believed is kept, but never given a place.
+        rank:
+          position === undefined || result.elapsedMs < SCORING.minPlausibleMs
+            ? null
+            : position + 1,
+        username: player.username,
+        snoovatar: cleanSnoovatar(avatar[0]),
+        pieces: result.pieces,
+        timeMs: result.elapsedMs,
+        placements,
+      };
   }
   return {
     ok: true,
-    tiles,
-    solves: Math.max(
-      tally(stats, 'solves'),
-      await store.zCard(KEYS.leaderboard(island.day))
-    ),
+    top,
+    me,
+    solves: Math.max(tally(stats, 'solves'), total),
     parHits: tally(stats, 'parHits'),
     parSolution: over ? island.solution : null,
   };

@@ -95,6 +95,12 @@ export async function withPage(url, { width, height, scale = 2 }, use) {
           );
         return answer.result?.result?.value;
       },
+      /** Shoot with a see-through background (for logos); the page must not paint its own. */
+      async clear() {
+        await send('Emulation.setDefaultBackgroundColorOverride', {
+          color: { r: 0, g: 0, b: 0, a: 0 },
+        });
+      },
       async shot(file) {
         const image = await send('Page.captureScreenshot', { format: 'png' });
         writeFileSync(file, Buffer.from(image.result.data, 'base64'));

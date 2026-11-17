@@ -25,7 +25,7 @@ import {
   ART,
   BIOME_LOOK,
   CAMERA,
-  HEAT,
+  OTHERS,
   ONBOARD,
   RELEASE,
   SKY,
@@ -105,10 +105,10 @@ export type IslandView = {
    */
   settle: () => void;
   /**
-   * "How everyone solved it": warm the tiles by these counts and bring the camera down to the
-   * island while night stays; null takes the tint off and the camera back up to the lantern.
+   * "See others' islands": bring the camera down to the island while night stays, so another
+   * player's pieces can be looked at; false takes it back up to the lantern.
    */
-  crowd: (counts: readonly number[] | null) => void;
+  inspect: (on: boolean) => void;
   /** Stop drawing while something covers the view, and carry on exactly where it was. */
   pause: (paused: boolean) => void;
   /** Everyone who lit tonight's island: the whole list on arrival, then each new one as it comes. */
@@ -222,11 +222,11 @@ export function createIslandView(
   };
   /**
    * Once set, the lantern's climb is no longer driven by time since release but eases from one
-   * point to another: held up on a reopened island, down and back for the crowd view.
+   * point to another: held up on a reopened island, down and back for others' islands.
    */
   let riseHold: { from: number; to: number; at: number; ms: number } | null =
     null;
-  /** The sky lantern fades out while the crowd view shows the island, and back after. */
+  /** The sky lantern fades out while others' islands are shown, and back after. */
   let veil = { from: 1, to: 1, at: 0 };
   let paused = false;
   const you = { x: 0, y: 0 };
@@ -421,7 +421,7 @@ export function createIslandView(
           : appear;
       const shown =
         veil.from +
-        (veil.to - veil.from) * easeInOut((time - veil.at) / HEAT.cameraMs);
+        (veil.to - veil.from) * easeInOut((time - veil.at) / OTHERS.cameraMs);
       skyLantern.pose(
         lift - island.position.y,
         sway,
@@ -631,19 +631,18 @@ export function createIslandView(
       releaseAt = Math.max(0, now - riseSpan());
     },
 
-    crowd(counts) {
-      ground.tint(counts);
+    inspect(on) {
       const shown =
         veil.from +
-        (veil.to - veil.from) * easeInOut((now - veil.at) / HEAT.cameraMs);
-      veil = { from: shown, to: counts === null ? 1 : 0, at: now };
+        (veil.to - veil.from) * easeInOut((now - veil.at) / OTHERS.cameraMs);
+      veil = { from: shown, to: on ? 0 : 1, at: now };
       // Calm mode never moves the camera, and a practice lantern has already gone.
       if (calm || practice || releaseAt < 0) return;
       riseHold = {
         from: riseNow(),
-        to: counts === null ? 1 : 0,
+        to: on ? 0 : 1,
         at: now,
-        ms: HEAT.cameraMs,
+        ms: OTHERS.cameraMs,
       };
     },
 

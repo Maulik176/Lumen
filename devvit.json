@@ -1,6 +1,9 @@
 {
   "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
   "name": "lumen-game",
+  "marketingAssets": {
+    "icon": "content/brand/png/app-icon-1024.png"
+  },
   "post": {
     "dir": "dist/client",
     "entrypoints": {

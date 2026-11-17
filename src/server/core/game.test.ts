@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SCORING, SKY } from '../../shared/config';
+import { OTHERS, SCORING, SKY } from '../../shared/config';
 import type { DailyIsland } from '../../shared/daily';
 import type { Placement } from '../../shared/types';
 import { islandForDay, lastDay } from './content';
@@ -14,7 +14,7 @@ import {
   playerState,
   rankedOpen,
   readAllTime,
-  readHeat,
+  readOthers,
   readLeaderboard,
   readSky,
   recordShare,
@@ -182,10 +182,8 @@ describe('lock in: the server decides', () => {
       parHits: '1',
     });
     expect(
-      Object.values(await store.hGetAll(KEYS.heat(1)))
-        .map(Number)
-        .reduce((a, b) => a + b, 0)
-    ).toBe(island(1).par);
+      JSON.parse((await store.hGetAll(KEYS.boards(1)))['ana'] ?? '')
+    ).toEqual(island(1).solution);
     expect((await readSky(store, 1)).lanterns).toEqual([
       {
         u: 'ana',
@@ -504,45 +502,97 @@ describe('the boards', () => {
   });
 });
 
-describe('where everyone built', () => {
-  it('stays hidden until you lock in, then counts pieces per tile', async () => {
+describe("see others' islands", () => {
+  const open = (store: Store, player: Player, nowMs = DAY_ONE + HOUR) =>
+    readOthers(store, player, island(1), nowMs, lastDay());
+
+  it('stays closed until you lock in, then lists the top with their pieces and your own', async () => {
     const { store, effects, input } = setup();
-    const today = island(1);
-    expect(
-      (await readHeat(store, ana, today, DAY_ONE + HOUR, lastDay())).ok
-    ).toBe(false);
-    expect(
-      (await readHeat(store, null, today, DAY_ONE + HOUR, lastDay())).ok
-    ).toBe(false);
+    expect((await open(store, ana)).ok).toBe(false);
+    expect((await open(store, null)).ok).toBe(false);
     await recordStart(store, ben, 1, DAY_ONE);
     await lockIn(store, ben, input(1, DAY_ONE + HOUR), effects);
-    expect(
-      (await readHeat(store, ana, today, DAY_ONE + HOUR, lastDay())).ok
-    ).toBe(false);
+    expect((await open(store, ana)).ok).toBe(false);
     await recordStart(store, ana, 1, DAY_ONE);
-    await lockIn(store, ana, input(1, DAY_ONE + HOUR), effects);
-    const heat = await readHeat(store, ana, today, DAY_ONE + HOUR, lastDay());
-    if (!heat.ok) throw new Error('should be open');
-    const width = Number(today.rows[0]?.length);
-    for (const placement of today.solution)
-      expect(heat.tiles[placement.y * width + placement.x]).toBe(2);
-    expect(heat.solves).toBe(2);
-    expect(heat.parHits).toBe(2);
-    expect(heat.parSolution).toBeNull();
+    await lockIn(store, ana, input(1, DAY_ONE + 2 * HOUR), effects);
+    const others = await open(store, ana, DAY_ONE + 2 * HOUR);
+    if (!others.ok) throw new Error('should be open');
+    expect(others.top.map((row) => [row.rank, row.username])).toEqual([
+      [1, 'ben'],
+      [2, 'ana'],
+    ]);
+    for (const row of others.top)
+      expect(row.placements).toEqual(island(1).solution);
+    expect(others.me).toMatchObject({
+      rank: 2,
+      username: 'ana',
+      pieces: island(1).par,
+      placements: island(1).solution,
+    });
+    expect(others.solves).toBe(2);
+    expect(others.parHits).toBe(2);
+    expect(others.parSolution).toBeNull();
   });
 
   it('opens an earlier night to everyone, with its par answer', async () => {
     const { store } = setup();
-    const heat = await readHeat(
-      store,
-      null,
-      island(1),
-      DAY_ONE + 26 * HOUR,
-      lastDay()
+    const others = await open(store, null, DAY_ONE + 26 * HOUR);
+    if (!others.ok) throw new Error('should be open');
+    expect(others.parSolution).toEqual(island(1).solution);
+    expect(others.top).toEqual([]);
+    expect(others.me).toBeNull();
+  });
+
+  it('works the list out at Lock in, so opening it writes nothing', async () => {
+    const { store, effects, input } = setup();
+    await recordStart(store, ana, 1, DAY_ONE);
+    await lockIn(store, ana, input(1, DAY_ONE + HOUR), effects);
+    expect(await store.get(KEYS.othersTop(1))).toBeDefined();
+    const before = store.writes();
+    expect((await open(store, ana)).ok).toBe(true);
+    expect(store.writes()).toBe(before);
+  });
+
+  it('a Lock in below the top leaves the kept list alone', async () => {
+    const { store, effects, input } = setup();
+    const players = Array.from({ length: OTHERS.top + 1 }, (_, i) => ({
+      userId: `t2_p${i}`,
+      username: `p${i}`,
+    }));
+    for (const [i, player] of players.entries()) {
+      if (i === OTHERS.top) await store.del(KEYS.othersTop(1));
+      await recordStart(store, player, 1, DAY_ONE);
+      await lockIn(store, player, input(1, DAY_ONE + HOUR + i * 1000), effects);
+    }
+    // The last player came eleventh: their Lock in did not rebuild the deleted list.
+    expect(await store.get(KEYS.othersTop(1))).toBeUndefined();
+    const others = await open(store, players[OTHERS.top] ?? null);
+    if (!others.ok) throw new Error('should be open');
+    expect(others.top).toHaveLength(OTHERS.top);
+    expect(others.top.some((row) => row.username === `p${OTHERS.top}`)).toBe(
+      false
     );
-    if (!heat.ok) throw new Error('should be open');
-    expect(heat.parSolution).toEqual(island(1).solution);
-    expect(heat.tiles.every((count) => count === 0)).toBe(true);
+    expect(others.me?.rank).toBe(OTHERS.top + 1);
+  });
+
+  it('keeps practice solves out, and a reset takes the player off the list', async () => {
+    const { store, effects, input } = setup();
+    await recordStart(store, ana, 1, DAY_ONE);
+    await lockIn(store, ana, input(1, DAY_ONE + HOUR), effects);
+    await recordStart(store, ben, 1, DAY_ONE);
+    await lockIn(
+      store,
+      ben,
+      input(1, DAY_ONE + HOUR, { wantsRanked: false }),
+      effects
+    );
+    expect(Object.keys(await store.hGetAll(KEYS.boards(1)))).toEqual(['ana']);
+    await resetPlayer(store, ana, 1);
+    await recordStart(store, ben, 1, DAY_ONE);
+    await lockIn(store, ben, input(1, DAY_ONE + 2 * HOUR), effects);
+    const others = await open(store, ben, DAY_ONE + 2 * HOUR);
+    if (!others.ok) throw new Error('should be open');
+    expect(others.top.map((row) => row.username)).toEqual(['ben']);
   });
 });
 

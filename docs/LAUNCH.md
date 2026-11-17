@@ -17,6 +17,11 @@ Replace `LumenGame` below with the name you got (LumenGame, LumenDaily or PlayLu
 Create a community → name it → **Public** → topic **Gaming**. Then on the web
 (new.reddit.com or reddit.com → Mod Tools):
 
+**Icon and banner** (Mod Tools → Community appearance): upload
+`content/brand/png/subreddit-icon-512.png` as the icon and
+`content/brand/png/subreddit-banner-1920x384.png` as the banner. If Reddit asks for other sizes,
+`node content/brand/build.mjs` can render them (edit the sizes at the bottom of that file).
+
 **Community description** (paste, under 500 characters):
 
 ```
@@ -87,7 +92,7 @@ When every lantern is lit you can Lock in, or keep refining to use fewer pieces.
 - Spark: more
 
 **After you lock in**
-Night falls and your lantern rises into a sky shared with everyone who lit the same island. Tap a lantern to see whose it is. Then see tonight's board, where other players placed their mirrors, or share your result in the pinned results comment.
+Night falls and your lantern rises into a sky shared with everyone who lit the same island. Tap a lantern to see whose it is. Then see tonight's board, look at how the top players lit their islands, or share your result in the pinned results comment.
 
 **Streaks**
 Play on consecutive nights to build a streak (you get one day's grace). Streaks unlock lantern styles at 3, 7, 14 and 30 nights, and a flair with your medal.

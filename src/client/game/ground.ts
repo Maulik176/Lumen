@@ -5,7 +5,6 @@
  */
 import {
   BoxGeometry,
-  BufferAttribute,
   type BufferGeometry,
   Color,
   ConeGeometry,
@@ -16,17 +15,14 @@ import {
   InstancedMesh,
   Matrix4,
   Mesh,
-  MeshBasicMaterial,
   MeshStandardMaterial,
   Quaternion,
-  RingGeometry,
   Sprite,
   SpriteMaterial,
   type Texture,
   Vector3,
 } from 'three';
-import { ART, HEAT, type BiomeLook } from '../../shared/config';
-import { poolColour } from '../../shared/heat';
+import { ART, type BiomeLook } from '../../shared/config';
 import type { Puzzle } from '../../shared/types';
 import { tileCentre } from './fit';
 import { at, merge, noise, paint, place, type Keeper } from './kit';
@@ -121,8 +117,6 @@ export type Ground = {
   group: Group;
   /** Mist follows the sky's horizon colour and thins at night. */
   update: (horizon: Color, dusk: number) => void;
-  /** Warm each tile by its share of the busiest one; null puts the colours back. */
-  tint: (counts: readonly number[] | null) => void;
 };
 
 export function createGround(
@@ -199,40 +193,6 @@ export function createGround(
     if (ground === 'tree') treeTiles.push(tile);
   }
   group.add(tiles);
-  // The painted colours, kept so a tint can always be taken off again.
-  // "Where did others place mirrors?": a soft orange pool laid over each used tile. Laid over,
-  // not added as light: added light washed pale snow out to white (see shared/heat.ts).
-  const poolMaterial = keeper.keep(
-    new MeshBasicMaterial({
-      vertexColors: true,
-      transparent: true,
-      opacity: HEAT.poolOpacity,
-      depthWrite: false,
-    })
-  );
-  // A flat disc whose own edge fades out: full in its inner half, clear at its rim. (No texture:
-  // with the soft-disc texture these pools never showed.)
-  const poolShape = keeper.keep(new RingGeometry(0, 0.5, 24, 2));
-  poolShape.rotateX(-Math.PI / 2);
-  const ringPoints = poolShape.getAttribute('position');
-  const ringFade = new Float32Array(ringPoints.count * 4);
-  for (let i = 0; i < ringPoints.count; i++) {
-    const r = Math.hypot(ringPoints.getX(i), ringPoints.getZ(i)) / 0.5;
-    ringFade.set([1, 1, 1, r < 0.75 ? 1 : 0], i * 4);
-  }
-  poolShape.setAttribute('color', new BufferAttribute(ringFade, 4));
-  const pools = new InstancedMesh(poolShape, poolMaterial, width * height);
-  // The colour buffer must exist before the pools are first drawn, or the graphics card is never
-  // told to use it and every pool comes out plain white (the original snow glare).
-  for (let tile = 0; tile < width * height; tile++)
-    pools.setColorAt(tile, colour.setHex(HEAT.colour));
-  pools.count = 0;
-  pools.renderOrder = 1;
-  // It starts with no pools, so its bounds would be worked out as empty and the whole mesh culled
-  // as off-screen for good. It always sits on the island, so it is never culled.
-  pools.frustumCulled = false;
-  group.add(pools);
-
   // --- The earth rim and the rock underneath, as one painted shape. --------------------------
   const span = Math.max(width, height) + RIM * 2;
   const rimWidth = width + RIM * 2;
@@ -558,32 +518,6 @@ export function createGround(
     update(horizon, dusk) {
       mistMaterial.color.copy(mistBase).lerp(horizon, 0.5 + dusk * 0.4);
       mistMaterial.opacity = 0.55 - dusk * 0.25;
-    },
-    tint(counts) {
-      let shown = 0;
-      if (counts !== null) {
-        const busiest = Math.max(1, ...counts);
-        for (let tile = 0; tile < width * height; tile++) {
-          const share = (counts[tile] ?? 0) / busiest;
-          if (share <= 0 || puzzle.terrain[tile] !== 'grass') continue;
-          const [worldX, worldZ] = tileCentre(
-            tile % width,
-            Math.floor(tile / width),
-            width,
-            height
-          );
-          const size = HEAT.poolMin + (HEAT.poolMax - HEAT.poolMin) * share;
-          position.set(worldX, 0.06, worldZ);
-          matrix.compose(position, turn.identity(), scale.set(size, 1, size));
-          pools.setMatrixAt(shown, matrix);
-          // Pale amber on a little-used tile, deep orange on the busiest.
-          pools.setColorAt(shown, colour.setHex(poolColour(share)));
-          shown++;
-        }
-      }
-      pools.count = shown;
-      pools.instanceMatrix.needsUpdate = true;
-      if (pools.instanceColor !== null) pools.instanceColor.needsUpdate = true;
     },
   };
 }

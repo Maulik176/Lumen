@@ -89,7 +89,10 @@ export const KEYS = {
   submitLock: (day: number, userId: string) => `sublock:${day}:${userId}`,
   leaderboard: (day: number) => `lb:${day}`,
   allTime: 'lb:alltime',
-  heat: (day: number) => `heat:${day}`,
+  /** Hash: username to the pieces they locked in with (ranked only), for "See others' islands". */
+  boards: (day: number) => `boards:${day}`,
+  /** The top of the night's board with each player's pieces, rebuilt when a Lock in reaches it. */
+  othersTop: (day: number) => `others:${day}`,
   stats: (day: number) => `stats:${day}`,
   sky: (day: number) => `sky:${day}`,
   user: (userId: string) => `user:${userId}`,

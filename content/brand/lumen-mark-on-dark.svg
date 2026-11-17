@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-81.60000000000002 -1223.6 949.6 1319.6">
+  <defs>
+    <filter id="m-soft" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="34"/>
+    </filter>
+    <radialGradient id="m-glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#f0a94a" stop-opacity="0.6"/>
+      <stop offset="1" stop-color="#f0a94a" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="m-paper" cx="0.42" cy="0.38" r="0.66">
+      <stop offset="0" stop-color="#fff3cf"/>
+      <stop offset="0.55" stop-color="#f7c068"/>
+      <stop offset="1" stop-color="#df8530"/>
+    </radialGradient></defs>
+    <path d="M640 -78 H200 V-730" fill="none" stroke="#f0a94a" stroke-opacity="0.8"
+          stroke-width="234" stroke-linecap="round" stroke-linejoin="round" filter="url(#m-soft)"/>
+    <path d="M640 -78 H200 V-730" fill="none" stroke="#ffdc8f" stroke-width="156"
+          stroke-linecap="round" stroke-linejoin="round"/>
+    <g transform="translate(200 -78) rotate(45)">
+      <rect x="-118" y="-30" width="236" height="60" rx="16" fill="#8a5426"/>
+      <rect x="-100" y="-13" width="200" height="26" rx="8" fill="#faf0dc"/>
+    </g>
+    <path d="M712 -170 L776 -78 L712 14 L648 -78 Z"
+          fill="#faf0dc" />
+    <circle cx="200" cy="-942" r="281.6" fill="url(#m-glow)"/>
+    <ellipse cx="200" cy="-942" rx="117.76" ry="128" fill="url(#m-paper)"/>
+    <path d="M200 -1070 C 129.6 -993.2, 129.6 -890.8, 200 -814
+             M200 -1070 C 270.4 -993.2, 270.4 -890.8, 200 -814"
+          fill="none" stroke="#c46a22" stroke-opacity="0.55" stroke-width="11"/>
+    <rect x="136" y="-1104.56" width="128" height="39.68" rx="12" fill="#8a5426"/>
+    <rect x="136" y="-820.4" width="128" height="39.68" rx="12" fill="#8a5426"/>
+</svg>

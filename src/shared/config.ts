@@ -194,17 +194,22 @@ export const COPY = {
   boardRowOne: '1 piece · {time}',
   allTimeRow: '{medals} nights at par',
   allTimeRowOne: '1 night at par',
-  /** Result card: tints the island by where everyone put their pieces. */
-  crowd: 'Where did others place mirrors?',
+  /** Result card: opens the night's top islands, each with its pieces as placed. */
+  others: "See others' islands",
   /** {percent} of solves at par. Tonight, and for an island from an earlier night. */
   crowdPar: '{percent}% hit par tonight',
   crowdParPast: '{percent}% hit par that night',
   crowdFew: 'You are among the first tonight.',
   crowdFewPast: 'Only a few lit it that night.',
-  crowdHint: 'Orange pools show where others placed pieces.',
-  /** Past islands only: lays the par answer on the island, and back. */
-  showPar: 'Show par',
-  showMine: 'Show mine',
+  othersHint: 'Tap an island to see how it was lit.',
+  /** The player's own island, first in the list. */
+  othersMine: 'Your island',
+  othersEmpty: 'No other islands yet tonight.',
+  /** Looking at one island: back to the list. */
+  othersList: 'All islands',
+  /** The par answer as a row of its own, on an earlier night's list. */
+  othersPar: 'The par answer',
+  othersParDetail: '{par} pieces',
   crowdLocked: 'Lock in first to see everyone else.',
   /** Closes a list and returns to the result card. */
   back: 'Back',
@@ -986,28 +991,24 @@ export const KEEP = {
   skySeconds: 45 * 86_400,
 } as const;
 
-/** "See how everyone solved it": tiles warm by how often players put a piece there. */
-export const HEAT = {
-  /**
-   * Pools are laid over the ground, not added to it as light (added light washed pale snow out
-   * to white). Their colour runs from pale amber on the least-used tile to deep orange on the
-   * busiest, at this opacity at their centre. A used tile must end up at least this much warmer
-   * (red minus blue, 0..255) than its bare ground on every biome; tested.
-   */
-  colour: 0xf07a1a,
-  paleColour: 0xf5c46a,
-  poolOpacity: 0.7,
-  minWarmthGain: 60,
-  /**
-   * Each used tile gets a soft pool of warm light: its width in tiles at the least-used and
-   * the most-used tile, and its brightness at each.
-   */
-  poolMin: 0.9,
-  poolMax: 2.3,
+/** "See others' islands": the top of the night's board, each island with its pieces as placed. */
+export const OTHERS = {
+  /** Islands listed, in the board's order, besides the player's own. */
+  top: 10,
   /** Below this many solves the share at par is not shown; a gentler line is. */
   fewSolves: 5,
   /** How long the camera takes to come down to the island, or go back up, in ms. */
   cameraMs: 1500,
+  /** The small picture of each island in the list, in CSS pixels. */
+  previewWidth: 92,
+  previewHeight: 54,
+  /**
+   * Placed pieces in that picture: mirror length and prism size, against half a tile's width.
+   * Lantern glow is kept small there (also against half a tile) so the pieces stay readable.
+   */
+  previewMirror: 1.5,
+  previewPrism: 0.62,
+  previewGlow: 1.3,
 } as const;
 
 /** The app's stickied results comment. */

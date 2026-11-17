@@ -1,3 +1,8 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="content/brand/png/wordmark-on-dark-1600.png">
+  <img alt="Lumen" src="content/brand/png/wordmark-on-light-1600.png" width="360">
+</picture>
+
 # Lumen
 
 A new island every night. Bend the light into every lantern, then send your own lantern up
@@ -40,7 +45,8 @@ Then:
 
 - **Tonight's board:** fewest pieces, then fastest, with snoovatars; and an all-time board of
   nights at par. Times are measured by the server, from when your island appeared.
-- **Where did others place mirrors?** Soft pools of light show where the night's players built.
+- **See others' islands:** your own island and the night's top ten, each with a small picture of
+  where that player put their pieces. Tap one to see it lit on the real island.
 - **Share to comments** posts your result as your own reply under the post's results comment.
   Only ever on your tap.
 - **The Archipelago:** a night map of every earlier island, glowing by how many lit it, with

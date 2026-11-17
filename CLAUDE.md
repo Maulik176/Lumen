@@ -42,6 +42,11 @@ maintains Lumen until submission (Devpost by Dec 7). Start every session by read
   the app posts community islands and credits the maker, so no new permission). Briefs in
   `HANDOFF.md`; why in `docs/SUBMISSION.md` (lessons from BridgeDit, the last winner). O-2 phone
   checks still come first.
+- **Nov 17 (Opus), at Maulik's request:** O-15 built as "See others' islands" (replaces the
+  crowd pools: your island plus the top 10 with pictures, tap to see one lit, read-only; list
+  kept at Lock in in `others:{day}`, pieces in `boards:{day}`). 341 tests. Not seen on Reddit.
+  Logo built (option C, Maulik's pick: the light's path is the L): `content/brand/`, rebuilt by
+  `node content/brand/build.mjs`; app listing icon set in `devvit.json` `marketingAssets`.
 
 **History** (what each session built; kept for context, oldest first, M8 last):
 - **Island Builder is cut.** Sunday uses a generated island. Brief kept in `docs/HANDOFF-ARCHIVE.md`.

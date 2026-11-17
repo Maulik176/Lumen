@@ -42,7 +42,7 @@ import { createJourney, type Journey } from './journey';
 import { applyTheme, createHud, type HudActions } from './hud';
 import { boardSheet } from './board';
 import { askWarmUp, ruleCard } from './cards';
-import { crowdSheet, loadHeat } from './crowd';
+import { loadOthers, othersSheet } from './others';
 import { openArchipelago } from './archipelago';
 import type { Rider } from './release';
 import { createIslandView } from './scene';
@@ -408,29 +408,22 @@ function mountIsland(
     );
   };
 
-  const showCrowd = async (): Promise<void> => {
-    const heat = await loadHeat(island.day);
+  const showOthers = async (): Promise<void> => {
+    const others = await loadOthers(island.day);
     const own = state;
-    if (heat !== null) view.crowd(heat.tiles);
+    if (others !== null) view.inspect(true);
     hud.showSheet(
-      crowdSheet(
-        heat,
-        tonight,
-        heat?.parSolution == null
-          ? null
-          : (par) => {
-              const answer = heat.parSolution;
-              view.sync(
-                par && answer !== null ? lockedWith(puzzle, answer) : own
-              );
-            },
-        () => {
+      othersSheet(others, tonight, island, {
+        look: (placements) =>
+          view.sync(placements === null ? own : lockedWith(puzzle, placements)),
+        close: () => {
           view.sync(own);
-          view.crowd(null);
+          view.inspect(false);
           hud.hideSheet();
           layout();
-        }
-      )
+        },
+        change: layout,
+      })
     );
     layout();
   };
@@ -460,7 +453,7 @@ function mountIsland(
   if (options.explore !== undefined && island.day > 1)
     actions.explore = options.explore;
   if (tonight) actions.board = showBoard;
-  actions.crowd = () => void showCrowd();
+  actions.others = () => void showOthers();
   // Sharing is the player's own comment: only signed in, and only on its own tap.
   if (tonight && me.loggedIn) {
     actions.share = () => void share();

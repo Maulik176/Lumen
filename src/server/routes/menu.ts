@@ -162,7 +162,7 @@ menu.post('/set-today', (c) => {
 
 /**
  * Playtest subreddit only: a clean start. Deletes every post this app made here, forgets each
- * day's post, board, sky, counts and crowd, and resets the moderator's own progress on every
+ * day's post, board, sky, counts and stored pieces, and resets the moderator's own progress on every
  * day. Other accounts' own solves are not touched (they cannot be listed).
  */
 menu.post('/clean-up', async (c) => {
@@ -198,7 +198,8 @@ menu.post('/clean-up', async (c) => {
         redisStore.del(KEYS.leaderboard(day)),
         redisStore.del(KEYS.sky(day)),
         redisStore.del(KEYS.stats(day)),
-        redisStore.del(KEYS.heat(day)),
+        redisStore.del(KEYS.boards(day)),
+        redisStore.del(KEYS.othersTop(day)),
       ]);
     }
     await redisStore.del(KEYS.allTime);

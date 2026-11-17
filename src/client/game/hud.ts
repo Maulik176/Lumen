@@ -34,7 +34,7 @@ export type HudActions = {
   /** Result card: tapping the time and place opens tonight's board. */
   board?: () => void;
   /** Result card: where everyone put their pieces. Only after a solve that allows it. */
-  crowd?: () => void;
+  others?: () => void;
   /** Result card on a post that is not tonight's: go to tonight's island. */
   tonight?: () => void;
   /** Result card, ranked and signed in: post the result as the player's own comment. */
@@ -175,6 +175,7 @@ export function applyTheme(root: HTMLElement): void {
   set('--amber-ink', UI.amberInk);
   set('--light', UI.light);
   set('--veil', UI.veil);
+  set('--night', UI.night);
   set('--medal-lamplighter', UI.medalLamplighter);
   set('--medal-glow', UI.medalGlow);
   set('--medal-spark', UI.medalSpark);
@@ -300,7 +301,7 @@ export function createHud(
   };
   const againButton = button(COPY.playAgain, 'quiet', actions.playAgain);
   const exploreButton = button(COPY.explore, 'quiet', actions.explore);
-  const crowdButton = button(COPY.crowd, 'main', actions.crowd);
+  const othersButton = button(COPY.others, 'main', actions.others);
   /** Once shared, the reply's address: the share button then opens it instead of posting. */
   let sharedAt: string | null = null;
   const share = actions.share;
@@ -455,11 +456,11 @@ export function createHud(
             })
           : formatTime(outcome.elapsedMs);
       // A ranked result is final; anything else can be played again.
-      // Tonight's crowd opens after a ranked solve; an earlier night's is open after any solve.
+      // Tonight's islands open after a ranked solve; an earlier night's are open after any solve.
       const shown = outcome.ranked
-        ? [crowdButton, shareButton, exploreButton]
+        ? [othersButton, shareButton, exploreButton]
         : backButton !== null
-          ? [crowdButton, againButton, backButton]
+          ? [othersButton, againButton, backButton]
           : [tonightButton, againButton, exploreButton];
       const buttons = shown.filter(
         (node): node is HTMLButtonElement => node !== null

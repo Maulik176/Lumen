@@ -3,7 +3,8 @@
  * land as pale tiles, water as gaps, a spark for each sun and a lantern for each lantern.
  * Used on the feed card (today's island) and on the Archipelago map (past islands). Canvas 2D only.
  */
-import { UI } from '../shared/config';
+import { OTHERS, UI } from '../shared/config';
+import type { Placement } from '../shared/types';
 
 export type OutlineOptions = {
   /** Canvas size in CSS pixels. */
@@ -15,6 +16,8 @@ export type OutlineOptions = {
   rock?: boolean;
   /** The colour of the land, as "#rrggbb". Pale paper when left out. */
   land?: string;
+  /** Pieces a player placed, drawn on their tiles ("See others' islands"). */
+  pieces?: readonly Placement[];
 };
 
 export function drawIslandOutline(
@@ -85,6 +88,43 @@ export function drawIslandOutline(
       if ('^>v<'.includes(tile)) lights.push({ x, y, sun: true });
     });
   });
+  // Placed pieces: a mirror as a short bar along its diagonal, a prism as a small triangle.
+  for (const placement of options.pieces ?? []) {
+    const [cx, top0] = at(placement.x, placement.y);
+    const cy = top0 + rise;
+    pen.globalAlpha = 1;
+    pen.lineCap = 'round';
+    if (placement.piece.kind === 'prism') {
+      const size = half * OTHERS.previewPrism;
+      pen.beginPath();
+      pen.moveTo(cx, cy - size);
+      pen.lineTo(cx + size, cy + size * 0.7);
+      pen.lineTo(cx - size, cy + size * 0.7);
+      pen.closePath();
+      pen.fillStyle = UI.paper;
+      pen.fill();
+      pen.lineWidth = 1;
+      pen.strokeStyle = UI.ink;
+      pen.stroke();
+      continue;
+    }
+    // On screen a "/" mirror runs across the tile, a backslash mirror up and down it.
+    const reach = (half * OTHERS.previewMirror) / 2;
+    const across = placement.piece.orientation === 'slash';
+    const dx = across ? reach : 0;
+    const dy = across ? 0 : reach * 0.9;
+    for (const [width, colour] of [
+      [3.6, UI.ink],
+      [2, UI.paper],
+    ] as const) {
+      pen.beginPath();
+      pen.moveTo(cx - dx, cy - dy);
+      pen.lineTo(cx + dx, cy + dy);
+      pen.lineWidth = width;
+      pen.strokeStyle = colour;
+      pen.stroke();
+    }
+  }
   for (const light of lights) {
     const [cx, top0] = at(light.x, light.y);
     const cy = top0 + rise - 1;
@@ -97,12 +137,15 @@ export function drawIslandOutline(
       continue;
     }
     if (options.lit) {
-      const glow = pen.createRadialGradient(cx, cy, 0, cx, cy, 8);
+      // With pieces drawn, the glow stays small so it never hides them.
+      const reach =
+        options.pieces === undefined ? 8 : half * OTHERS.previewGlow;
+      const glow = pen.createRadialGradient(cx, cy, 0, cx, cy, reach);
       glow.addColorStop(0, UI.amber);
       glow.addColorStop(1, 'transparent');
       pen.fillStyle = glow;
       pen.globalAlpha = 0.9;
-      pen.fillRect(cx - 8, cy - 8, 16, 16);
+      pen.fillRect(cx - reach, cy - reach, reach * 2, reach * 2);
       pen.globalAlpha = 1;
     }
     pen.beginPath();

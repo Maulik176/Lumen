@@ -12,3 +12,6 @@ coverage
 .claude/settings.local.json
 .build-staging
 .tmp/
+
+# Generated pages for the logo renders (content/brand/build.mjs)
+content/brand/.sheets/

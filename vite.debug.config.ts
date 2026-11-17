@@ -15,7 +15,7 @@ import {
   toPublicIsland,
   type CardResponse,
   type BoardResponse,
-  type HeatResponse,
+  type OthersResponse,
   type IslandResponse,
   type LockInResponse,
   type LockInResult,
@@ -188,34 +188,76 @@ function localApi(): Plugin {
         response.setHeader('content-type', 'application/json');
         response.end(JSON.stringify(body));
       });
-      // A made-up crowd: most players found par, a few wandered. A day solved here with a
-      // ranked Lock in counts as tonight (no par answer); any other day as an earlier night.
-      server.middlewares.use('/api/heatmap', (request, response) => {
+      // Made-up islands for "See others' islands": the first three at par, the rest with one
+      // extra mirror on a spare grass tile. A day solved here with a ranked Lock in counts as
+      // tonight (with the player's own island, no par answer); any other day as an earlier night.
+      server.middlewares.use('/api/others', (request, response) => {
         const day = Number(
           new URL(request.url ?? '', 'http://localhost').searchParams.get(
             'day'
           ) ?? '1'
         );
         const island = load().days[day - 1];
-        let body: HeatResponse = { ok: false, reason: 'not-found' };
+        let body: OthersResponse = { ok: false, reason: 'not-found' };
         if (island !== undefined) {
           const puzzle = puzzleOfDaily(island);
-          const tiles = puzzle.terrain.map((ground, tile) =>
-            ground === 'grass'
-              ? (tile * 7919) % 13 < 2
-                ? (tile % 5) + 1
-                : 0
-              : 0
+          const used = new Set(
+            island.solution.map((p) => p.y * puzzle.width + p.x)
           );
-          for (const placement of island.solution)
-            tiles[placement.y * puzzle.width + placement.x] = 30;
+          const spare = puzzle.terrain.flatMap((ground, tile) =>
+            ground === 'grass' &&
+            !used.has(tile) &&
+            !puzzle.fixedMirrors.some(
+              (m) => m.y * puzzle.width + m.x === tile
+            ) &&
+            !puzzle.sources.some((m) => m.y * puzzle.width + m.x === tile) &&
+            !puzzle.lanterns.some((m) => m.y * puzzle.width + m.x === tile)
+              ? [tile]
+              : []
+          );
+          const top = Array.from({ length: 10 }, (_, i) => {
+            const tile = spare[(i * 7) % Math.max(1, spare.length)];
+            const extra: Placement[] =
+              i < 3 || tile === undefined
+                ? []
+                : [
+                    {
+                      x: tile % puzzle.width,
+                      y: Math.floor(tile / puzzle.width),
+                      piece: {
+                        kind: 'mirror',
+                        orientation: i % 2 === 0 ? 'slash' : 'backslash',
+                      },
+                    },
+                  ];
+            return {
+              rank: i + 1,
+              username: `test_${i + 1}`,
+              snoovatar: '',
+              pieces: island.par + extra.length,
+              timeMs: 41_000 + i * 9_000,
+              placements: [...island.solution, ...extra],
+            };
+          });
+          const mine = solved.get(day);
           body = {
             ok: true,
             day,
-            tiles,
+            top,
+            me:
+              mine === undefined
+                ? null
+                : {
+                    rank: 23,
+                    username: 'you',
+                    snoovatar: '',
+                    pieces: mine.result.pieces,
+                    timeMs: mine.result.elapsedMs,
+                    placements: mine.placements,
+                  },
             solves: 140,
             parHits: 25,
-            parSolution: solved.has(day) ? null : island.solution,
+            parSolution: mine === undefined ? island.solution : null,
           };
         }
         response.setHeader('content-type', 'application/json');

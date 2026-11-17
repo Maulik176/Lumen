@@ -35,7 +35,8 @@ costs and what it changes). Briefs marked *fix* are bug fixes and need only a fa
 
 **Approved exceptions (Maulik, Mon Nov 16):** O-14 Island Builder, O-15 top boards as pictures,
 O-16 logo. **Start after Wed Nov 18**, once the app review form is in. Order: O-16 (small),
-O-15 (small to medium), O-14 (large, about two days). The phone checks in O-2 still come first
+O-15 (small to medium), O-14 (large, about two days). **O-15 was built on Nov 17 at Maulik's
+request** (redesigned as "See others' islands"); O-16 logo built the same day (option C). The phone checks in O-2 still come first
 on any day they compete. Why: every one of them comes from what BridgeDit, the last Best Daily
 Game winner, did (`docs/SUBMISSION.md` lessons 4, 9 and 15).
 
@@ -84,7 +85,7 @@ Every number lives here with a comment. Change one, run `npm test`, look at it l
 | The ending feels slow / fast | `RELEASE.riseMs` (7000), `RELEASE.hoverMs` (2600), `RELEASE.lookBelow`, `RELEASE.driftSpeed`, `RELEASE.driftHeight` | Calm path: `calmRiseMs`, `calmHoldRise` |
 | Other lanterns too big / small / many | `SKY.pointSize` (42), `SKY.fullSizeAt`, `SKY.maxLanterns` (300), `SKY.snoovatarLoads` (60) | One draw call whatever the count |
 | Quiet-night threshold | `SKY.quietBelow` (10), `SKY.lastNightOpacity` | Last night's lanterns are real players only |
-| Crowd pools | `HEAT.poolMin`, `poolMax`, `glowMin`, `glowMax`, `fewSolves` | |
+| See others' islands | `OTHERS.top`, `previewWidth`, `previewHeight`, `previewMirror`, `previewPrism`, `previewGlow`, `fewSolves` | |
 | Medal colours | `UI.emblemGold`, `emblemSilver`, `emblemBronze`; name colours `UI.medal*` | |
 | Medal thresholds | `SCORING.lamplighterOverPar`, `glowOverPar` | |
 | Streak styles and flair | `STREAK` | Changing days changes everyone's style |
@@ -372,45 +373,58 @@ word; otherwise send nothing there either.
 from their account, plays unranked, and with "Dev: set today" to a Saturday and the pick task
 run by hand, Sunday's post is that island with "by u/name" and the maker has "Islandwright".
 
-### O-15 · Top boards as pictures (APPROVED Nov 16 — start after Wed Nov 18) — S/M
+### O-15 · See others' islands (BUILT Nov 17, replaces the crowd pools) — done
 
-**Why.** BridgeDit's leaderboard shows each player's actual bridge as a picture ("Compare
-solutions and be inspired!", `docs/SUBMISSION.md` lesson 9). Ours lists names, pieces and time.
+**Why.** BridgeDit's leaderboard shows each player's actual bridge ("Compare solutions and be
+inspired!", `docs/SUBMISSION.md` lesson 9). Maulik: the old warm-tile pools would mean nothing
+with 500 players.
 
-**What.** On Tonight's board, the top three rows each show a small outline of that player's
-finished island with their pieces on it; tapping one draws it large on the same layer, with
-the name and "{pieces} pieces · {time}". Close returns to the board unchanged.
+**What a player sees.** After a ranked Lock in, the result card's main button is "See others'
+islands". The list: "Your island" first (always, to compare), then on an earlier night the par
+answer, then the top 10 in the board's order. Each row has rank, snoovatar, name, "{pieces}
+pieces · {time}" and a small night picture of the island with that player's pieces. Tapping a
+row lays those pieces on the real 3D island, lit, read-only (the board is locked); "All
+islands" goes back, "Back" returns to the result card with the player's own island.
 
-**Spoiler rule.** Pictures are sent only to a player who has a ranked Lock in for that night,
-or for a night that is over. Everyone else (including signed out) gets the board without
-pictures, exactly as today. The server decides; the client never asks for placements it may
-not see.
+**Spoiler rule.** Tonight's list opens only after the player's ranked Lock in (403 otherwise);
+an earlier night is open to everyone. The server decides.
 
-**Server.** `/api/leaderboard` reads the top three user ids from the night's board, then their
-`KEYS.submission(day, userId)` records (placements are already stored there at Lock in), one
-grouped read. Return `placements` per top row only when the spoiler rule allows. Missing or
-expired record: that row has no picture (never an error).
+**How it stays fast.** At a ranked Lock in the pieces go into `boards:{day}` (hash, username
+to placements). If the Lock in reaches the top 10, the list is rebuilt once and kept as
+`others:{day}`; opening the list is then one read (tested: opening writes nothing). A missing
+list is rebuilt on read. "Dev: reset" and clean-up drop the kept list. Code:
+`readOthers` / `rebuildOthers` in `src/server/core/game.ts`, `/api/others`,
+`src/client/game/others.ts`, pieces drawn by `drawIslandOutline` (`pieces` option). Numbers in
+`OTHERS` in `config.ts`.
 
-**Client.** Merge placements into the island rows for drawing and draw with
-`drawIslandOutline` (`src/client/outline.ts`); placed pieces in a warm colour so they read as
-the player's, fixed mirrors in stone as now. Sizes and colours in `config.ts`. Works at
-360x460 and in the wide layout.
+**Removed:** the crowd pools (`HEAT`, `shared/heat.ts`, the ground's pool mesh, `/api/heatmap`,
+`heat:{day}` writes). **Journeys:** none existed for this view and none were added: the
+journey ends at Lock in and the list opens only after it, so `JOURNEY_MAP.md` is unchanged.
 
-**Tests.** Spoiler rule (no ranked Lock in → no placements; past night → placements; signed
-out → none), missing submission record, top three only. Pure merge of placements into rows in
-`src/shared` with its own test.
+**Not yet seen on Reddit.**
 
-### O-16 · Lumen logo (APPROVED Nov 16 — start after Wed Nov 18) — S
+### O-16 · Lumen logo (BUILT Nov 17, option C chosen by Maulik) — done
 
-**Why.** BridgeDit has a real wordmark (a bridge drawn into the letters) and it is its own
-gallery item (`docs/SUBMISSION.md` lesson 4). Lumen has none.
+**The mark.** The light's path is the L of Lumen: light leaves a sun (the small diamond), runs
+left along the foot, turns up at a wooden mirror in the corner and climbs the stem into a paper
+lantern. "umen" is Young Serif turned into outlines, so no file needs the font. Game palette
+only; drawn in code, no generated images. Reads at 32 px; at 16 px it is a glowing L.
 
-**What.** A wordmark "Lumen" in Young Serif (bundled, OFL; turning letters into outlines is
-allowed) with one paper lantern drawn into it, in the UI palette (`UI` in `config.ts`). Drawn
-as SVG by hand in code, no generated images. Files: `content/brand/lumen-logo.svg`, plus PNG
-exports with a transparent background (wide wordmark about 2000 px, square icon 256 px for the
-subreddit). Uses: Devpost gallery item 2, Devpost thumbnail, r/LumenGame icon and banner
-(Maulik uploads). Putting it on the feed card or in the game is a separate change: ask first.
+**Files** (`content/brand/`, rebuilt by `node content/brand/build.mjs`, needs Chrome):
+- SVG: `lumen-icon.svg` (square, on night), `lumen-mark-on-dark.svg`,
+  `lumen-wordmark-on-dark.svg`, `lumen-wordmark-on-light.svg`.
+- PNG (`png/`): `app-icon-1024.png` (Devvit listing: 1024 square, under 500 KB, set as
+  `marketingAssets.icon` in `devvit.json`), `subreddit-icon-512.png` and `-256.png` (the mark
+  sits inside the circle Reddit crops icons to), `subreddit-banner-1920x384.png` (everything
+  in the middle band: Reddit crops banners to about 25:3), `devpost-thumbnail-1500x1000.png`
+  (3:2), `trailer-title-1920x1080.png` (for the video edit), transparent wordmarks
+  `wordmark-on-dark-1600.png` and `wordmark-on-light-1600.png`.
+- `drafts/`: the three options shown to Maulik and `check-small-sizes.png` (32 and 16 px test).
+
+**Maulik uploads** the subreddit icon and banner (Mod Tools → Community appearance; check the
+sizes it asks for there, guides disagree). **Not done (ask first):** the logo inside the game
+or on the feed card. **Not yet checked:** that `devvit upload` accepts the icon path (the
+schema in the installed SDK says a project-relative PNG path).
 
 ### Not to do
 - Anything that changes `content/puzzles.json` after launch.

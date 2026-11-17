@@ -8,7 +8,7 @@ import {
   type IslandResponse,
   type BoardResponse,
   type CardResponse,
-  type HeatResponse,
+  type OthersResponse,
   type LockInResponse,
   type Night,
   type PastResponse,
@@ -35,7 +35,7 @@ import {
   recordShare,
   releaseShare,
   readAllTime,
-  readHeat,
+  readOthers,
   readLeaderboard,
   rankedOpen,
   readSky,
@@ -253,30 +253,31 @@ api.get('/leaderboard', async (c) => {
   return c.json<BoardResponse>({ ok: true, scope: 'day', ...board });
 });
 
-/** Where everyone put their pieces. 403 until the player has locked in tonight's island. */
-api.get('/heatmap', async (c) => {
+/** "See others' islands": 403 until the player has locked in tonight's island. */
+api.get('/others', async (c) => {
   const fromQuery = Number(c.req.query('day'));
   const island = islandForDay(
     requestedDay(Number.isInteger(fromQuery) ? fromQuery : undefined)
   );
   if (island === undefined)
-    return c.json<HeatResponse>({ ok: false, reason: 'not-found' }, 404);
-  const heat = await readHeat(
+    return c.json<OthersResponse>({ ok: false, reason: 'not-found' }, 404);
+  const others = await readOthers(
     store,
     await whoIsAsking(),
     island,
     nowMs(),
     lastDay()
   );
-  if (!heat.ok)
-    return c.json<HeatResponse>({ ok: false, reason: 'locked' }, 403);
-  return c.json<HeatResponse>({
+  if (!others.ok)
+    return c.json<OthersResponse>({ ok: false, reason: 'locked' }, 403);
+  return c.json<OthersResponse>({
     ok: true,
     day: island.day,
-    tiles: heat.tiles,
-    solves: heat.solves,
-    parHits: heat.parHits,
-    parSolution: heat.parSolution,
+    top: others.top,
+    me: others.me,
+    solves: others.solves,
+    parHits: others.parHits,
+    parSolution: others.parSolution,
   });
 });
 

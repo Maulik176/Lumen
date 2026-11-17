@@ -94,12 +94,12 @@ appear.
 | # | Picture | Caption | Criterion | How | When |
 |---|---|---|---|---|---|
 | 1 | **Cover GIF:** your lantern rises into a sky full of lanterns | ONE SKY / everyone who lit tonight's island | Reddity | Trailer mode, screen recording | After launch (needs a full sky) |
-| 2 | Lumen logo | — | Identity | **Not made yet:** Young Serif plus a lantern mark | Any time |
+| 2 | Lumen logo | — | Identity | **Made:** `content/brand/png/wordmark-on-dark-1600.png` (Devpost thumbnail: `devpost-thumbnail-1500x1000.png`) | Done |
 | 3 | Five biomes side by side | A NEW ISLAND EVERY NIGHT / gentle Monday, demanding Saturday | Recurring content | `npm run hero` renders | Any time |
 | 4 | Light travelling, a mirror turning, a prism splitting | BEND THE LIGHT / tap to place, tap to turn | Delightful UX | `scripts/shoot.mjs` at exact size | Any time |
 | 5 | Colour shapes close up | COLOUR IS NEVER THE ONLY CLUE / triangle, circle, square | Polish | Local screenshot | Any time |
 | 6 | Tonight's board with snoovatars | TONIGHT'S BOARD / fewest pieces, then fastest | Reddity | Reddit | After launch |
-| 7 | Crowd pools | WHERE DID OTHERS BUILD? | Reddity | Local screenshot | Any time |
+| 7 | See others' islands: the list with pictures, and one player's island lit | HOW DID THEY LIGHT IT? | Reddity | Local screenshot, then Reddit with real players | Any time / after launch |
 | 8 | **Phone GIF:** feed card, tap, play, inside the Reddit app | PLAYS RIGHT IN THE POST | Mobile | Maulik, iPhone screen recording | After launch |
 | 9 | **Phone GIF:** Lock in, nightfall, lanterns bloom, with Reduce Motion on | LOCK IN, AND NIGHT FALLS | Delightful UX | Maulik, iPhone | After launch |
 | 10 | Results comment thread with shared replies | SHARE IN THE RESULTS THREAD | Reddity | Maulik, phone screenshot | After launch |
@@ -135,9 +135,10 @@ walkthrough can be linked from the write-up.
 
 Briefs in `HANDOFF.md` section 6.
 
-- **O-16 logo** (lesson 4). Gallery item 2, Devpost thumbnail, subreddit icon.
-- **O-15 top boards as pictures** (lesson 9). Gallery item 6 then shows other players' actual
-  islands, as BridgeDit's leaderboard did.
+- **O-16 logo** (lesson 4). **Built Nov 17**: the light's path is the L. Gallery item 2, Devpost
+  thumbnail, subreddit icon and banner, app listing icon, trailer title card (`content/brand/`).
+- **O-15 See others' islands** (lesson 9). **Built Nov 17**, replacing the crowd pools: the top
+  10 and your own island, each with a picture of its pieces; tap to see it lit. Gallery item 7.
 - **O-14 Island Builder** (lessons 9, 12 and 15), posted by the app with the maker credited on
   the card, as BridgeDit did. Once it ships, add gallery pictures for the Builder (with its
   "Check" and "Publish" buttons visible, like BridgeDit's "Test Level" and "Post Level") and a
