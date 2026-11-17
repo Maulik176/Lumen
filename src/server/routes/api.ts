@@ -302,7 +302,11 @@ api.post('/share', async (c) => {
     const parent = await resultsComment(postId, island.day);
     const reply = await reddit.submitComment({
       id: parent,
-      text: shareText(claim.result, toPostData(island).lanterns),
+      text: shareText(
+        claim.result,
+        toPostData(island).lanterns,
+        player.username
+      ),
       runAs: 'USER',
     });
     await recordShare(store, player, island.day, reply.id).catch(

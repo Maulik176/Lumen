@@ -114,11 +114,11 @@ publication during the event; judges need an accessible demo post. So Lumen is *
 review before judging. It is uploaded (`devvit upload`) and installed on a public subreddit
 Maulik moderates. What this changes:
 
-- **Share as a judge (re-test first).** Until a version is approved, `runAs: 'USER'` is said to
-  post as the app account for anyone but the app owner (Devvit docs; never observed: only the
-  owner has shared so far). A judge's Share would then appear as a `lumen-game` reply with no
-  name in it. Test with a second account; if it falls back, put the player's name in the share
-  text (copy in `COPY.shareLine`, allowed under the freeze) and ask Maulik.
+- **Share as a judge (confirmed Nov 17, fixed).** Before approval, `runAs: 'USER'` posts from
+  the app account for anyone but the owner: two friends' shares on Lumen #8 appeared as
+  `lumen-game` replies with no name. The share line now starts with "u/{name}" (`COPY.shareLine`,
+  test in `share.test.ts`), so every reply says whose result it is. Reddit may also send the
+  player a mention notification for it (not checked).
 - **Journeys** never record without a published version (receipts stay
   `JOURNEY_RECEIPT_DENIED_PLAYTEST` or similar). Harmless to players; keep the code and
   `JOURNEY_MAP.md` for a later publish.

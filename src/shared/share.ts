@@ -19,8 +19,14 @@ export function clock(ms: number): string {
 }
 
 /** Two lines with a blank line between, so Reddit keeps them apart. */
-export function shareText(result: LockInResult, lanterns: number): string {
+export function shareText(
+  result: LockInResult,
+  lanterns: number,
+  /** The player's Reddit username, without "u/". */
+  username: string
+): string {
   const first = COPY.shareLine
+    .replace('{name}', username)
     .replace('{day}', String(result.day))
     .replace('{lanterns}', '\u{1F3EE}'.repeat(Math.max(1, lanterns)))
     .replace(

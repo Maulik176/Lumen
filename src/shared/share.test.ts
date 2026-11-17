@@ -17,19 +17,29 @@ const result: LockInResult = {
 };
 
 describe('shareText', () => {
-  it('is two lines: the island, then the medal and streak', () => {
-    expect(shareText(result, 4)).toBe(
-      'Lumen #12 \u00b7 \u{1F3EE}\u{1F3EE}\u{1F3EE}\u{1F3EE} \u00b7 5 pieces (par 4) \u00b7 \u23f1 1:42\n\nGlow \u00b7 \u{1F525} 7-night streak'
+  it('is two lines: who and the island, then the medal and streak', () => {
+    expect(shareText(result, 4, 'ana')).toBe(
+      'u/ana \u00b7 Lumen #12 \u00b7 \u{1F3EE}\u{1F3EE}\u{1F3EE}\u{1F3EE} \u00b7 5 pieces (par 4) \u00b7 \u23f1 1:42\n\nGlow \u00b7 \u{1F525} 7-night streak'
     );
   });
 
   it('leaves the streak out on a first night and says "1 piece"', () => {
     const text = shareText(
       { ...result, pieces: 1, par: 1, medal: 'lamplighter', streak: 1 },
-      1
+      1,
+      'ana'
     );
     expect(text).toContain('1 piece (par 1)');
     expect(text.endsWith('\n\nLamplighter')).toBe(true);
+  });
+
+  it("names the player, because Reddit posts it from the app's account for everyone but the owner", () => {
+    // Seen Nov 17: two friends' shares appeared as "lumen-game" replies with no name in them.
+    expect(
+      shareText(result, 4, 'Dry_Promotion2506').startsWith(
+        'u/Dry_Promotion2506 \u00b7 '
+      )
+    ).toBe(true);
   });
 
   it('formats time as minutes and seconds', () => {

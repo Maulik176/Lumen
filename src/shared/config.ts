@@ -256,8 +256,13 @@ export const COPY = {
   /** After sharing, when the reply can be opened: a drawn tick comes before these words. */
   sharedView: 'Shared \u00b7 View comment',
   /** The comment itself. Emoji are allowed here: it is a Reddit comment, not game UI. */
+  /**
+   * The shared result's first line. It names the player: until the app is approved, Reddit posts
+   * it from the app's own account for everyone but the owner (seen Nov 17), so without the name
+   * nobody could tell whose result it was.
+   */
   shareLine:
-    'Lumen #{day} \u00b7 {lanterns} \u00b7 {pieces} (par {par}) \u00b7 \u23f1 {time}',
+    'u/{name} \u00b7 Lumen #{day} \u00b7 {lanterns} \u00b7 {pieces} (par {par}) \u00b7 \u23f1 {time}',
   shareStreak: '{medal} \u00b7 \ud83d\udd25 {streak}-night streak',
 } as const;
 

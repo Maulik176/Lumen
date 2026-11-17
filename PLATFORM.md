@@ -77,11 +77,11 @@ is too much for 300 lanterns, so the sky draws snoovatars only for the nearest f
   **Open item for Milestone 5: re-test on desktop and Android.** Either way the Share button must
   show a calm failure line ("Could not post. Try again from the Reddit app.") and never block.
 - Needs `"reddit": { "asUser": ["SUBMIT_COMMENT"] }`.
-- Docs, not observed: until the app version is approved, `runAs: 'USER'` posts as the app account
-  for anyone who is not the app owner. Only the owner was tested. The app was to go to review
-  on Nov 17–18 (PROMPT D3) for this reason, but on Nov 17 the organizers asked for upload and
-  playtest only during the event, so **for judges this fallback is expected**: test it with a
-  second account (HANDOFF section 5).
+- **Observed Nov 17:** until the app version is approved, `runAs: 'USER'` posts as the app
+  account for anyone who is not the app owner. Two friends' shares on Lumen #8 (v0.0.1.66)
+  appeared as `lumen-game` replies; the owner's appeared under the owner's name. There is no app
+  review during the event, so judges get the fallback: the share line names the player
+  ("u/{name} · Lumen #N …") from the upload after v0.0.1.68.
 
 ## 5. Scheduler
 

@@ -14,7 +14,7 @@ lanterns in the sky (three accounts on Lumen #8), "Dev: set today".
 
 | # | Test | How | Who |
 | --- | --- | --- | --- |
-| 1 | **Share as a judge** | A second account taps Share. Whose name is on the reply: theirs or `lumen-game`? If `lumen-game`, the share line needs the player's name | Friend |
+| 1 | **Share as a judge** | **Done Nov 17:** friends' replies came from `lumen-game` with no name. Fixed: the line now starts "u/name". Re-check after the next upload: a friend's share shows their name in the text | Friend |
 | 2 | **The game as a stranger** | Signed out, then a second account, on a fresh day: feed card, tutorial, play, Lock in, See others' islands | Maulik + friend |
 | 3 | **See others' islands, full** | All three lock in on a day none of you has played ("Dev: set today"): names, pictures, tap one to see it lit, "All islands", "Back" | Maulik + friends |
 | 4 | **Live sky between two phones** | Same post open on two phones; one locks in: their lantern appears in the other's sky within a couple of seconds, and the "u/name just lit…" line shows while playing | Two phones |
