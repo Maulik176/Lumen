@@ -135,7 +135,8 @@ maintains Lumen until submission (Devpost by Dec 7). Start every session by read
   `r/LumenGame` still to be created by Maulik (needed by Nov 24).
 - `npx devvit login` expires within hours; a 401 from playtest means log in again. Claude cannot
   open reddit.com in its browser tools: Maulik does anything that needs the Reddit site.
-- Branch `spike/platform` holds the throwaway spike. Never merge it.
+- Public repo: https://github.com/Maulik176/Lumen (`origin`, `main` only). Branch
+  `spike/platform` holds the throwaway spike: never merge it, never push it.
 - M1: engine in `src/shared` (tracer, exact solver, validator, RNG, text format), ten fixtures,
   `npm run bench`, `PLATFORM.md`.
 - M2: generator, difficulty model, names, calendar, `content/puzzles.json` (90 days from day one
