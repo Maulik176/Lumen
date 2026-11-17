@@ -22,6 +22,7 @@ superseded by O-14 below.
   lanterns, tile seams, medal emblems, crowd pools, the sky noise fix, the live results comment,
   trailer mode, warm-up offer, Archipelago map, day rollover by cron.
 - **Never run:** Android; two phones at once (live sky); frame rate on any real device.
+- **Everything still untested, with how to test it: `docs/TESTS-TO-RUN.md`** (Nov 17).
 - **Cut, now approved to build after Wed Nov 18:** Island Builder and the Sunday community island
   (O-14). Until it ships, Sunday uses a generated island.
 
