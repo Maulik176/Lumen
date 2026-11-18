@@ -8,6 +8,7 @@
 import type { LockInResult, PublicIsland } from '../../shared/api';
 import type { ArrivalPath } from '../../shared/arrival';
 import { COPY, OTHERS, SKY, UI, VIEW } from '../../shared/config';
+import type { SkyNote } from '../../shared/skynote';
 import {
   canLockIn,
   hintFor,
@@ -85,8 +86,12 @@ export type Hud = {
   arrival: (path: ArrivalPath) => void;
   /** "u/name lit Moss Steps": shown briefly, never more than one at a time. */
   skyLine: (text: string) => void;
-  /** A line that shows even while everything else is hidden, for `ms` milliseconds. */
-  say: (text: string, ms: number) => void;
+  /**
+   * Lines that show even while everything else is hidden, one after another: each for its own
+   * time, then it goes, and after a short pause the next comes. No tap needed. A new call
+   * replaces whatever was still to come.
+   */
+  say: (notes: readonly SkyNote[]) => void;
   /** Developer read-out, shown only with ?perf=1. */
   perf: (text: string) => void;
 };
@@ -345,6 +350,7 @@ export function createHud(
   // A quiet line when someone else's lantern rises.
   const skyLine = element('p', 'sky-line');
   let skyUntil = 0;
+  let sayTimer = 0;
   const perfLine = element('pre', 'perf');
 
   const youLabel = element('span', 'sky-tag sky-you', COPY.you);
@@ -565,11 +571,24 @@ export function createHud(
       };
     },
 
-    say(text, ms) {
-      skyUntil = performance.now() + ms;
-      skyLine.textContent = text;
-      skyLine.classList.add('visible');
-      window.setTimeout(() => skyLine.classList.remove('visible'), ms);
+    say(notes) {
+      window.clearTimeout(sayTimer);
+      const total = notes.reduce(
+        (sum, note) => sum + note.ms + SKY.noteGapMs,
+        0
+      );
+      skyUntil = performance.now() + total;
+      const show = (index: number): void => {
+        const note = notes[index];
+        if (note === undefined) return;
+        skyLine.textContent = note.text;
+        skyLine.classList.add('visible');
+        sayTimer = window.setTimeout(() => {
+          skyLine.classList.remove('visible');
+          sayTimer = window.setTimeout(() => show(index + 1), SKY.noteGapMs);
+        }, note.ms);
+      };
+      show(0);
     },
 
     skyLine(text) {

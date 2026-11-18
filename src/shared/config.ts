@@ -168,6 +168,9 @@ export const COPY = {
   skyNameLastNight: 'u/{name} \u00b7 last night',
   /** Shown once, as the player's first-ever lantern rises. */
   skyJoin: "Your lantern joins everyone who lit tonight's island.",
+  /** While the lantern rises on a quiet night, when last night's lanterns are shown faintly. */
+  skyQuietFirst: "First lantern tonight. The faint ones are last night's.",
+  skyQuiet: "{count} lanterns tonight. The faint ones are last night's.",
   /** Top bar and feed card: runs the three first-light islands again. */
   howToPlay: 'How to play',
   /** Feed card: the whole game in one line. */
@@ -1010,6 +1013,15 @@ export const SKY = {
   lastNightOpacity: 0.45,
   /** How long the once-only line about the player's first lantern stays, in ms. */
   joinLineMs: 5200,
+  /** The same line when the quiet-night line follows it: short, then it goes by itself. */
+  joinLineQueuedMs: 2000,
+  /** The quiet-night line (you were first, or how many tonight; the faint ones are last night's). */
+  quietLineMs: 5200,
+  /**
+   * The pause between one of these lines going and the next appearing. Longer than the line's
+   * 600 ms fade (game.css .sky-line), so the first has fully closed before the next opens.
+   */
+  noteGapMs: 700,
   tapReachPx: 30,
   /** Seconds of other players' lanterns a late joiner's request may be cached for. */
   cacheSeconds: 5,

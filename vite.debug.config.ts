@@ -417,7 +417,8 @@ function localApi(): Plugin {
                   style: 'paper',
                   percentile: 80,
                   rank: 3,
-                  skyCount: 141,
+                  // Day 6 is the quiet night: its four made-up lanterns, and this one.
+                  skyCount: island.day === 6 ? 5 : 141,
                 };
                 solved.set(island.day, {
                   result,

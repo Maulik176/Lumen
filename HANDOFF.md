@@ -23,6 +23,12 @@ superseded by O-14 below.
   trailer mode, warm-up offer, Archipelago map, day rollover by cron.
 - **Never run:** Android; two phones at once (live sky); frame rate on any real device.
 - **Everything still untested, with how to test it: `docs/TESTS-TO-RUN.md`** (Nov 17).
+- **Nov 18 (Maulik's two-player test):** on a quiet night (under `SKY.quietBelow` lanterns) last
+  night's lanterns show faintly, and the first player of the night read them as tonight's. Now,
+  while the lantern rises, one line says "First lantern tonight. The faint ones are last
+  night's." or "N lanterns tonight…" (`shared/skynote.ts`, tested). For a newcomer the first-ever
+  sky line shows for 2 s (`SKY.joinLineQueuedMs`), closes, and this one follows by itself after
+  `SKY.noteGapMs`; no tap.
 - **Nov 17, after an outside review** (`docs/TESTS-TO-RUN.md` 1b lists its human checks):
   light on pale ground (`shared/glare.ts`: beams get a shaded lining and suns glare less as the
   ground gets lighter, so snow reads and moss is unchanged; sun rays 3.1 to 2.4 tiles);

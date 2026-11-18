@@ -48,6 +48,7 @@ whether they do (saying they will is not the same).
 | 13 | Slow ending on a phone | The 7-second rise and hover after Lock in, with Reduce Motion on and off |
 | 14 | Frame rate | Does anything stutter on iPhone or Android? (No number available on Reddit: judge by eye) |
 | 14b | Light readable on snow (Nov 17 fix) | A snow day: beams have a soft shaded edge, two suns side by side stay two suns, on a real phone in daylight |
+| 14d | Quiet-night line (Nov 18) | On a night with under 10 lanterns, Lock in: while your lantern rises, "First lantern tonight. The faint ones are last night's." (or "N lanterns tonight…"). A brand-new account sees the sky line for 2 s first, then this one by itself |
 | 14c | "Practice · Name" and "Back to islands" (Nov 17 fix) | Explore past islands, open one: the top bar says Practice, the arrow and the result card's button go back to the map |
 
 ## 3. Built, never opened on Reddit

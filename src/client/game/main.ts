@@ -34,6 +34,7 @@ import {
 } from '../../shared/play';
 import { puzzleFromText } from '../../shared/puzzle-text';
 import { RULE_KINDS, rulesOn, type RuleKind } from '../../shared/rules';
+import { releaseNotes } from '../../shared/skynote';
 import { validatePlacements } from '../../shared/validate';
 import { rememberSolved } from '../card-cache';
 import { createSound, type Sound } from './audio';
@@ -278,6 +279,8 @@ function mountIsland(
   let busy = false;
   let paused = false;
   let disposed = false;
+  /** Last night's lanterns are in the sky (a quiet night), so the rise says which are which. */
+  let lastNightShown = false;
 
   const layout = (): void => {
     if (disposed) return;
@@ -369,12 +372,21 @@ function mountIsland(
     sound.nightPad();
     await view.nightfall((index) => sound.chime(index));
     // Only a ranked solve sends a lantern to the sky; anything else is a faint one that fades.
-    // The first time ever, one line says what the sky of lanterns is.
-    if (outcome.ranked && !skyNoteSeen()) {
+    // The first time ever, one line says what the sky of lanterns is; on a quiet night, one line
+    // says whether the player was first and that the faint lanterns are last night's.
+    const firstEver = outcome.ranked && !skyNoteSeen();
+    if (firstEver) {
       store(RULE_KEY + 'sky');
       tell('/api/rule-seen', { rule: 'sky' });
-      hud.say(COPY.skyJoin, SKY.joinLineMs);
     }
+    hud.say(
+      releaseNotes({
+        ranked: outcome.ranked,
+        firstEver,
+        lastNightShown,
+        tonight: outcome.skyCount,
+      })
+    );
     await view.release(!outcome.ranked);
     hud.showResult(outcome);
     layout();
@@ -619,7 +631,9 @@ function mountIsland(
           false,
           rider.username,
           (earlier) => {
-            if (!disposed) view.setSky(earlier, true);
+            if (disposed) return;
+            view.setSky(earlier, true);
+            if (earlier.length > 0) lastNightShown = true;
           },
           () => undefined
         );
