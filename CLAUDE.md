@@ -5,6 +5,26 @@ Vite). It is an entry for Reddit's Game of the Day hackathon; submission closes 
 
 ## Where things stand (update at the end of every milestone)
 
+**Start here: Thu Nov 19, 2026, evening (Opus). Next is Island Builder phase 2, STEP 0.**
+- **The brief, word for word:** `docs/PHASE2_BRIEF.md`. First write `PHASE2_PLAN.md` (no code),
+  then stop for Maulik's OK. Phase 1 is approved and phone-tested; read `BUILDER_PLAN.md` (plan,
+  decisions in section 0, P1 report, the Nov 19 phone run and its fixes at the end).
+- **Last uploaded:** v0.0.1.80 (Nov 19): P1, the phone-run fixes, the check doubled to
+  `COMMUNITY.solveNodes` 800,000 (400,000 took 1.12 s on Reddit's server), and the checking sweep
+  ("Checking your island…", light across the board, `BUILDER_VIEW.checkSweepMs`/`checkMinMs`).
+  Last commit 49b988a, pushed. 395 tests.
+- **Waiting on Maulik's phone:** `docs/TESTS-TO-RUN.md` 1c rows B7–B9 (the Nov 19 fixes) and the
+  sweep; also B11, H1, H4, H5, G2, G3, H2, H3, H6 from the A1–H6 list.
+- **Phone tests by Claude:** iPhone Mirroring through computer use (needs full-screen control;
+  `open_application("iPhone Mirroring")` brings it to the front before clicking). Type one
+  character at a time: fast typing through the mirror garbles letters. Server timings:
+  `npx devvit logs lumen_game_dev lumen-game` (look for `Builder check:`).
+- **Captures are submission material:** after every phone run, copy the computer-use captures
+  (the session's `tool-results/` folder) into `captures/<date>-iphone/` (gitignored: the repo is
+  public) and index the useful ones in `docs/CAPTURES.md`, which maps them to `docs/SUBMISSION.md`.
+- **Upload:** `bash .tmp/upload.sh`, then `pgrep -fl dev-build` and kill anything left. Push to
+  GitHub after every phase without asking.
+
 **As of Mon Nov 16, 2026 (M9 done, feature freeze in force). Resume from `HANDOFF.md`.**
 All nine milestones are built except the cut Island Builder. Fable's work is finished; Opus 5.5
 maintains Lumen until submission (Devpost by Dec 7). Start every session by reading, in order:
