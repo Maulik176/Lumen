@@ -14,7 +14,8 @@ import {
 } from './community';
 import { islandForDay } from './content';
 import { memoryStore } from './memory-store';
-import type { Player } from './game';
+import { resetPlayer, type Player } from './game';
+import { KEYS } from './store';
 
 const ana: Player = { userId: 't2_ana', username: 'ana' };
 
@@ -106,6 +107,24 @@ describe('checking an island on the server', () => {
     });
     expect(result.nodes).toBeGreaterThan(0);
     expect(result.ms).toBe(40);
+  });
+});
+
+describe('"Reset my Lumen progress (dev)"', () => {
+  it('also forgets the Builder: draft, check, test and the first-island tutorial', async () => {
+    // Nov 19: after a dev reset the old island and a finished tutorial were still there.
+    const store = memoryStore();
+    await saveDraft(store, ana, twoMirrors());
+    const result = checkIsland(twoMirrors(), { daily: never, clock });
+    if (!result.ok) throw new Error(result.problem);
+    await recordCheck(store, ana, twoMirrors(), result);
+    await store.hSet(KEYS.user('t2_ana'), { builderTutorial: '1' });
+    await resetPlayer(store, ana, 1);
+    expect(await loadDraft(store, ana)).toBeNull();
+    expect(await startTest(store, ana, twoMirrors(), 0)).toBe('not-checked');
+    expect((await store.hGetAll(KEYS.user('t2_ana')))['builderTutorial']).toBe(
+      '0'
+    );
   });
 });
 

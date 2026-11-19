@@ -489,6 +489,10 @@ export async function resetPlayer(
     store.del(KEYS.start(day, player.userId)),
     store.del(KEYS.shared(day, player.userId)),
     store.del(KEYS.shareLock(day, player.userId)),
+    // The Island Builder starts over too: no draft, no check or test, the tutorial again.
+    store.del(KEYS.draft(player.userId)),
+    store.del(KEYS.builderCheck(player.userId)),
+    store.del(KEYS.builderTurn(player.userId)),
     store.zRem(KEYS.leaderboard(day), player.username),
     store.del(KEYS.othersTop(day)),
     ...mine.map((entry) => store.zRem(KEYS.sky(day), entry.member)),
@@ -496,6 +500,7 @@ export async function resetPlayer(
       tutorialDone: '0',
       ...Object.fromEntries(RULE_KINDS.map((kind) => [`rule:${kind}`, '0'])),
       'rule:sky': '0',
+      builderTutorial: '0',
       streak: String(NEW_STREAK.streak),
       lastDay: String(NEW_STREAK.lastDay),
       graceWeek: String(NEW_STREAK.graceWeek),

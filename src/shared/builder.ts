@@ -301,6 +301,23 @@ export function readDraft(value: unknown): IslandDraft | null {
   return { size, biome: knownBiome, name, spare, rows: clean };
 }
 
+/**
+ * Which draft and tutorial state the Builder opens with. Signed in, the server's copy decides
+ * (so "Reset my Lumen progress (dev)" really starts over, Nov 19); signed out, the device's copy
+ * is the only one there is.
+ */
+export function builderStart(saved: {
+  loggedIn: boolean;
+  serverDraft: IslandDraft | null;
+  serverTutorialDone: boolean;
+  deviceDraft: IslandDraft | null;
+  deviceTutorialDone: boolean;
+}): { draft: IslandDraft | null; tutorialDone: boolean } {
+  return saved.loggedIn
+    ? { draft: saved.serverDraft, tutorialDone: saved.serverTutorialDone }
+    : { draft: saved.deviceDraft, tutorialDone: saved.deviceTutorialDone };
+}
+
 /** The first-island tutorial: each step names what completes it. */
 export type Lesson =
   | 'biome'

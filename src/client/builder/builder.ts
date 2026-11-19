@@ -15,6 +15,7 @@ import type {
 import {
   applyTool,
   BUILDER_TOOLS,
+  builderStart,
   checkKey,
   draftProblem,
   emptyDraft,
@@ -136,12 +137,18 @@ export async function openBuilder(
       return null;
     }
   })();
+  // Signed in, the server's copy decides; the device's copy is only for signed-out players.
+  const start = builderStart({
+    loggedIn,
+    serverDraft: loaded?.draft ?? null,
+    serverTutorialDone: loaded?.tutorialDone === true,
+    deviceDraft: localDraft,
+    deviceTutorialDone: recall(TUTORIAL_KEY) === '1',
+  });
   let history: BuilderHistory = startHistory(
-    loaded?.draft ?? localDraft ?? emptyDraft(COMMUNITY.defaultSize, 'moss')
+    start.draft ?? emptyDraft(COMMUNITY.defaultSize, 'moss')
   );
-  const tutorialDone =
-    loaded?.tutorialDone === true || recall(TUTORIAL_KEY) === '1';
-  let lesson: Lesson = tutorialDone ? 'done' : 'biome';
+  let lesson: Lesson = start.tutorialDone ? 'done' : 'biome';
   let tool: BuilderTool = 'sun';
   let checked: {
     key: string;

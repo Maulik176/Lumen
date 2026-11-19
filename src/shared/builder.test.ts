@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyTool,
+  builderStart,
   difficultyLabel,
   draftProblem,
   draftPuzzleText,
@@ -235,5 +236,44 @@ describe('the first-island tutorial', () => {
     expect(
       nextLesson('sun', { type: 'tool', tool: 'sun', event: 'too-many-suns' })
     ).toBe('sun');
+  });
+});
+
+describe('where the Builder starts', () => {
+  const server = applyTool(emptyDraft(7, 'moss'), 'rock', 1, 1).draft;
+  const device = applyTool(emptyDraft(7, 'snow'), 'tree', 2, 2).draft;
+
+  it('signed in, the server decides, so a dev reset really starts over', () => {
+    // Nov 19: the device's copy kept the old island and a finished tutorial after a reset.
+    expect(
+      builderStart({
+        loggedIn: true,
+        serverDraft: null,
+        serverTutorialDone: false,
+        deviceDraft: device,
+        deviceTutorialDone: true,
+      })
+    ).toEqual({ draft: null, tutorialDone: false });
+    expect(
+      builderStart({
+        loggedIn: true,
+        serverDraft: server,
+        serverTutorialDone: true,
+        deviceDraft: device,
+        deviceTutorialDone: false,
+      })
+    ).toEqual({ draft: server, tutorialDone: true });
+  });
+
+  it('signed out, the device copy is the only one', () => {
+    expect(
+      builderStart({
+        loggedIn: false,
+        serverDraft: null,
+        serverTutorialDone: false,
+        deviceDraft: device,
+        deviceTutorialDone: true,
+      })
+    ).toEqual({ draft: device, tutorialDone: true });
   });
 });
