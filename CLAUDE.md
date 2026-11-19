@@ -5,7 +5,24 @@ Vite). It is an entry for Reddit's Game of the Day hackathon; submission closes 
 
 ## Where things stand (update at the end of every milestone)
 
-**Start here: Thu Nov 19, 2026, evening (Opus). Next is Island Builder phase 2, STEP 0.**
+**Start here: Thu Nov 19, 2026, evening (Opus). Island Builder phase 2 is being built** from
+`PHASE2_PLAN.md` (approved Nov 19 with all six section-0 recommendations). Timeline: P2 by Nov 21,
+P3 by Nov 23 (first Sunday pick Sat Nov 28), P4 polish Nov 26–27, atmosphere pass and trailer
+ending after launch (Nov 24–26). One commit per numbered item; push after the phase; **upload
+only when Maulik says.**
+- **P2 progress (Nov 19, uncommitted in the working tree):** item 1's server side is done and
+  tested: `shared/community.ts` (+test: numbers, `skyChannel` → `sky_isl_{k}`, fallback name,
+  word filter, `boardKey`), community copy and `COMMUNITY.numberBase`/`publishPerDay`/
+  `blockedWords`, `OTHERS.scan`, KEYS `cm:*` and `groups:{day}`, `PlayableIsland` in
+  `shared/daily.ts`, api.ts types (`CommunityCredit`, community `PostData`, `CardOpen`,
+  `same`/`creator` on others, publish and mine responses), `server/core/community.ts`
+  `publishIsland`/`lookUpIsland`/`setIslandActive`/`listMine`/`creatorRow` (+28 tests),
+  `/api/builder/publish` and `/mine`, community results comment, `SUBMIT_POST`. **Next:** the
+  Builder's Publish button, confirm panel and celebration (item 1 client), then commit item 1;
+  then item 2 (routes use `lookUpIsland`; `rankedOpen` and `lockIn` community rules; groups;
+  others' creator row; flair skip; `skyChannel` in api.ts and the client; preview card; game top
+  bar and result card; triggers `onPostDelete`/`onModAction`; stand-in server). Known type
+  errors until item 2: `routes/api.ts` /others and `vite.debug.config.ts` lack `creator`.
 - **The brief, word for word:** `docs/PHASE2_BRIEF.md`. First write `PHASE2_PLAN.md` (no code),
   then stop for Maulik's OK. Phase 1 is approved and phone-tested; read `BUILDER_PLAN.md` (plan,
   decisions in section 0, P1 report, the Nov 19 phone run and its fixes at the end).

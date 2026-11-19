@@ -7,7 +7,9 @@ import { reddit } from '@devvit/web/server';
 import { toPostData } from '../../shared/api';
 import { weekdayLabel } from '../../shared/calendar';
 import { COMMENT, COPY } from '../../shared/config';
-import { resultsText } from '../../shared/share';
+import { isCommunity, communityIndex } from '../../shared/community';
+import { communityResultsText, resultsText } from '../../shared/share';
+import { readCommunity } from './community';
 import { islandForDay } from './content';
 import { skyCount } from './game';
 import { KEYS, redisStore as store } from './store';
@@ -61,6 +63,15 @@ async function resultsNow(day: number): Promise<string> {
     skyCount(store, day),
   ]);
   const parHits = Math.max(0, Number(stats['parHits'] ?? 0) || 0);
+  if (isCommunity(day)) {
+    const record = await readCommunity(store, communityIndex(day));
+    return communityResultsText(
+      record?.name ?? 'the island',
+      record?.maker ?? '',
+      solves,
+      Math.min(parHits, solves)
+    );
+  }
   return resultsText(
     day,
     islandForDay(day)?.name ?? 'the island',

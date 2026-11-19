@@ -1360,6 +1360,103 @@ div.others-row {
   display: none;
 }
 
+/* Publishing: the confirm panel sits over the board like the Island panel, on solid paper. */
+.bd-confirm {
+  position: absolute !important;
+  top: calc(var(--gap) + 48px + 6px + 38px + 6px);
+  left: 0;
+  right: 0;
+  z-index: 3;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 14px 14px 12px;
+  background: var(--paper);
+  box-shadow: 0 10px 30px rgba(10, 6, 24, 0.45);
+  text-align: center;
+}
+
+.bd-confirm[hidden] {
+  display: none;
+}
+
+.bd-confirm-title {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+/* Not the game's full-screen canvas: a picture in the panel's flow, at night, lit. */
+.bd-confirm-picture {
+  position: static;
+  inset: auto;
+  margin: 2px 0;
+  border-radius: calc(var(--radius) - 6px);
+  background: var(--night);
+}
+
+.bd-confirm-name {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 20px;
+  color: var(--ink);
+}
+
+.bd-confirm-name.bd-confirm-unnamed {
+  color: var(--ink-soft);
+}
+
+.bd-confirm-facts,
+.bd-confirm-credit {
+  margin: 0;
+  font-size: 13px;
+}
+
+.bd-confirm-credit {
+  color: var(--ink-soft);
+}
+
+.bd-confirm-buttons {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.bd-confirm-buttons .button {
+  flex: 1 1 0;
+}
+
+/* After publishing: the board glows warm once, as the island goes out into the world. */
+.bd-frame.bd-published::after {
+  opacity: 1;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(255, 226, 160, 0.5),
+    rgba(255, 226, 160, 0) 70%
+  );
+  animation: bd-published 1.4s ease-out both;
+}
+
+@keyframes bd-published {
+  from {
+    opacity: 0;
+  }
+  35% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bd-frame.bd-published::after {
+    animation: none;
+    opacity: 0.7;
+  }
+}
+
 .bd-group {
   display: flex;
   flex-wrap: wrap;

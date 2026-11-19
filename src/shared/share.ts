@@ -23,11 +23,17 @@ export function shareText(
   result: LockInResult,
   lanterns: number,
   /** The player's Reddit username, without "u/". */
-  username: string
+  username: string,
+  /** On a community island: its name and maker, which stand in for the day number. */
+  community?: { island: string; maker: string }
 ): string {
-  const first = COPY.shareLine
+  const first = (
+    community === undefined ? COPY.shareLine : COPY.shareLineCommunity
+  )
     .replace('{name}', username)
     .replace('{day}', String(result.day))
+    .replace('{island}', community?.island ?? '')
+    .replace('{maker}', community?.maker ?? '')
     .replace('{lanterns}', '\u{1F3EE}'.repeat(Math.max(1, lanterns)))
     .replace(
       '{pieces}',
@@ -37,7 +43,7 @@ export function shareText(
     .replace('{time}', clock(result.elapsedMs));
   const medal = MEDAL_NAME[result.medal];
   const second =
-    result.streak > 1
+    result.streak > 1 && community === undefined
       ? COPY.shareStreak
           .replace('{medal}', medal)
           .replace('{streak}', String(result.streak))
@@ -69,4 +75,25 @@ export function resultsText(
 /** The address of one comment under a post, from their ids (with or without t3_/t1_). */
 export function commentUrl(postId: string, commentId: string): string {
   return `https://www.reddit.com/comments/${postId.replace(/^t3_/, '')}/comment/${commentId.replace(/^t1_/, '')}`;
+}
+
+/** The results comment on a community island's post: it credits the maker. */
+export function communityResultsText(
+  island: string,
+  maker: string,
+  solves: number,
+  parHits: number
+): string {
+  const named = (template: string): string =>
+    template.replace('{island}', island).replace('{maker}', maker);
+  if (solves <= 0) return named(COPY.communityResultsNone);
+  const par =
+    parHits > 0
+      ? COPY.resultsPar.replace('{hits}', parHits.toLocaleString('en'))
+      : '';
+  return named(
+    solves === 1 ? COPY.communityResultsOne : COPY.communityResultsMany
+  )
+    .replace('{solves}', solves.toLocaleString('en'))
+    .replace('{par}', par);
 }

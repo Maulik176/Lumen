@@ -24,6 +24,7 @@ import {
   BUILDER_VIEW,
   COMMUNITY,
   COPY,
+  DEV,
   SKY,
   VIEW,
 } from '../../shared/config';
@@ -843,9 +844,22 @@ async function startBuilder(
   close: BuilderHost['close']
 ): Promise<{ dispose: () => void }> {
   const { openBuilder } = await import('../builder/builder');
+  const subreddit = await import('@devvit/web/client')
+    .then(({ context }) => context.subredditName)
+    .catch(() => undefined);
   const host: BuilderHost = {
     click: () => shared.sound.click(),
+    chime: (index) => shared.sound.chime(index),
     test: (island) => testIsland(island, shared),
+    open: (url) => {
+      void import('@devvit/web/client')
+        .then(({ navigateTo }) => navigateTo(url))
+        .catch(() => undefined);
+    },
+    calm: shared.calm,
+    avatar: cleanSnoovatar(shared.rider.snoovatar),
+    username: shared.rider.username,
+    subreddit: subreddit ?? DEV.resetSubreddit,
   };
   if (close !== undefined) host.close = close;
   return openBuilder(root, host);

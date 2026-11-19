@@ -63,10 +63,28 @@ export function toDailyIsland(
   };
 }
 
-const puzzleCache = new WeakMap<DailyIsland, Puzzle>();
+/**
+ * What play needs of an island: a daily one from the content file, or a community island
+ * loaded from Redis (which has no generator record: difficulty, attempts, solver nodes).
+ */
+export type PlayableIsland = Pick<
+  DailyIsland,
+  | 'day'
+  | 'date'
+  | 'weekday'
+  | 'biome'
+  | 'name'
+  | 'rows'
+  | 'inventory'
+  | 'sourceColours'
+  | 'par'
+  | 'solution'
+>;
 
-/** The playable puzzle for a daily island. Cached per object. */
-export function puzzleOfDaily(island: DailyIsland): Puzzle {
+const puzzleCache = new WeakMap<PlayableIsland, Puzzle>();
+
+/** The playable puzzle for an island. Cached per object. */
+export function puzzleOfDaily(island: PlayableIsland): Puzzle {
   const cached = puzzleCache.get(island);
   if (cached !== undefined) return cached;
   const puzzle = puzzleFromText(island);

@@ -27,7 +27,11 @@ import {
   SCORING,
   SKY,
 } from '../../shared/config';
-import { puzzleOfDaily, type DailyIsland } from '../../shared/daily';
+import {
+  puzzleOfDaily,
+  type DailyIsland,
+  type PlayableIsland,
+} from '../../shared/daily';
 import {
   advanceStreak,
   NEW_STREAK,
@@ -145,7 +149,7 @@ function readResult(text: string | undefined): LockInResult | null {
 /** The pieces stored with a result, checked against the island again. */
 function readPlacements(
   text: string | undefined,
-  island: DailyIsland
+  island: PlayableIsland
 ): Placement[] | null {
   if (text === undefined) return null;
   try {
@@ -168,7 +172,7 @@ export async function playerState(
   player: Player,
   day: number,
   /** When given, the stored pieces come back too, to show the island as it was left. */
-  island?: DailyIsland
+  island?: PlayableIsland
 ): Promise<PlayerState> {
   if (player === null) {
     return {
@@ -290,7 +294,7 @@ export type LockInOutcome =
   | { ok: false; reason: 'not-solved' | PlacementProblem };
 
 export type LockInInput = {
-  island: DailyIsland;
+  island: PlayableIsland;
   placements: unknown;
   snoovatar: unknown;
   /** The client's own wish: false for archive and replay. */
@@ -638,7 +642,7 @@ export async function readAllTime(
 
 /** Pieces stored as JSON, checked again against the island: anything odd reads as none. */
 function readBoardPieces(
-  island: DailyIsland,
+  island: PlayableIsland,
   text: string | null | undefined
 ): Placement[] | null {
   if (text === null || text === undefined) return null;
@@ -658,7 +662,7 @@ function readBoardPieces(
  */
 export async function rebuildOthers(
   store: Store,
-  island: DailyIsland
+  island: PlayableIsland
 ): Promise<OtherIsland[]> {
   const { top } = await readLeaderboard(store, island.day, null);
   const rows = top.slice(0, OTHERS.top);
@@ -679,7 +683,7 @@ export async function rebuildOthers(
 }
 
 function readOthersTop(
-  island: DailyIsland,
+  island: PlayableIsland,
   text: string | undefined
 ): OtherIsland[] | null {
   if (text === undefined) return null;
@@ -732,7 +736,7 @@ export type OthersOutcome =
 export async function readOthers(
   store: Store,
   player: Player,
-  island: DailyIsland,
+  island: PlayableIsland,
   nowMs: number,
   lastDay: number
 ): Promise<OthersOutcome> {
@@ -853,7 +857,7 @@ export async function releaseShare(
 export async function saveProgress(
   store: Store,
   player: Player,
-  island: DailyIsland,
+  island: PlayableIsland,
   placements: unknown
 ): Promise<boolean> {
   if (player === null) return false;

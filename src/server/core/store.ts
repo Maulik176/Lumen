@@ -122,4 +122,23 @@ export const KEYS = {
   builderTurn: (userId: string) => `cm:turn:${userId}`,
   /** The player's last passing check, its test start and their own solve (JSON). */
   builderCheck: (userId: string) => `cm:check:${userId}`,
+  /** Hash: one community island (COMMUNITY.numberBase + k is its island number). */
+  community: (index: number) => `cm:${index}`,
+  /** Counter: the next community island's k. */
+  communityNext: 'cm:next',
+  /** Hash: post id -> k, and island fingerprint -> k (duplicates). */
+  communityPosts: 'cm:post',
+  communityHashes: 'cm:hash',
+  /** Sorted sets of k by creation time: every island, and each maker's own. */
+  communityAll: 'cm:all',
+  communityMine: (userId: string) => `cm:mine:${userId}`,
+  /** Hash for one UTC date: userId -> islands published that day. */
+  publishes: (date: string) => `cm:pub:${date}`,
+  /** One publish attempt's answer, so a retry with the same token gets the same post. */
+  publishToken: (userId: string, token: string) =>
+    `cm:token:${userId}:${token}`,
+  /** Counter: one publish of an island fingerprint at a time. */
+  publishLock: (hash: string) => `cm:lock:${hash}`,
+  /** Hash: board key -> how many ranked players placed exactly that board on an island. */
+  groups: (day: number) => `groups:${day}`,
 } as const;

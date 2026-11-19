@@ -3,11 +3,20 @@
  */
 import type { Biome, Weekday } from './calendar';
 import type { LanternStyle } from './config';
-import type { DailyIsland } from './daily';
+import type { PlayableIsland } from './daily';
 import type { BeamColour, Inventory, Medal, Placement } from './types';
 import type { RuleKind } from './rules';
 import type { PlacementProblem } from './validate';
 import type { CheckProblem, DifficultyLabel, IslandDraft } from './builder';
+
+/** Who made a community island, and how hard the server judged it. */
+export type CommunityCredit = {
+  /** The maker's username, without "u/". Stored when they published, whoever Reddit shows. */
+  maker: string;
+  /** The maker's snoovatar on Reddit's image host, or ''. */
+  makerAvatar: string;
+  label: DifficultyLabel;
+};
 
 /** What a player's device is told about an island. Never includes the solution. */
 export type PublicIsland = {
@@ -20,6 +29,8 @@ export type PublicIsland = {
   inventory: Inventory;
   sourceColours: BeamColour[];
   par: number;
+  /** Present on a community island (a number from COMMUNITY.numberBase up). */
+  community?: CommunityCredit;
 };
 
 /** The small payload attached to each daily post, so the feed card paints without a request. */
@@ -31,13 +42,25 @@ export type PostData = {
   lanterns: number;
   /** The island's rows (see puzzle-text.ts), so the card can draw its outline. Newer posts only. */
   rows?: string[];
+  /**
+   * A community island's post: the card paints its world, maker and label from here without a
+   * request. The server reads only `day` (the island's number) and loads the rest from Redis.
+   */
+  kind?: 'community';
+  biome?: Biome;
+  label?: DifficultyLabel;
+  maker?: string;
+  makerAvatar?: string;
 };
 
 /** What the feed card asks for after it has painted: the crowd, and the player's own night. */
 /** Where an island stands today: it is tonight's, its night has passed, or it is yet to come. */
 export type Night = 'tonight' | 'past' | 'future';
 
-export type CardResponse = {
+export type CardResponse =
+  CardOpen | { ok: false; reason: 'not-found' | 'taken-down' | 'resting' };
+
+export type CardOpen = {
   ok: true;
   night: Night;
   /** Tonight's post, when this post is not it and tonight's exists. */
@@ -168,7 +191,11 @@ export type BoardResponse =
  * `placements` is null when they were never stored (solves locked in before v0.0.1.64): the
  * player is still named, without a picture.
  */
-export type OtherIsland = BoardRow & { placements: Placement[] | null };
+export type OtherIsland = BoardRow & {
+  placements: Placement[] | null;
+  /** How many ranked players placed exactly this board (1 when only this player did). */
+  same?: number;
+};
 
 /**
  * "See others' islands": the top of the night's board with each player's pieces, and the
@@ -185,6 +212,8 @@ export type OthersResponse =
       parHits: number;
       /** The par answer, only once the island's night is over. */
       parSolution: Placement[] | null;
+      /** On a community island: the maker's own test solve, pinned first and never ranked. */
+      creator: OtherIsland | null;
     }
   | { ok: false; reason: 'locked' | 'not-found' };
 
@@ -212,7 +241,7 @@ export type IslandResponse =
        */
       stylePreview?: boolean;
     }
-  | { ok: false; reason: 'not-found' };
+  | { ok: false; reason: 'not-found' | 'taken-down' | 'resting' };
 
 export type StartRequest = { day: number };
 
@@ -251,8 +280,12 @@ export type LockInResponse =
     };
 
 /** Strip everything a client must not see. */
-export function toPublicIsland(island: DailyIsland): PublicIsland {
+export function toPublicIsland(
+  island: PlayableIsland,
+  community?: CommunityCredit
+): PublicIsland {
   return {
+    ...(community === undefined ? {} : { community }),
     day: island.day,
     date: island.date,
     weekday: island.weekday,
@@ -265,7 +298,7 @@ export function toPublicIsland(island: DailyIsland): PublicIsland {
   };
 }
 
-export function toPostData(island: DailyIsland): PostData {
+export function toPostData(island: PlayableIsland): PostData {
   const lanterns = island.rows.join('').replace(/[^WRGBMCY]/g, '').length;
   return {
     day: island.day,
@@ -291,7 +324,31 @@ const WEEKDAYS: readonly Weekday[] = [
   'sunday',
 ];
 
-/** Read a post's data, or null if the post is not a Lumen daily post. */
+/** A community island's post data: the day fields plus what its card shows. Under 1 KB. */
+export function toCommunityPostData(
+  island: PlayableIsland,
+  credit: CommunityCredit
+): PostData {
+  return {
+    ...toPostData(island),
+    kind: 'community',
+    biome: island.biome,
+    label: credit.label,
+    maker: credit.maker,
+    makerAvatar: credit.makerAvatar,
+  };
+}
+
+const BIOME_NAMES: readonly Biome[] = [
+  'moss',
+  'snow',
+  'blossom',
+  'dune',
+  'autumn',
+];
+const LABELS: readonly DifficultyLabel[] = ['gentle', 'tricky', 'fiendish'];
+
+/** Read a post's data, or null if the post is not a Lumen post (daily or community). */
 export function readPostData(value: unknown): PostData | null {
   if (!isRecord(value)) return null;
   const { day, name, par, lanterns } = value;
@@ -304,8 +361,23 @@ export function readPostData(value: unknown): PostData | null {
     Array.isArray(rows) &&
     rows.length > 0 &&
     rows.every((row): row is string => typeof row === 'string')
-  )
-    return { day, name, weekday, par, lanterns, rows };
+  ) {
+    const data: PostData = { day, name, weekday, par, lanterns, rows };
+    if (value['kind'] !== 'community') return data;
+    const biome = BIOME_NAMES.find((entry) => entry === value['biome']);
+    const label = LABELS.find((entry) => entry === value['label']);
+    const maker = value['maker'];
+    if (biome === undefined || label === undefined || typeof maker !== 'string')
+      return data;
+    return {
+      ...data,
+      kind: 'community',
+      biome,
+      label,
+      maker,
+      makerAvatar: cleanSnoovatar(value['makerAvatar']),
+    };
+  }
   return { day, name, weekday, par, lanterns };
 }
 
@@ -365,3 +437,44 @@ export type BuilderTestResponse =
       problem:
         'signed-out' | 'not-checked' | 'changed' | 'bad-pieces' | 'not-lit';
     };
+
+export type PublishProblem =
+  | 'signed-out'
+  | 'not-tested'
+  | 'not-checked'
+  | 'changed'
+  | 'name'
+  | 'limit'
+  | 'duplicate'
+  | 'busy'
+  | 'off'
+  | 'failed';
+
+export type BuilderPublishResponse =
+  | {
+      ok: true;
+      postId: string;
+      /** The new post's own address on Reddit (no "t3_" in it), to open it. */
+      permalink: string;
+      url: string;
+    }
+  | { ok: false; problem: PublishProblem };
+
+/** One row of "Your islands". */
+export type YourIsland = {
+  name: string;
+  biome: Biome;
+  rows: string[];
+  created: number;
+  /** Ranked players who lit it, and how many of them at par. */
+  plays: number;
+  parHits: number;
+  active: boolean;
+  url: string;
+};
+
+export type BuilderMineResponse = {
+  ok: true;
+  loggedIn: boolean;
+  islands: YourIsland[];
+};

@@ -1,8 +1,10 @@
 # Island Builder, phase 2: publishing and community island posts (plan)
 
 Written Nov 19 from `docs/PHASE2_BRIEF.md`, on top of `BUILDER_PLAN.md` (sections 0 to 7, which
-stay in force unless this file says otherwise) and the Phase 1 code. **No code until Maulik's
-OK.** Lumen is never published during the hackathon: everything below runs in a playtest build
+stay in force unless this file says otherwise) and the Phase 1 code. **Approved Nov 19: all six
+recommendations in section 0.** Timeline (Maulik): Phase 2 by Nov 21, Phase 3 by Nov 23 (first
+Sunday pick Sat Nov 28), Phase 4 polish Nov 26–27, the atmosphere pass and trailer ending after
+launch (Nov 24–26). Push after the phase; upload only when Maulik says. Lumen is never published during the hackathon: everything below runs in a playtest build
 on r/lumen_game_dev, uploaded with `npm run release` after launch.
 
 ---

@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { LockInResult } from './api';
-import { clock, commentUrl, resultsText, shareText } from './share';
+import {
+  clock,
+  commentUrl,
+  communityResultsText,
+  resultsText,
+  shareText,
+} from './share';
 
 const result: LockInResult = {
   day: 12,
@@ -58,6 +64,33 @@ describe('resultsText', () => {
     );
     expect(resultsText(12, 'Moss Steps', 1284, 231)).toBe(
       "Tonight's results: 1,284 players lit Moss Steps, 231 hit par. Share yours below \u{1F447}"
+    );
+  });
+});
+
+describe('on a community island', () => {
+  const credit = { island: 'Frost Hollow', maker: 'maker' };
+
+  it('the shared line names the island and its maker, not a day number', () => {
+    const text = shareText(
+      { ...result, day: 1_000_007, streak: 9 },
+      2,
+      'player',
+      credit
+    );
+    expect(text).toContain('u/player');
+    expect(text).toContain('Frost Hollow by u/maker');
+    expect(text).not.toContain('#1000007');
+    // No streak on a community island: it never advances there.
+    expect(text).not.toContain('streak');
+  });
+
+  it('the results comment credits the maker', () => {
+    expect(communityResultsText('Frost Hollow', 'maker', 0, 0)).toContain(
+      'Results for Frost Hollow by u/maker'
+    );
+    expect(communityResultsText('Frost Hollow', 'maker', 3, 1)).toContain(
+      '3 players lit it, 1 hit par'
     );
   });
 });

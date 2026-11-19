@@ -11,6 +11,7 @@
 import type {
   BuilderCheckResponse,
   BuilderDraftResponse,
+  BuilderPublishResponse,
 } from '../../shared/api';
 import {
   applyTool,
@@ -44,6 +45,7 @@ import {
 import type { Inventory } from '../../shared/types';
 import { element, fill, icon, ICONS } from '../game/hud';
 import { onTap } from '../game/taps';
+import { drawIslandOutline } from '../outline';
 import { createBoard } from './board';
 import { delayedSave } from './saver';
 
@@ -67,7 +69,27 @@ export type BuilderHost = {
   /** Leave the Builder. Absent on its own page, where there is nowhere else to go. */
   close?: () => void;
   click: () => void;
+  /** One chime of the nightfall's rising run, for the lanterns ringing after a publish. */
+  chime: (index: number) => void;
+  /** Open a post (the island just published). */
+  open: (url: string) => void;
+  /** Reduce Motion: no rings travelling over the board, one soft glow instead. */
+  calm: boolean;
+  /** The player's own snoovatar address ('' for none) and where the island will be posted. */
+  avatar: string;
+  username: string | null;
+  subreddit: string;
 };
+
+/** A publish attempt's token: 12 random bytes as hex. The same island keeps its token. */
+function newToken(): string {
+  const bytes = new Uint8Array(12);
+  crypto.getRandomValues(bytes);
+  return [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+const wait = (ms: number): Promise<void> =>
+  new Promise((done) => window.setTimeout(done, ms));
 
 const DRAFT_KEY = 'lumen.builder.draft';
 const TUTORIAL_KEY = 'lumen.builder.tutorial';
@@ -180,6 +202,9 @@ export async function openBuilder(
   }
   let status = '';
   let busy = false;
+  let publishing = false;
+  /** Kept for one version of the island, so a retry after a lost answer finds the first post. */
+  let publishToken: { key: string; token: string } | null = null;
 
   // --- The screen ---------------------------------------------------------------------------
   const screen = element('div', 'bd');
@@ -272,6 +297,38 @@ export async function openBuilder(
     learn({ type: 'next' });
   });
 
+  // Publishing: a confirm panel over the board, with the island's picture and who it credits.
+  const confirm = element('div', 'panel bd-confirm');
+  confirm.hidden = true;
+  const confirmTitle = element(
+    'p',
+    'bd-confirm-title',
+    COPY.builderConfirmTitle
+  );
+  const picture = element('canvas', 'bd-confirm-picture');
+  picture.setAttribute('role', 'img');
+  const confirmName = element('p', 'bd-confirm-name');
+  const confirmFacts = element('p', 'bd-confirm-facts');
+  const confirmCredit = element('p', 'bd-confirm-credit');
+  const notYet = element('button', 'button button-quiet', COPY.builderNotYet);
+  notYet.type = 'button';
+  const publishButton = element(
+    'button',
+    'button button-main',
+    COPY.builderPublish
+  );
+  publishButton.type = 'button';
+  const confirmButtons = element('div', 'bd-confirm-buttons');
+  confirmButtons.append(notYet, publishButton);
+  confirm.append(
+    confirmTitle,
+    picture,
+    confirmName,
+    confirmFacts,
+    confirmCredit,
+    confirmButtons
+  );
+
   const hint = element('div', 'panel bd-hint');
   hint.setAttribute('role', 'status');
   const hintText = element('span', 'bd-hint-text');
@@ -344,13 +401,16 @@ export async function openBuilder(
   );
   main.type = 'button';
   main.addEventListener('click', () => {
-    if (checked !== null && checked.key === checkKey(history.draft))
-      void test();
+    const key = checkKey(history.draft);
+    if (tested !== null && tested.key === key) showConfirm(true);
+    else if (checked !== null && checked.key === key) void test();
     else void check();
   });
+  notYet.addEventListener('click', () => showConfirm(false));
+  publishButton.addEventListener('click', () => void publish());
   actions.append(undo, redo, clear, main);
 
-  screen.append(top, settings, hint, wrap, tools, actions);
+  screen.append(top, settings, confirm, hint, wrap, tools, actions);
   root.append(screen);
 
   // --- Behaviour ----------------------------------------------------------------------------
@@ -508,6 +568,104 @@ export async function openBuilder(
     layout();
   }
 
+  function showConfirm(open: boolean): void {
+    confirm.hidden = !open;
+    if (!open || checked === null) return;
+    showSettings(false);
+    const draft = history.draft;
+    const look = BIOME_LOOK[draft.biome];
+    drawIslandOutline(picture, draft.rows, {
+      width: BUILDER_VIEW.confirmPictureWidth,
+      height: BUILDER_VIEW.confirmPictureHeight,
+      lit: true,
+      rock: true,
+      land: `#${look.groundA.toString(16).padStart(6, '0')}`,
+    });
+    const named = draft.name.trim();
+    confirmName.textContent =
+      named === ''
+        ? fill(COPY.builderConfirmUnnamed, {
+            world: COPY.builderBiomes[draft.biome],
+          })
+        : named;
+    confirmName.classList.toggle('bd-confirm-unnamed', named === '');
+    picture.setAttribute('aria-label', confirmName.textContent);
+    confirmFacts.textContent = fill(COPY.builderChecked, {
+      par: checked.par,
+      pieces: piecesText(checked.inventory),
+      label: COPY.builderLabels[checked.label],
+    });
+    confirmCredit.textContent = fill(COPY.builderConfirmLine, {
+      sub: host.subreddit,
+      name: host.username ?? '',
+    });
+    render();
+  }
+
+  /** The one tap that posts: from the confirm panel's Publish button, never anything else. */
+  async function publish(): Promise<void> {
+    if (busy) return;
+    const draft = history.draft;
+    const key = checkKey(draft);
+    if (publishToken === null || publishToken.key !== key)
+      publishToken = { key, token: newToken() };
+    busy = true;
+    publishing = true;
+    status = '';
+    render();
+    const answer = await post<BuilderPublishResponse>('/api/builder/publish', {
+      draft,
+      token: publishToken.token,
+      snoovatar: host.avatar,
+    });
+    publishing = false;
+    showConfirm(false);
+    if (answer === null || !answer.ok) {
+      busy = false;
+      const problem = answer === null ? 'failed' : answer.problem;
+      // The server no longer has this island's proof: start the check and test again.
+      if (problem === 'not-checked' || problem === 'changed') {
+        checked = null;
+        tested = null;
+      }
+      if (problem === 'not-tested') tested = null;
+      status = COPY.builderPublishProblems[problem];
+      render();
+      return;
+    }
+    await celebrate(draft);
+    // The island is out; the Builder starts a fresh one in the same world and size.
+    remember(DRAFT_KEY, 'null');
+    history = startHistory(emptyDraft(draft.size, draft.biome));
+    name.value = '';
+    checked = null;
+    tested = null;
+    publishToken = null;
+    busy = false;
+    render();
+    host.open(answer.url);
+  }
+
+  /** Each lantern rings in turn with a rising chime, then the board glows: the island is up. */
+  async function celebrate(draft: IslandDraft): Promise<void> {
+    status = COPY.builderPublished;
+    frame.classList.add('bd-published');
+    render();
+    const lanterns: { x: number; y: number }[] = [];
+    draft.rows.forEach((row, y) =>
+      [...row].forEach((tile, x) => {
+        if ('WRGBMCY'.includes(tile)) lanterns.push({ x, y });
+      })
+    );
+    for (const [index, spot] of lanterns.entries()) {
+      if (!host.calm) board.flash(spot.x, spot.y);
+      host.chime(index);
+      await wait(BUILDER_VIEW.celebrateStepMs);
+    }
+    await wait(BUILDER_VIEW.celebrateHoldMs);
+    frame.classList.remove('bd-published');
+  }
+
   // --- Drawing --------------------------------------------------------------------------------
   const layout = (): void => {
     const side = Math.max(
@@ -559,13 +717,20 @@ export async function openBuilder(
     const isChecked = checked !== null && checked.key === current;
     const isTested = tested !== null && tested.key === current;
     main.textContent = busy
-      ? COPY.builderChecking
+      ? publishing
+        ? COPY.builderPublishing
+        : COPY.builderChecking
       : isTested
-        ? COPY.builderLit
+        ? COPY.builderPublish
         : isChecked
           ? COPY.builderTest
           : COPY.builderCheck;
-    main.disabled = busy || isTested;
+    main.disabled = busy;
+    publishButton.textContent = publishing
+      ? COPY.builderPublishing
+      : COPY.builderPublish;
+    publishButton.disabled = busy;
+    notYet.disabled = busy;
 
     const problem = nameProblem(draft.name);
     const badName = problem === 'characters' || problem === 'too-long';

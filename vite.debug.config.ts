@@ -23,7 +23,8 @@ import {
   type SkyResponse,
 } from './src/shared/api';
 import type { Placement } from './src/shared/types';
-import { BIOMES } from './src/shared/config';
+import { BIOMES, COMMUNITY } from './src/shared/config';
+import { fallbackName, nameFiltered } from './src/shared/community';
 import {
   puzzleOfDaily,
   readDailyFile,
@@ -37,7 +38,13 @@ import {
 
 import { readDraft } from './src/shared/builder';
 import { checkIsland, dailyHashes } from './src/server/core/check';
-import { checkKey, draftPuzzleText } from './src/shared/builder';
+import {
+  checkKey,
+  draftPuzzleText,
+  nameProblem,
+  type DifficultyLabel,
+  type IslandDraft,
+} from './src/shared/builder';
 import { puzzleFromText } from './src/shared/puzzle-text';
 import { trace } from './src/shared/trace';
 
@@ -287,6 +294,7 @@ function localApi(): Plugin {
             solves: 140,
             parHits: 25,
             parSolution: mine === undefined ? island.solution : null,
+            creator: null,
           };
         }
         response.setHeader('content-type', 'application/json');
@@ -405,6 +413,15 @@ function localApi(): Plugin {
       // The local player is signed in. The check is the server's own; the test proof is kept here.
       let builderDraft: unknown = null;
       let builderTutorial = false;
+      /** Islands published locally, served as community islands. */
+      const localIslands: {
+        index: number;
+        draft: IslandDraft;
+        par: number;
+        label: DifficultyLabel;
+        inventory: { mirrors: number; prisms: number };
+        creatorPieces: number;
+      }[] = [];
       let builderChecked: {
         key: string;
         par: number;
@@ -516,6 +533,68 @@ function localApi(): Plugin {
           send(response, { ok: true, pieces: check.placements.length, ms: 0 });
         });
       });
+      // Publishing, locally: the island joins a list served as a community island at
+      // /game.html?day=<COMMUNITY.numberBase + k>; `?user=name` plays it as someone else.
+      const tokens = new Map<string, unknown>();
+      server.middlewares.use('/api/builder/publish', (request, response) => {
+        void readBody(request).then((body) => {
+          const token = String(body['token'] ?? '');
+          const earlier = tokens.get(token);
+          if (earlier !== undefined) return send(response, earlier);
+          const draft = readDraft(body['draft']);
+          if (
+            draft === null ||
+            builderChecked === null ||
+            checkKey(draft) !== builderChecked.key
+          )
+            return send(response, { ok: false, problem: 'not-checked' });
+          if (builderChecked.tested === null)
+            return send(response, { ok: false, problem: 'not-tested' });
+          const name = draft.name.trim();
+          if (name !== '' && (nameProblem(name) !== null || nameFiltered(name)))
+            return send(response, { ok: false, problem: 'name' });
+          const index = localIslands.length + 1;
+          const label = builderChecked.label;
+          localIslands.push({
+            index,
+            draft: { ...draft, name: name || fallbackName(draft.biome, index) },
+            par: builderChecked.par,
+            label:
+              label === 'tricky' || label === 'fiendish' ? label : 'gentle',
+            inventory: builderChecked.inventory,
+            creatorPieces: builderChecked.tested,
+          });
+          const answer = {
+            ok: true,
+            postId: `t3_local${index}`,
+            permalink: `/r/lumen_game_dev/comments/local${index}/`,
+            url: `http://localhost:5199/game.html?day=${COMMUNITY.numberBase + index}`,
+          };
+          tokens.set(token, answer);
+          builderDraft = null;
+          builderChecked = null;
+          // A real publish takes a moment (check, post, comment): so does this one.
+          setTimeout(() => send(response, answer), 700);
+        });
+      });
+      server.middlewares.use('/api/builder/mine', (_request, response) =>
+        send(response, {
+          ok: true,
+          loggedIn: true,
+          islands: localIslands
+            .map((island) => ({
+              name: island.draft.name,
+              biome: island.draft.biome,
+              rows: island.draft.rows,
+              created: island.index,
+              plays: island.index === 1 ? 12 : 0,
+              parHits: island.index === 1 ? 5 : 0,
+              active: true,
+              url: `http://localhost:5199/game.html?day=${COMMUNITY.numberBase + island.index}`,
+            }))
+            .reverse(),
+        })
+      );
       server.middlewares.use(
         '/api/builder/tutorial-done',
         (_request, response) => {

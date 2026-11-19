@@ -3,11 +3,15 @@
  * stays on the device); checking, testing and keeping a draft on the server need an account.
  */
 import { Hono } from 'hono';
-import type {
-  BuilderCheckResponse,
-  BuilderDraftResponse,
-  BuilderTestResponse,
-  BuilderTestStartResponse,
+import { context, reddit } from '@devvit/web/server';
+import {
+  cleanSnoovatar,
+  type BuilderCheckResponse,
+  type BuilderDraftResponse,
+  type BuilderMineResponse,
+  type BuilderPublishResponse,
+  type BuilderTestResponse,
+  type BuilderTestStartResponse,
 } from '../../shared/api';
 import { readDraft } from '../../shared/builder';
 import { COMMUNITY } from '../../shared/config';
@@ -17,12 +21,15 @@ import {
   dailyHashes,
   finishTest,
   islandStatus,
+  listMine,
   loadDraft,
+  publishIsland,
   recordCheck,
   saveDraft,
   startTest,
   takeCheckTurn,
 } from '../core/community';
+import { resultsComment } from '../core/post';
 import { KEYS, redisStore as store } from '../core/store';
 import { whoIsAsking } from './api';
 
@@ -159,4 +166,79 @@ builder.post('/tutorial-done', async (c) => {
       .hSet(KEYS.user(player.userId), { builderTutorial: '1' })
       .catch(() => undefined);
   return c.json({ ok: true });
+});
+
+/**
+ * Publish the maker's tested island as its own post: one explicit tap in the Builder's confirm
+ * panel, never anything automatic. The server checks everything again (core/community.ts).
+ */
+builder.post('/publish', async (c) => {
+  const player = await whoIsAsking();
+  const fields = await body(c);
+  const subredditName = context.subredditName;
+  if (subredditName === undefined)
+    return c.json<BuilderPublishResponse>({ ok: false, problem: 'failed' });
+  const outcome = await publishIsland(
+    store,
+    player,
+    {
+      draft: fields['draft'],
+      token: fields['token'],
+      avatar: cleanSnoovatar(fields['snoovatar']),
+      nowMs: nowMs(),
+    },
+    {
+      poster: {
+        async post({ title, text, postData, asUser }) {
+          // As the player when Reddit allows it (a playtest build posts it from the app for
+          // everyone but the owner); the title and the game credit the maker either way.
+          const post = asUser
+            ? await reddit.submitCustomPost({
+                subredditName,
+                title,
+                entry: 'default',
+                postData,
+                runAs: 'USER',
+                userGeneratedContent: { text },
+                textFallback: { text },
+              })
+            : await reddit.submitCustomPost({
+                subredditName,
+                title,
+                entry: 'default',
+                postData,
+                textFallback: { text },
+              });
+          return {
+            id: post.id,
+            permalink: post.permalink,
+            author: post.authorName,
+          };
+        },
+        async results(postId, number) {
+          if (postId.startsWith('t3_'))
+            await resultsComment(`t3_${postId.slice(3)}`, number);
+        },
+      },
+      daily: dailyHashes(),
+      clock: () => performance.now(),
+    }
+  ).catch((error: unknown): BuilderPublishResponse => {
+    console.error(`Publish failed: ${String(error)}`);
+    return { ok: false, problem: 'failed' };
+  });
+  if (outcome.ok)
+    console.log(`Builder publish: ${outcome.postId} by ${player?.username}`);
+  return c.json<BuilderPublishResponse>(outcome);
+});
+
+/** "Your islands": what the player has published, with plays and par hits. */
+builder.get('/mine', async (c) => {
+  const player = await whoIsAsking();
+  const islands = await listMine(store, player).catch(() => []);
+  return c.json<BuilderMineResponse>({
+    ok: true,
+    loggedIn: player !== null,
+    islands,
+  });
 });

@@ -278,6 +278,7 @@ api.get('/others', async (c) => {
     solves: others.solves,
     parHits: others.parHits,
     parSolution: others.parSolution,
+    creator: null,
   });
 });
 

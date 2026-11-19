@@ -130,8 +130,8 @@ export const COPY = {
   builderPrisms: ' and {count} prisms',
   builderPrismsOne: ' and 1 prism',
   builderLabels: { gentle: 'Gentle', tricky: 'Tricky', fiendish: 'Fiendish' },
-  builderTested: 'Lit with {pieces} (par {par}). Publishing comes next.',
-  /** The main button once the maker has lit their island (Publish arrives in phase 2). */
+  builderTested: 'Lit with {pieces} (par {par}). Ready to publish.',
+  /** The main button once the maker has lit their island, while it is publishing elsewhere. */
   builderLit: 'Lit by you',
   builderTestLeft: 'Light every lantern yourself to finish the test.',
   /** The server no longer has this island's check (it expired, or another check replaced it). */
@@ -139,6 +139,63 @@ export const COPY = {
   builderTestFailed: 'The test could not start. Try again.',
   /** Shown while the name has a character it cannot use. */
   builderNameRule: "Names use letters, numbers, spaces, ' and -.",
+  /** Publishing: the main button once the maker has lit their island, and its confirm panel. */
+  builderPublish: 'Publish',
+  builderPublishing: 'Publishing\u2026',
+  builderNotYet: 'Not yet',
+  builderConfirmTitle: 'Publish your island',
+  /** True however Reddit shows the author: the title and the game always credit the maker. */
+  builderConfirmLine: 'Posts to r/{sub} as an island by u/{name}',
+  /** The name shown in the confirm panel when the maker left it blank: the island gets a number. */
+  builderConfirmUnnamed: '{world} Island #\u2026',
+  builderPublished: 'Your island is up.',
+  builderPublishProblems: {
+    'signed-out': 'Sign in to publish your island.',
+    'not-tested': 'Light it yourself first, then publish.',
+    'not-checked': 'Check your island again, then test it.',
+    changed: 'Your island changed. Check and test it again.',
+    name: 'Pick another name.',
+    limit: 'Three islands a day. Publish this one tomorrow.',
+    duplicate: 'That island is already out there. Change a tile or two.',
+    busy: 'Still publishing\u2026',
+    off: 'Publishing is resting. Try again later.',
+    failed: 'Could not post. Your island is saved; try again in a moment.',
+  },
+  /** "Your islands" in the Builder. */
+  builderYours: 'Your islands',
+  builderYoursEmpty: 'Islands you publish will be here.',
+  builderYoursRow: '{plays} \u00b7 {par} at par',
+  builderYoursTakenDown: 'Taken down',
+  builderYoursBack: 'Back to the Builder',
+  /** Community islands: post title, fallback name, and the text Reddit keeps for the post. */
+  communityTitle: 'Island by u/{maker} \u00b7 {name}',
+  communityFallbackName: '{world} Island #{n}',
+  communityPostText: '{name}: a Lumen island by u/{maker}. Par {par}.',
+  /** In the game's top bar and on the feed card. */
+  communityBy: 'by u/{maker}',
+  communityKicker: 'Island by u/{maker}',
+  communityCardLine: 'Par {par} \u00b7 {label} \u00b7 {lanterns}',
+  communityLit: '{count} players lit it',
+  communityLitOne: '1 player lit it',
+  communityLitNone: 'Be the first to light it',
+  communitySeeSky: 'See the sky',
+  communityRank: '#{rank} on this island',
+  /** On the result card of a community island: the daily post. */
+  communityTonight: "Tonight's Lumen",
+  /** A community post whose island was removed, or while the community side is switched off. */
+  communityTakenDown: 'This island was taken down.',
+  communityResting: 'This island is resting.',
+  /** "See others' islands" on a community island: the maker's own test, pinned first. */
+  creatorBoard: "Creator's board",
+  /** A row that stands for several players with exactly the same board. */
+  samePlayers: '{count} players',
+  /** The results comment on a community post. Emoji allowed: it is a Reddit comment. */
+  communityResultsNone:
+    'Results for {island} by u/{maker}. Be the first to light it, then share yours below \ud83d\udc47',
+  communityResultsOne:
+    'Results for {island} by u/{maker}: 1 player lit it{par}. Share yours below \ud83d\udc47',
+  communityResultsMany:
+    'Results for {island} by u/{maker}: {solves} players lit it{par}. Share yours below \ud83d\udc47',
   builderTestNote: 'Test \u00b7 {name}',
   builderTestBack: 'Back to the Builder',
   builderUnnamed: 'Your island',
@@ -361,6 +418,9 @@ export const COPY = {
    */
   shareLine:
     'u/{name} \u00b7 Lumen #{day} \u00b7 {lanterns} \u00b7 {pieces} (par {par}) \u00b7 \u23f1 {time}',
+  /** The same line on a community island: its name and maker instead of the day. */
+  shareLineCommunity:
+    'u/{name} \u00b7 {island} by u/{maker} \u00b7 {lanterns} \u00b7 {pieces} (par {par}) \u00b7 \u23f1 {time}',
   shareStreak: '{medal} \u00b7 \ud83d\udd25 {streak}-night streak',
 } as const;
 
@@ -752,6 +812,55 @@ export const COMMUNITY = {
   /** How long a draft and a passing test are kept, in seconds. */
   draftSeconds: 30 * 86_400,
   testSeconds: 86_400,
+  /**
+   * Community islands share every day-keyed system (board, sky, pieces, others' islands) by
+   * taking island numbers from here up; daily days are 1-90 and the hero island 900-904.
+   */
+  numberBase: 1_000_000,
+  /** Islands one player may publish in a UTC day. */
+  publishPerDay: 3,
+  /** "Your islands" lists this many, newest first. */
+  yoursShown: 60,
+  /** A publish attempt's answer is kept this long, so a retry with the same token gets it again. */
+  tokenSeconds: 86_400,
+  /** One publish of the same island at a time; a claim older than this may be retried. */
+  publishLockSeconds: 60,
+  /**
+   * Island names are refused when a word, or letters spaced or swapped to hide one, is on this
+   * list. Short on purpose: Reddit's own filters see every post too.
+   */
+  blockedWords: [
+    'fuck',
+    'fucker',
+    'fucking',
+    'shit',
+    'shitty',
+    'cunt',
+    'cock',
+    'dick',
+    'pussy',
+    'bitch',
+    'bastard',
+    'whore',
+    'slut',
+    'piss',
+    'wank',
+    'twat',
+    'porn',
+    'sex',
+    'nazi',
+    'hitler',
+    'rape',
+    'nigger',
+    'nigga',
+    'faggot',
+    'fag',
+    'retard',
+    'spic',
+    'kike',
+    'chink',
+    'tranny',
+  ],
 } as const;
 
 /** The Builder's flat board and its timings. */
@@ -773,6 +882,15 @@ export const BUILDER_VIEW = {
    */
   checkSweepMs: 1100,
   checkMinMs: 900,
+  /**
+   * After publishing: the island's lanterns ring one after another this far apart, then the
+   * board glows for celebrateHoldMs before the new post opens.
+   */
+  celebrateStepMs: 220,
+  celebrateHoldMs: 1300,
+  /** The island's picture in the confirm panel, in CSS pixels. */
+  confirmPictureWidth: 168,
+  confirmPictureHeight: 112,
   /** After the maker lights their island in the test, night falls; the Builder returns after this. */
   testDoneMs: 1400,
   /**
@@ -1211,6 +1329,11 @@ export const KEEP = {
 export const OTHERS = {
   /** Islands listed, in the board's order, besides the player's own. */
   top: 10,
+  /**
+   * Identical boards are listed once, with how many players placed them; the list reads this
+   * many rows down the board to find `top` different ones.
+   */
+  scan: 40,
   /** Below this many solves the share at par is not shown; a gentler line is. */
   fewSolves: 5,
   /** How long the camera takes to come down to the island, or go back up, in ms. */
