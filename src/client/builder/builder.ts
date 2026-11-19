@@ -205,6 +205,8 @@ export async function openBuilder(
   let status = '';
   let busy = false;
   let publishing = false;
+  /** The island is up and the lanterns are ringing: the button says so until the post opens. */
+  let published = false;
   /** Kept for one version of the island, so a retry after a lost answer finds the first post. */
   let publishToken: { key: string; token: string } | null = null;
 
@@ -743,6 +745,7 @@ export async function openBuilder(
   /** Each lantern rings in turn with a rising chime, then the board glows: the island is up. */
   async function celebrate(draft: IslandDraft): Promise<void> {
     status = COPY.builderPublished;
+    published = true;
     frame.classList.add('bd-published');
     render();
     const lanterns: { x: number; y: number }[] = [];
@@ -758,6 +761,7 @@ export async function openBuilder(
     }
     await wait(BUILDER_VIEW.celebrateHoldMs);
     frame.classList.remove('bd-published');
+    published = false;
   }
 
   // --- Drawing --------------------------------------------------------------------------------
@@ -811,9 +815,11 @@ export async function openBuilder(
     const isChecked = checked !== null && checked.key === current;
     const isTested = tested !== null && tested.key === current;
     main.textContent = busy
-      ? publishing
-        ? COPY.builderPublishing
-        : COPY.builderChecking
+      ? published
+        ? COPY.builderPublishedButton
+        : publishing
+          ? COPY.builderPublishing
+          : COPY.builderChecking
       : isTested
         ? COPY.builderPublish
         : isChecked

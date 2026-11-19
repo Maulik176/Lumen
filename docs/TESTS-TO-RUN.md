@@ -56,6 +56,23 @@ Claude ran the full A1–H6 list on the iPhone on Nov 19 (results at the end of 
 captures in `docs/CAPTURES.md`). Still Maulik's: Skip on a fresh account, thumb taps on 8x8,
 Reduce Motion highlights, sound, a second device, signed out, desktop, Android.
 
+## 1d. Island Builder, phase 2: publishing and community islands (Nov 20)
+
+| # | Test | How |
+| --- | --- | --- |
+| C1 | Publish your island | Check, test and light an island; tap Publish: the panel shows its picture, name, par, label and "Posts to r/lumen_game_dev as an island by u/you"; one tap; the lanterns ring, "Your island is up.", the new post opens |
+| C2 | No double posts | Tap Publish twice quickly: one post |
+| C3 | The daily limit | Publish a fourth island the same UTC day: "Three islands a day. Publish this one tomorrow." |
+| C4 | A friend publishes | Their post comes from u/lumen-game (a playtest build), but the title says "Island by u/friend · Name" and the card and game name them |
+| C5 | Feed card | Opens in under a second: world picture, outline, "Island by u/name" with their snoovatar (or initial), "Par 2 · Gentle · 1 lantern", then "N players lit it" |
+| C6 | A friend plays your island | They Lock in; their lantern rises; if you have the post open you see "u/friend just lit {island}" |
+| C7 | Boards | "This island's board" (no tabs); See others' islands: "Creator's board" first, then theirs; identical boards show "N players" |
+| C8 | Share | On a community post, Share replies under its pinned "Results for {island} by u/name" comment, naming the island and maker |
+| C9 | Your islands | Island panel → Your islands: each island with date, plays and par hits; tap opens its post |
+| C10 | Taken down | Remove an island post as a mod: the card and game say "This island was taken down."; Your islands dims it. Approve it again: it is back |
+| C11 | Switch off | `COMMUNITY.enabled` false, upload, reopen: no Build an island anywhere; island posts say "This island is resting." |
+| C12 | Reduce Motion | The publish celebration is one soft glow, no rings |
+
 ## 2. Fixed in code, never confirmed on a phone
 
 | # | Test | How |

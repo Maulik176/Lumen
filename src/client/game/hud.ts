@@ -212,17 +212,25 @@ export function createHud(
   const top = element('header', 'panel bar bar-top');
   const title = element('div', 'title');
   title.append(
-    // A community island names its maker; a Builder island being tested has no number yet.
+    // A community island leads with its own name, its maker beneath; a Builder island being
+    // tested has no number yet.
     element(
       'span',
       'title-number',
       island.community !== undefined
-        ? fill(COPY.communityBy, { maker: island.community.maker })
+        ? island.name
         : island.day > 0
           ? `Lumen #${island.day}`
           : COPY.builderTitle
     ),
-    element('span', 'title-name', note ?? island.name)
+    element(
+      'span',
+      'title-name',
+      note ??
+        (island.community !== undefined
+          ? fill(COPY.communityBy, { maker: island.community.maker })
+          : island.name)
+    )
   );
   const inventory = element('div', 'inventory');
   const mirrors = element('span', 'count');

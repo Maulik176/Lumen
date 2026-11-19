@@ -301,3 +301,38 @@ cheap ones fixed, the rest listed.
 Proposed Journeys events (not sent; `docs/JOURNEYS-BUILDER.md`): `builder_open`,
 `builder_check`, `builder_test_lit`, `builder_publish`, and a play journey kind `community` for
 island posts, mirroring the daily journey.
+
+---
+
+## P2 report (Nov 20)
+
+**Built, one commit per item:** (1) publish flow: Publish after a passing test, confirm panel
+with the island's picture and credit line, the server's checks (test proof for this exact
+board, fresh check, name filter, duplicates, 3 a day, token idempotency, post as the player then
+the app once, creator credited and `postedAs` recorded), lanterns ringing and a glow, the new
+post opening; (2) community island posts: one island lookup for every route, feed card from
+post data, the same game with the island's name and "by u/name", first Lock in counts, its own
+board, sky (`sky_isl_<k>`), arrivals, results comment and share line, Creator's board, grouped
+identical boards (daily too, D2), take-down by `onPostDelete`/`onModAction`; (3) Your islands;
+(4) everything behind `COMMUNITY.enabled`; (5) dev clean-up and reset cover community islands.
+Journeys: none sent; proposals in `docs/JOURNEYS-BUILDER.md`. 431 tests.
+
+**Tested:** Vitest for publish validation, re-check, idempotency, limit, duplicates, word
+filter, credit when posted as the app, the app fallback, per-island board, sky channel naming,
+deleted posts, the switch, post data size, grouping, clean-up and reset. In the browser against
+the stand-in server (publish, `?day=1000001`, `?user=` as a second player) at 430x701, 360x460
+and 1100x700: build → test → publish → card → play → Lock in → board → others → sky.
+
+**Judge pass (top 5):**
+1. Fixed: the button read "Checking…" during the publish celebration; it now says "Published".
+2. Fixed: the game's top bar led with "by u/name" over the island's name; the name leads now.
+3. Left: the confirm panel's credit line wraps to two lines at 360 px with a long username.
+4. Left (P4): the feed card's big picture is the world's picture, not the community island
+   itself; the island shows only in the small outline.
+5. Left (phone): opening the new post after publishing (`navigateTo` with the post's
+   permalink), posting as a second account, and `onModAction` firing are all unproven on Reddit.
+
+**Not tested on a real phone:** everything above (C1–C12 in `docs/TESTS-TO-RUN.md` 1d).
+
+**Nov 25 target:** Phase 2 is a day ahead of the Nov 21 date. Phase 3 (Sunday pick, by Nov 23)
+is next once C1–C12 pass.

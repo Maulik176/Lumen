@@ -149,6 +149,7 @@ export const COPY = {
   /** The name shown in the confirm panel when the maker left it blank: the island gets a number. */
   builderConfirmUnnamed: '{world} Island #\u2026',
   builderPublished: 'Your island is up.',
+  builderPublishedButton: 'Published',
   builderPublishProblems: {
     'signed-out': 'Sign in to publish your island.',
     'not-tested': 'Light it yourself first, then publish.',

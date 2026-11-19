@@ -10,19 +10,14 @@ Vite). It is an entry for Reddit's Game of the Day hackathon; submission closes 
 P3 by Nov 23 (first Sunday pick Sat Nov 28), P4 polish Nov 26–27, atmosphere pass and trailer
 ending after launch (Nov 24–26). One commit per numbered item; push after the phase; **upload
 only when Maulik says.**
-- **P2 progress (Nov 19, uncommitted in the working tree):** item 1's server side is done and
-  tested: `shared/community.ts` (+test: numbers, `skyChannel` → `sky_isl_{k}`, fallback name,
-  word filter, `boardKey`), community copy and `COMMUNITY.numberBase`/`publishPerDay`/
-  `blockedWords`, `OTHERS.scan`, KEYS `cm:*` and `groups:{day}`, `PlayableIsland` in
-  `shared/daily.ts`, api.ts types (`CommunityCredit`, community `PostData`, `CardOpen`,
-  `same`/`creator` on others, publish and mine responses), `server/core/community.ts`
-  `publishIsland`/`lookUpIsland`/`setIslandActive`/`listMine`/`creatorRow` (+28 tests),
-  `/api/builder/publish` and `/mine`, community results comment, `SUBMIT_POST`. **Next:** the
-  Builder's Publish button, confirm panel and celebration (item 1 client), then commit item 1;
-  then item 2 (routes use `lookUpIsland`; `rankedOpen` and `lockIn` community rules; groups;
-  others' creator row; flair skip; `skyChannel` in api.ts and the client; preview card; game top
-  bar and result card; triggers `onPostDelete`/`onModAction`; stand-in server). Known type
-  errors until item 2: `routes/api.ts` /others and `vite.debug.config.ts` lack `creator`.
+- **P2 built (Nov 20), committed and pushed, NOT uploaded** (Maulik uploads on his word). Report,
+  judge pass and what is left: end of `PHASE2_PLAN.md`. Phone checks C1–C12:
+  `docs/TESTS-TO-RUN.md` 1d. Community islands: numbers from `COMMUNITY.numberBase`
+  (`shared/community.ts`), `lookUpIsland` in every route, `cm:*` keys, `groups:{n}` for
+  identical boards, triggers `onPostDelete`/`onModAction`. Local: publish in `builder.html`,
+  then `game.html?day=1000001` and `preview.html?day=1000001` (`&user=name` as another player;
+  editing `config.ts` restarts the stand-in and forgets local islands). 431 tests.
+  **Next:** Maulik's phone test of C1–C12, then Phase 3 (Sunday pick) by Nov 23.
 - **The brief, word for word:** `docs/PHASE2_BRIEF.md`. First write `PHASE2_PLAN.md` (no code),
   then stop for Maulik's OK. Phase 1 is approved and phone-tested; read `BUILDER_PLAN.md` (plan,
   decisions in section 0, P1 report, the Nov 19 phone run and its fixes at the end).
