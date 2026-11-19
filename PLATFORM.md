@@ -188,6 +188,20 @@ phone will show them unless the setting is turned off for testing.
 - Node 22.18 builds and runs; the CLI prints a warning recommending Node 24.
 - The server bundle built and ran with `@devvit/analytics` and its Express dependency included.
 
+## Added Nov 20: media upload (picture test, v0.0.1.86)
+
+- `media.upload({ url, type: 'image' })` from `@devvit/web/server`, with `"permissions":
+  { "media": true }`, **accepted a data URL** (`data:image/webp;base64,…`, a 10 KB render) in a
+  playtest build on r/lumen_game_dev. Upload took **960 ms** on Reddit's server.
+- It returned `https://i.redd.it/<id>.jpeg`: the WEBP came back as a **JPEG of 21 KB** (the docs
+  say WEBP may be converted). The same host as snoovatars, so the webview's CSP allows it.
+- A feed card (`preview.html`) showed it as its picture on Maulik's iPhone, appearing **3 to 5 s**
+  after the post opened (the stock picture is bundled with the app and appears at once), so a
+  real picture should load behind the stock one and replace it when ready.
+- Docs (from github.com/reddit/devvit-docs, `capabilities/server/media-uploads.mdx`; the
+  developers.reddit.com site is blocked for Claude): formats PNG, JPEG, WEBP, GIF; 20 MB at most;
+  30 s timeout; no API to delete an uploaded asset. Nothing about playtest builds or review.
+
 ## Not tested yet
 
 | Item | Why it matters | When |
