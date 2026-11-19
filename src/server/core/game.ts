@@ -149,6 +149,24 @@ function readResult(text: string | undefined): LockInResult | null {
   }
 }
 
+/** The pieces stored with a result, as stored (for counting boards, not for showing them). */
+function placementsIn(text: string): Placement[] | null {
+  try {
+    const value: unknown = JSON.parse(text);
+    if (typeof value !== 'object' || value === null) return null;
+    const fields: Record<string, unknown> = { ...value };
+    const pieces = fields['placements'];
+    return Array.isArray(pieces)
+      ? pieces.filter(
+          (entry): entry is Placement =>
+            typeof entry === 'object' && entry !== null && 'piece' in entry
+        )
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 /** The pieces stored with a result, checked against the island again. */
 function readPlacements(
   text: string | undefined,
@@ -486,8 +504,15 @@ export async function resetPlayer(
   day: number
 ): Promise<void> {
   if (player === null) return;
-  const had =
-    (await store.get(KEYS.submission(day, player.userId))) !== undefined;
+  const stored = await store.get(KEYS.submission(day, player.userId));
+  const had = stored !== undefined;
+  // Their board leaves the count of players who placed it.
+  const placed = stored === undefined ? null : placementsIn(stored);
+  if (placed !== null) {
+    const key = boardOf(placed);
+    const left = await store.hIncrBy(KEYS.groups(day), key, -1);
+    if (left < 0) await store.hSet(KEYS.groups(day), { [key]: '0' });
+  }
   const sky = await store.zRange(KEYS.sky(day), 0, SKY.maxLanterns - 1);
   const mine = sky.filter((entry) => {
     try {

@@ -826,6 +826,8 @@ export const COMMUNITY = {
   publishPerDay: 3,
   /** "Your islands" lists this many, newest first. */
   yoursShown: 60,
+  /** "Dev: clean up this subreddit" and the dev reset read at most this many islands. */
+  cleanUpMax: 500,
   /** A publish attempt's answer is kept this long, so a retry with the same token gets it again. */
   tokenSeconds: 86_400,
   /** One publish of the same island at a time; a claim older than this may be retried. */

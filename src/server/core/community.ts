@@ -38,7 +38,7 @@ import type { Inventory, Placement } from '../../shared/types';
 import { validatePlacements } from '../../shared/validate';
 import { checkIsland, type CheckOutcome } from './check';
 import { islandForDay } from './content';
-import type { Player } from './game';
+import { resetPlayer, type Player } from './game';
 import { KEYS, type Store } from './store';
 
 export { checkKey } from '../../shared/builder';
@@ -764,4 +764,82 @@ export function postActivity(
   return typeof id === 'string' && id !== ''
     ? { postId: withPrefix(id), active }
     : null;
+}
+
+/** Every community island's k, oldest first, up to the clean-up's limit. */
+async function allIslands(store: Store): Promise<number[]> {
+  const all = await store.zRange(
+    KEYS.communityAll,
+    0,
+    COMMUNITY.cleanUpMax - 1
+  );
+  return all.map((entry) => Number(entry.member)).filter(Number.isInteger);
+}
+
+/**
+ * "Reset my Lumen progress (dev)": the player's Lock ins on every community island (board,
+ * sky, shares) and today's publish count, as well as the Builder's draft and tutorial.
+ */
+export async function resetCommunityPlayer(
+  store: Store,
+  player: Player,
+  nowMs: number
+): Promise<void> {
+  if (player === null) return;
+  for (const index of await allIslands(store))
+    await resetPlayer(store, player, communityNumber(index));
+  await store.hSet(KEYS.publishes(publishDate(nowMs)), {
+    [player.userId]: '0',
+  });
+}
+
+/**
+ * "Dev: clean up this subreddit": every community island goes. Its post is taken down (the
+ * route deletes the app's own posts and removes players' as a moderator) and all of its keys
+ * are deleted: record, board, sky, counts, pieces, groups, results comment. The counter of
+ * island numbers is kept, so a new island never takes an old one's number. Returns how many.
+ */
+export async function cleanUpCommunity(
+  store: Store,
+  player: Player,
+  nowMs: number,
+  takeDown: (postId: string) => Promise<void>
+): Promise<number> {
+  const indexes = await allIslands(store);
+  for (const index of indexes) {
+    const record = await readCommunity(store, index);
+    if (record !== null && record.postId !== '')
+      await takeDown(record.postId).catch((error: unknown) =>
+        console.error(`Could not take down ${record.postId}: ${String(error)}`)
+      );
+    const number = communityNumber(index);
+    await Promise.all([
+      store.del(KEYS.community(index)),
+      store.del(KEYS.leaderboard(number)),
+      store.del(KEYS.sky(number)),
+      store.del(KEYS.stats(number)),
+      store.del(KEYS.boards(number)),
+      store.del(KEYS.othersTop(number)),
+      store.del(KEYS.groups(number)),
+      record === null
+        ? Promise.resolve()
+        : store.del(KEYS.stickyOfPost(record.postId)),
+      record === null
+        ? Promise.resolve()
+        : store.del(KEYS.publishLock(record.hash)),
+    ]);
+  }
+  const today = publishDate(nowMs);
+  const yesterday = publishDate(nowMs - 86_400_000);
+  await Promise.all([
+    store.del(KEYS.communityAll),
+    store.del(KEYS.communityPosts),
+    store.del(KEYS.communityHashes),
+    store.del(KEYS.publishes(today)),
+    store.del(KEYS.publishes(yesterday)),
+    player === null
+      ? Promise.resolve()
+      : store.del(KEYS.communityMine(player.userId)),
+  ]);
+  return indexes.length;
 }

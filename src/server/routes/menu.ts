@@ -8,6 +8,7 @@ import { KEYS, redisStore } from '../core/store';
 import { lastDay } from '../core/content';
 import { ensureDailyPost } from '../core/post';
 import { devToolsRefusal } from '../core/devtools';
+import { cleanUpCommunity, resetCommunityPlayer } from '../core/community';
 
 export const menu = new Hono();
 
@@ -86,6 +87,9 @@ menu.post('/reset-me', async (c) => {
     const day = currentDay(nowMs(), lastDay());
     await removeSharedReply({ userId }, day);
     await resetPlayer(redisStore, { userId, username }, day);
+    // Community islands too: Lock ins on them, today's publish count; the Builder's draft and
+    // tutorial go with resetPlayer.
+    await resetCommunityPlayer(redisStore, { userId, username }, nowMs());
     return c.json<UiResponse>(
       { showToast: 'Reset. Reload the post to play as a first-timer.' },
       200
@@ -194,11 +198,29 @@ menu.post('/clean-up', async (c) => {
         redisStore.del(KEYS.stats(day)),
         redisStore.del(KEYS.boards(day)),
         redisStore.del(KEYS.othersTop(day)),
+        redisStore.del(KEYS.groups(day)),
       ]);
     }
     await redisStore.del(KEYS.allTime);
+    // Community islands: players' posts are removed as a moderator (the app may delete only
+    // its own), and every island's keys go.
+    const islands = await cleanUpCommunity(
+      redisStore,
+      userId !== undefined && username !== undefined
+        ? { userId, username }
+        : null,
+      nowMs(),
+      async (postId) => {
+        const post = await reddit.getPostById(
+          `t3_${postId.replace(/^t3_/, '')}`
+        );
+        await post.delete().catch(() => post.remove());
+      }
+    );
     return c.json<UiResponse>(
-      { showToast: `Cleaned up: ${deleted} posts deleted, all days reset.` },
+      {
+        showToast: `Cleaned up: ${deleted} posts deleted, ${islands} community islands taken down, all days reset.`,
+      },
       200
     );
   } catch (error) {

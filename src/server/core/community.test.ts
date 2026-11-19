@@ -7,6 +7,8 @@ import type { Placement } from '../../shared/types';
 import {
   checkIsland,
   checkKey,
+  cleanUpCommunity,
+  resetCommunityPlayer,
   finishTest,
   islandStatus,
   listMine,
@@ -24,7 +26,8 @@ import {
 } from './community';
 import { islandForDay } from './content';
 import { memoryStore } from './memory-store';
-import { resetPlayer, type Player } from './game';
+import { lockIn, recordStart, resetPlayer, type Player } from './game';
+import { lastDay } from './content';
 import { KEYS } from './store';
 
 const ana: Player = { userId: 't2_ana', username: 'ana' };
@@ -612,5 +615,92 @@ describe("what Reddit's triggers say about an island's post", () => {
     ).toBeNull();
     expect(postActivity({ action: 'removelink' })).toBeNull();
     expect(postActivity(null)).toBeNull();
+  });
+});
+
+describe('dev tools on community islands', () => {
+  const answer: Placement[] = [
+    { x: 2, y: 1, piece: { kind: 'mirror', orientation: 'backslash' } },
+    { x: 2, y: 4, piece: { kind: 'mirror', orientation: 'backslash' } },
+  ];
+
+  let tokens = 0;
+  async function publishOne(store: ReturnType<typeof memoryStore>) {
+    const result = checkIsland(twoMirrors(), { daily: never, clock });
+    if (!result.ok) throw new Error(result.problem);
+    await recordCheck(store, ana, twoMirrors(), result);
+    await startTest(store, ana, twoMirrors(), 0);
+    await finishTest(store, ana, twoMirrors(), answer, 1);
+    return publishIsland(
+      store,
+      ana,
+      {
+        draft: twoMirrors(),
+        token: `publish${(tokens += 1)}`,
+        avatar: '',
+        nowMs: 0,
+      },
+      {
+        poster: {
+          post: async () => ({
+            id: 't3_one',
+            permalink: '/r/x/comments/one/',
+            author: 'ana',
+          }),
+          results: async () => undefined,
+        },
+        daily: never,
+        clock,
+      }
+    );
+  }
+
+  it('"Dev: clean up this subreddit" takes every island down and forgets it, so it can be published again', async () => {
+    const store = memoryStore();
+    expect(await publishOne(store)).toMatchObject({ ok: true });
+    const taken: string[] = [];
+    const count = await cleanUpCommunity(store, ana, 0, async (postId) => {
+      taken.push(postId);
+    });
+    expect(count).toBe(1);
+    expect(taken).toEqual(['t3_one']);
+    expect(await lookUpIsland(store, communityNumber(1))).toEqual({
+      ok: false,
+      reason: 'not-found',
+    });
+    expect(await listMine(store, ana)).toEqual([]);
+    // The same board is no longer a duplicate, and gets a new number.
+    expect(await publishOne(store)).toMatchObject({ ok: true });
+    expect(await readCommunity(store, 2)).not.toBeNull();
+  });
+
+  it('"Reset my Lumen progress (dev)" takes back Lock ins on community islands and the publish count', async () => {
+    const store = memoryStore();
+    await publishOne(store);
+    const found = await lookUpIsland(store, communityNumber(1));
+    if (!found.ok) throw new Error(found.reason);
+    const ben: Player = { userId: 't2_ben', username: 'ben' };
+    await recordStart(store, ben, communityNumber(1), 0);
+    await lockIn(
+      store,
+      ben,
+      {
+        island: found.island,
+        placements: answer,
+        snoovatar: undefined,
+        wantsRanked: true,
+        postDay: communityNumber(1),
+        lastDay: lastDay(),
+        nowMs: 60_000,
+      },
+      { onRanked: async () => undefined }
+    );
+    expect(await store.zCard(KEYS.leaderboard(communityNumber(1)))).toBe(1);
+    await resetCommunityPlayer(store, ben, 0);
+    expect(await store.zCard(KEYS.leaderboard(communityNumber(1)))).toBe(0);
+    await resetCommunityPlayer(store, ana, 0);
+    expect((await store.hGetAll(KEYS.publishes('1970-01-01')))['t2_ana']).toBe(
+      '0'
+    );
   });
 });
