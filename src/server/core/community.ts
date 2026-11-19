@@ -535,6 +535,8 @@ export async function publishIsland(
     daily: ReadonlySet<string>;
     clock: () => number;
     nodeLimit?: number;
+    /** The community switch (config); tests turn it off. */
+    enabled?: boolean;
   }
 ): Promise<BuilderPublishResponse> {
   const refuse = (problem: PublishProblem): BuilderPublishResponse => ({
@@ -542,7 +544,7 @@ export async function publishIsland(
     problem,
   });
   if (player === null) return refuse('signed-out');
-  if (!COMMUNITY.enabled) return refuse('off');
+  if (!(deps.enabled ?? COMMUNITY.enabled)) return refuse('off');
   const token = typeof input.token === 'string' ? input.token : '';
   if (!TOKEN.test(token)) return refuse('failed');
   const tokenKey = KEYS.publishToken(player.userId, token);

@@ -466,6 +466,21 @@ describe('publishing an island', () => {
     expect(asApp.posts[0]?.postData.maker).toBe('ana');
   });
 
+  it('with the community side switched off, nothing is published', async () => {
+    const store = memoryStore();
+    await ready(store, twoMirrors());
+    const { fake, posts } = poster();
+    expect(
+      await publishIsland(
+        store,
+        ana,
+        { draft: twoMirrors(), token: 'token0001', avatar: '', nowMs: 0 },
+        { poster: fake, daily: never, clock, enabled: false }
+      )
+    ).toEqual({ ok: false, problem: 'off' });
+    expect(posts).toHaveLength(0);
+  });
+
   it('if posting as the player fails, it posts once from the app, credited', async () => {
     const store = memoryStore();
     await ready(store, twoMirrors());
