@@ -4,6 +4,7 @@ import { telemetry } from '@devvit/analytics/server/reddit';
 import { context, realtime, reddit } from '@devvit/web/server';
 import {
   readPostData,
+  toCommunityPostData,
   toPublicIsland,
   type IslandResponse,
   type BoardResponse,
@@ -20,7 +21,14 @@ import { COPY, DEV, PAST } from '../../shared/config';
 import type { DailyIsland } from '../../shared/daily';
 import { isRuleKind } from '../../shared/rules';
 import { flairText } from '../../shared/streak';
+import { isCommunity, skyChannel } from '../../shared/community';
 import { islandForDay, lastDay } from '../core/content';
+import {
+  creatorRow,
+  creditOf,
+  lookUpIsland,
+  type IslandLookup,
+} from '../core/community';
 import { refreshResultsComment, resultsComment } from '../core/post';
 import { isJourneyId } from './journey';
 import { commentUrl, shareText } from '../../shared/share';
@@ -55,9 +63,6 @@ const MEDAL_NAME = {
   spark: COPY.medalSpark,
 } as const;
 
-/** Realtime channel for a night's sky. Letters, digits and underscores only. */
-export const skyChannel = (day: number): string => `sky_${day}`;
-
 /** Who is asking, or null when logged out. */
 export async function whoIsAsking(): Promise<Player> {
   const userId = context.userId;
@@ -81,7 +86,10 @@ function requestedDay(explicit: unknown): number {
   return postDay() ?? currentDay(nowMs(), lastDay());
 }
 
-/** Where a day stands today, and tonight's post when the day is not tonight's. */
+/**
+ * Where a day stands today, and tonight's post when the day is not tonight's. A community island
+ * is always open (it has no night), and tonight's daily post is offered beside it.
+ */
 async function nightOf(
   day: number
 ): Promise<{ night: Night; tonightPost: string | null }> {
@@ -89,9 +97,17 @@ async function nightOf(
   if (day === today) return { night: 'tonight', tonightPost: null };
   const post = await store.get(KEYS.postForDay(today)).catch(() => undefined);
   return {
-    night: day < today ? 'past' : 'future',
+    night: isCommunity(day) ? 'tonight' : day < today ? 'past' : 'future',
     tonightPost: post ?? null,
   };
+}
+
+/** The island for a number: a daily day, or a community island while its post stands. */
+function islandFor(day: number): Promise<IslandLookup> {
+  return lookUpIsland(store, day).catch((): IslandLookup => ({
+    ok: false,
+    reason: 'not-found',
+  }));
 }
 
 async function body(request: {
@@ -106,7 +122,8 @@ const effects: Effects = {
   async onRanked({ player, result, lantern }) {
     await Promise.allSettled([
       realtime.send(skyChannel(result.day), lantern),
-      context.subredditName === undefined
+      // Flair tells the daily story (medal and streak); community islands leave it alone.
+      context.subredditName === undefined || isCommunity(result.day)
         ? Promise.resolve()
         : reddit.setUserFlair({
             subredditName: context.subredditName,
@@ -123,9 +140,10 @@ const effects: Effects = {
 api.get('/island', async (c) => {
   const fromQuery = Number(c.req.query('day'));
   const day = requestedDay(Number.isInteger(fromQuery) ? fromQuery : undefined);
-  const island = islandForDay(day);
-  if (island === undefined)
-    return c.json<IslandResponse>({ ok: false, reason: 'not-found' }, 404);
+  const found = await islandFor(day);
+  if (!found.ok)
+    return c.json<IslandResponse>({ ok: false, reason: found.reason }, 404);
+  const { island, record } = found;
   const player = await whoIsAsking();
   const [me, count] = await Promise.all([
     playerState(store, player, day, island),
@@ -150,7 +168,10 @@ api.get('/island', async (c) => {
       .catch(() => undefined)) !== undefined;
   return c.json<IslandResponse>({
     ok: true,
-    island: toPublicIsland(island),
+    island: toPublicIsland(
+      island,
+      record === null ? undefined : creditOf(record)
+    ),
     me,
     rankedOpen: open && me.loggedIn,
     skyCount: count,
@@ -167,7 +188,7 @@ api.get('/island', async (c) => {
 api.post('/start', async (c) => {
   const fields = await body(c.req);
   const day = requestedDay(fields['day']);
-  if (islandForDay(day) !== undefined && postDay() === day) {
+  if (postDay() === day && (await islandFor(day)).ok) {
     await recordStart(store, await whoIsAsking(), day, nowMs()).catch(
       () => undefined
     );
@@ -182,9 +203,10 @@ api.post('/tutorial-done', async (c) => {
 
 api.post('/lock-in', async (c) => {
   const fields = await body(c.req);
-  const island = islandForDay(requestedDay(fields['day']));
-  if (island === undefined)
+  const found = await islandFor(requestedDay(fields['day']));
+  if (!found.ok)
     return c.json<LockInResponse>({ ok: false, reason: 'not-found' }, 404);
+  const { island } = found;
   const outcome = await lockIn(
     store,
     await whoIsAsking(),
@@ -226,9 +248,11 @@ api.get('/sky', async (c) => {
 /** Islands before the given day (the post's own by default), newest first. */
 api.get('/past', async (c) => {
   const fromQuery = Number(c.req.query('before'));
-  const before = requestedDay(
+  const asked = requestedDay(
     Number.isInteger(fromQuery) ? fromQuery : undefined
   );
+  // From a community post: the islands before tonight's, never anything still to come.
+  const before = isCommunity(asked) ? currentDay(nowMs(), lastDay()) : asked;
   const islands: DailyIsland[] = [];
   for (let day = before - 1; day >= 1 && islands.length < PAST.max; day--) {
     const island = islandForDay(day);
@@ -256,17 +280,19 @@ api.get('/leaderboard', async (c) => {
 /** "See others' islands": 403 until the player has locked in tonight's island. */
 api.get('/others', async (c) => {
   const fromQuery = Number(c.req.query('day'));
-  const island = islandForDay(
+  const found = await islandFor(
     requestedDay(Number.isInteger(fromQuery) ? fromQuery : undefined)
   );
-  if (island === undefined)
+  if (!found.ok)
     return c.json<OthersResponse>({ ok: false, reason: 'not-found' }, 404);
+  const { island, record } = found;
   const others = await readOthers(
     store,
     await whoIsAsking(),
     island,
     nowMs(),
-    lastDay()
+    lastDay(),
+    record === null ? null : creatorRow(record)
   );
   if (!others.ok)
     return c.json<OthersResponse>({ ok: false, reason: 'locked' }, 403);
@@ -278,7 +304,7 @@ api.get('/others', async (c) => {
     solves: others.solves,
     parHits: others.parHits,
     parSolution: others.parSolution,
-    creator: null,
+    creator: others.creator,
   });
 });
 
@@ -290,9 +316,10 @@ api.post('/share', async (c) => {
   const day = postDay();
   const postId = context.postId;
   const player = await whoIsAsking();
-  const island = day === undefined ? undefined : islandForDay(day);
-  if (island === undefined || postId === undefined)
+  const found = day === undefined ? null : await islandFor(day);
+  if (found === null || !found.ok || postId === undefined)
     return c.json<ShareResponse>({ ok: false, reason: 'nothing-to-share' });
+  const { island, record } = found;
   const claim = await claimShare(store, player, island.day);
   if (!claim.ok || player === null)
     return c.json<ShareResponse>({
@@ -306,7 +333,10 @@ api.post('/share', async (c) => {
       text: shareText(
         claim.result,
         toPostData(island).lanterns,
-        player.username
+        player.username,
+        record === null
+          ? undefined
+          : { island: record.name, maker: record.maker }
       ),
       runAs: 'USER',
     });
@@ -330,8 +360,10 @@ const MS_PER_DAY = 86_400_000;
 api.get('/card', async (c) => {
   const fromQuery = Number(c.req.query('day'));
   const day = requestedDay(Number.isInteger(fromQuery) ? fromQuery : undefined);
-  const island = islandForDay(day);
-  if (island === undefined) return c.json({ ok: false }, 404);
+  const found = await islandFor(day);
+  if (!found.ok)
+    return c.json<CardResponse>({ ok: false, reason: found.reason }, 404);
+  const { island, record } = found;
   const now = nowMs();
   const [me, count] = await Promise.all([
     playerState(store, await whoIsAsking(), day),
@@ -340,7 +372,10 @@ api.get('/card', async (c) => {
   return c.json<CardResponse>({
     ok: true,
     ...(await nightOf(day)),
-    post: toPostData(island),
+    post:
+      record === null
+        ? toPostData(island)
+        : toCommunityPostData(island, creditOf(record)),
     skyCount: count,
     nextInMs:
       currentDay(now, lastDay()) === day
@@ -362,9 +397,9 @@ api.get('/card', async (c) => {
 /** The unfinished board, saved a moment after each change. Only for the post's own island. */
 api.post('/progress', async (c) => {
   const fields = await body(c.req);
-  const island = islandForDay(requestedDay(fields['day']));
-  if (island === undefined || postDay() !== island.day)
-    return c.json({ ok: false });
+  const found = await islandFor(requestedDay(fields['day']));
+  if (!found.ok || postDay() !== found.island.day) return c.json({ ok: false });
+  const { island } = found;
   const saved = await saveProgress(
     store,
     await whoIsAsking(),

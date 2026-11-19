@@ -42,6 +42,8 @@ export type HudActions = {
   others?: () => void;
   /** Result card on a post that is not tonight's: go to tonight's island. */
   tonight?: () => void;
+  /** Result card on a community island: tonight's daily post. */
+  lumen?: () => void;
   /** Result card, ranked and signed in: post the result as the player's own comment. */
   share?: () => void;
   /** Open the player's shared reply. */
@@ -210,11 +212,15 @@ export function createHud(
   const top = element('header', 'panel bar bar-top');
   const title = element('div', 'title');
   title.append(
-    // A Builder island being tested has no number yet.
+    // A community island names its maker; a Builder island being tested has no number yet.
     element(
       'span',
       'title-number',
-      island.day > 0 ? `Lumen #${island.day}` : COPY.builderTitle
+      island.community !== undefined
+        ? fill(COPY.communityBy, { maker: island.community.maker })
+        : island.day > 0
+          ? `Lumen #${island.day}`
+          : COPY.builderTitle
     ),
     element('span', 'title-name', note ?? island.name)
   );
@@ -341,6 +347,8 @@ export function createHud(
     actions.back
   );
   const tonightButton = button(COPY.toTonight, 'main', actions.tonight);
+  const lumenButton = button(COPY.communityTonight, 'quiet', actions.lumen);
+  const community = island.community !== undefined;
   result.append(
     resultMedal,
     resultLine,
@@ -349,8 +357,8 @@ export function createHud(
     resultButtons,
     resultFooter
   );
-  // Past islands have no "tomorrow".
-  if (actions.back !== undefined) resultFooter.remove();
+  // Past islands have no "tomorrow", and a community island has no nights at all.
+  if (actions.back !== undefined || community) resultFooter.remove();
 
   const sheet = element('section', 'panel sheet');
   let sheetShown = false;
@@ -474,18 +482,22 @@ export function createHud(
       resultTime.textContent = !outcome.ranked
         ? COPY.unranked
         : outcome.rank > 0
-          ? fill(COPY.rankLine, {
+          ? fill(community ? COPY.communityRank : COPY.rankLine, {
               time: formatTime(outcome.elapsedMs),
               rank: outcome.rank,
             })
           : formatTime(outcome.elapsedMs);
       // A ranked result is final; anything else can be played again.
       // Tonight's islands open after a ranked solve; an earlier night's are open after any solve.
-      const shown = outcome.ranked
-        ? [othersButton, shareButton, exploreButton, buildButton]
-        : backButton !== null
-          ? [othersButton, againButton, backButton]
-          : [tonightButton, againButton, exploreButton];
+      const shown = community
+        ? outcome.ranked
+          ? [othersButton, shareButton, lumenButton, buildButton]
+          : [againButton, lumenButton]
+        : outcome.ranked
+          ? [othersButton, shareButton, exploreButton, buildButton]
+          : backButton !== null
+            ? [othersButton, againButton, backButton]
+            : [tonightButton, againButton, exploreButton];
       const buttons = shown.filter(
         (node): node is HTMLButtonElement => node !== null
       );
@@ -500,11 +512,13 @@ export function createHud(
           quiet.length % 2 === 1 && index === quiet.length - 1
         )
       );
-      resultStreak.textContent = !outcome.ranked
-        ? ''
-        : outcome.streak <= 1
-          ? COPY.streakOne
-          : fill(COPY.streakMany, { streak: outcome.streak });
+      // Streaks belong to the daily islands only.
+      resultStreak.textContent =
+        !outcome.ranked || community
+          ? ''
+          : outcome.streak <= 1
+            ? COPY.streakOne
+            : fill(COPY.streakMany, { streak: outcome.streak });
       resultShown = true;
       root.classList.add('resulting');
     },

@@ -18,6 +18,7 @@ import {
   type SkyLantern,
 } from '../../shared/api';
 import { dayAt } from '../../shared/calendar';
+import { boardKey as boardOf, isCommunity } from '../../shared/community';
 import {
   CALENDAR,
   KEEP,
@@ -81,6 +82,8 @@ export function rankedOpen(
   lastDay: number,
   startedMs: number | undefined
 ): boolean {
+  // A community island has no night: the first Lock in on its post counts, whenever it comes.
+  if (isCommunity(day)) return true;
   if (currentDay(nowMs, lastDay) === day) return true;
   const endOfDay = dayOneMs() + day * MS_PER_DAY;
   return (
@@ -373,7 +376,10 @@ export async function lockIn(
       : { ok: true, result: { ...earlier, ranked: false } };
   }
 
-  const after = advanceStreak(before, island.day);
+  // A community island is outside the daily run: no streak, flair, medal count or all-time
+  // board. The player's lantern keeps the style their streak has already earned.
+  const community = isCommunity(island.day);
+  const after = community ? before : advanceStreak(before, island.day);
   const style = styleFor(after.streak);
   const boardScore = score.pieces * SCORING.leaderboardPieceWeight + elapsedMs;
   const boardKey = KEYS.leaderboard(island.day);
@@ -421,27 +427,36 @@ export async function lockIn(
       JSON.stringify({ placements: clean, result }),
       KEEP.submissionSeconds
     ),
-    store.hSet(userKey, {
-      streak: String(after.streak),
-      lastDay: String(after.lastDay),
-      graceWeek: String(after.graceWeek),
-      best: String(after.best),
-      style,
-      username: player.username,
-    }),
+    store.hSet(
+      userKey,
+      community
+        ? { username: player.username }
+        : {
+            streak: String(after.streak),
+            lastDay: String(after.lastDay),
+            graceWeek: String(after.graceWeek),
+            best: String(after.best),
+            style,
+            username: player.username,
+          }
+    ),
     store.zAdd(KEYS.sky(island.day), JSON.stringify(lantern), nowMs),
+    // How many players placed exactly this board: identical boards are listed once.
+    store.hIncrBy(KEYS.groups(island.day), boardOf(clean), 1),
     // The island is finished: there is no unfinished board to come back to.
     store.del(KEYS.progress(island.day, player.userId)),
   ];
   if (lantern.a !== '')
     writes.push(store.hSet(KEYS.avatars, { [player.username]: lantern.a }));
   if (medal === 'lamplighter') {
-    writes.push(
-      store.hIncrBy(statsKey, 'parHits', 1),
-      store.zIncrBy(KEYS.allTime, player.username, 1)
-    );
+    writes.push(store.hIncrBy(statsKey, 'parHits', 1));
+    if (!community)
+      writes.push(store.zIncrBy(KEYS.allTime, player.username, 1));
   }
-  writes.push(store.expire(KEYS.boards(island.day), KEEP.submissionSeconds));
+  writes.push(
+    store.expire(KEYS.boards(island.day), KEEP.submissionSeconds),
+    store.expire(KEYS.groups(island.day), KEEP.submissionSeconds)
+  );
   await Promise.all(writes);
   // A Lock in that reaches the top of the board rebuilds the cached list once, here, so opening
   // "See others' islands" is a single read.
@@ -575,11 +590,13 @@ function boardRow(
 export async function readLeaderboard(
   store: Store,
   day: number,
-  username: string | null
+  username: string | null,
+  /** Rows read from the top. */
+  rows: number = LEADERBOARD.top
 ): Promise<{ top: BoardRow[]; me: BoardRow | null; total: number }> {
   const key = KEYS.leaderboard(day);
   const [entries, total, position] = await Promise.all([
-    store.zRange(key, 0, LEADERBOARD.top - 1),
+    store.zRange(key, 0, rows - 1),
     store.zCard(key),
     username === null ? undefined : store.zRank(key, username),
   ]);
@@ -664,15 +681,35 @@ export async function rebuildOthers(
   store: Store,
   island: PlayableIsland
 ): Promise<OtherIsland[]> {
-  const { top } = await readLeaderboard(store, island.day, null);
-  const rows = top.slice(0, OTHERS.top);
+  const { top } = await readLeaderboard(store, island.day, null, OTHERS.scan);
   const pieces = await store.hMGet(
     KEYS.boards(island.day),
-    rows.map((row) => row.username)
+    top.map((row) => row.username)
   );
-  const islands: OtherIsland[] = rows.map((row, index) => ({
-    ...row,
-    placements: readBoardPieces(island, pieces[index]),
+  // Down the board, the first player with each board stands for everyone who placed it.
+  const seen = new Set<string>();
+  const firsts: {
+    row: BoardRow;
+    placements: Placement[] | null;
+    key: string;
+  }[] = [];
+  for (const [index, row] of top.entries()) {
+    if (firsts.length >= OTHERS.top) break;
+    const placements = readBoardPieces(island, pieces[index]);
+    const key =
+      placements === null ? `none:${row.username}` : boardOf(placements);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    firsts.push({ row, placements, key });
+  }
+  const counts = await store.hMGet(
+    KEYS.groups(island.day),
+    firsts.map((first) => first.key)
+  );
+  const islands: OtherIsland[] = firsts.map((first, index) => ({
+    ...first.row,
+    placements: first.placements,
+    same: Math.max(1, Number(counts[index] ?? 1) || 1),
   }));
   await store.set(
     KEYS.othersTop(island.day),
@@ -709,7 +746,16 @@ function readOthersTop(
           ? null
           : readBoardPieces(island, JSON.stringify(stored));
       if (stored !== null && placements === null) return null;
-      islands.push({ rank, username, snoovatar, pieces, timeMs, placements });
+      const same = fields['same'];
+      islands.push({
+        rank,
+        username,
+        snoovatar,
+        pieces,
+        timeMs,
+        placements,
+        same: typeof same === 'number' ? same : 1,
+      });
     }
     return islands;
   } catch {
@@ -725,6 +771,7 @@ export type OthersOutcome =
       solves: number;
       parHits: number;
       parSolution: Placement[] | null;
+      creator: OtherIsland | null;
     }
   | { ok: false };
 
@@ -738,9 +785,16 @@ export async function readOthers(
   player: Player,
   island: PlayableIsland,
   nowMs: number,
-  lastDay: number
+  lastDay: number,
+  /** On a community island: the maker's own test solve, pinned first, never ranked. */
+  creator: OtherIsland | null = null
 ): Promise<OthersOutcome> {
-  const over = island.day < currentDay(nowMs, lastDay);
+  // A community island's list never opens to all: it has no night that ends.
+  const over =
+    !isCommunity(island.day) && island.day < currentDay(nowMs, lastDay);
+  // Its maker lit it in their test, so their list is open from the start.
+  const isMaker =
+    creator !== null && player !== null && creator.username === player.username;
   const [mine, kept, stats, total] = await Promise.all([
     player === null
       ? undefined
@@ -749,12 +803,15 @@ export async function readOthers(
     store.hGetAll(KEYS.stats(island.day)),
     store.zCard(KEYS.leaderboard(island.day)),
   ]);
-  if (!over && mine === undefined) return { ok: false };
+  if (!over && mine === undefined && !isMaker) return { ok: false };
   // A kept list shorter than the board is out of date (an older version kept it, or two Lock
   // ins crossed): work it out again.
   const keptTop = readOthersTop(island, kept);
+  // Rows stand for every player with the same board, so a full or complete list is current.
+  const covered =
+    keptTop?.reduce((sum, row) => sum + Math.max(1, row.same ?? 1), 0) ?? 0;
   const top =
-    keptTop !== null && keptTop.length >= Math.min(total, OTHERS.top)
+    keptTop !== null && (keptTop.length >= OTHERS.top || covered >= total)
       ? keptTop
       : await rebuildOthers(store, island);
 
@@ -787,6 +844,7 @@ export async function readOthers(
     solves: Math.max(tally(stats, 'solves'), total),
     parHits: tally(stats, 'parHits'),
     parSolution: over ? island.solution : null,
+    creator,
   };
 }
 

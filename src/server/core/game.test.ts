@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { OTHERS, SCORING, SKY } from '../../shared/config';
-import type { DailyIsland } from '../../shared/daily';
+import { puzzleOfDaily, type DailyIsland } from '../../shared/daily';
+import { trace } from '../../shared/trace';
+import { communityNumber } from '../../shared/community';
 import type { Placement } from '../../shared/types';
 import { islandForDay, lastDay } from './content';
 import {
@@ -37,6 +39,32 @@ function island(day: number): DailyIsland {
   const found = islandForDay(day);
   if (found === undefined) throw new Error(`no island ${day}`);
   return found;
+}
+
+/**
+ * Different boards that all light a day: its solution plus one spare mirror on a tile the light
+ * never needs, a different tile or turn each time.
+ */
+function variants(day: number, count: number): Placement[][] {
+  const found = island(day);
+  const puzzle = puzzleOfDaily(found);
+  const boards: Placement[][] = [];
+  found.rows.forEach((row, y) =>
+    [...row].forEach((tile, x) => {
+      if (tile !== '.' || found.solution.some((p) => p.x === x && p.y === y))
+        return;
+      for (const orientation of ['slash', 'backslash'] as const) {
+        const board: Placement[] = [
+          ...found.solution,
+          { x, y, piece: { kind: 'mirror', orientation } },
+        ];
+        if (boards.length < count && trace(puzzle, board).solved)
+          boards.push(board);
+      }
+    })
+  );
+  if (boards.length < count) throw new Error('not enough spare tiles');
+  return boards;
 }
 
 function setup() {
@@ -426,7 +454,7 @@ describe("see others' islands", () => {
   const open = (store: Store, player: Player, nowMs = DAY_ONE + HOUR) =>
     readOthers(store, player, island(1), nowMs, lastDay());
 
-  it('stays closed until you lock in, then lists the top with their pieces and your own', async () => {
+  it('stays closed until you lock in, then lists each board once, with how many placed it, and your own', async () => {
     const { store, effects, input } = setup();
     expect((await open(store, ana)).ok).toBe(false);
     expect((await open(store, null)).ok).toBe(false);
@@ -437,10 +465,10 @@ describe("see others' islands", () => {
     await lockIn(store, ana, input(1, DAY_ONE + 2 * HOUR), effects);
     const others = await open(store, ana, DAY_ONE + 2 * HOUR);
     if (!others.ok) throw new Error('should be open');
-    expect(others.top.map((row) => [row.rank, row.username])).toEqual([
-      [1, 'ben'],
-      [2, 'ana'],
-    ]);
+    // Both placed the same board: Ben, first on the board, stands for both.
+    expect(others.top.map((row) => [row.rank, row.username, row.same])).toEqual(
+      [[1, 'ben', 2]]
+    );
     for (const row of others.top)
       expect(row.placements).toEqual(island(1).solution);
     expect(others.me).toMatchObject({
@@ -473,16 +501,34 @@ describe("see others' islands", () => {
     expect(store.writes()).toBe(before);
   });
 
+  it('a list made shorter by identical boards is still up to date: opening it writes nothing', async () => {
+    const { store, effects, input } = setup();
+    for (const player of [ben, ana]) {
+      await recordStart(store, player, 1, DAY_ONE);
+      await lockIn(store, player, input(1, DAY_ONE + HOUR), effects);
+    }
+    const before = store.writes();
+    const others = await open(store, ana);
+    expect(others.ok && others.top).toHaveLength(1);
+    expect(store.writes()).toBe(before);
+  });
+
   it('a Lock in below the top leaves the kept list alone', async () => {
     const { store, effects, input } = setup();
     const players = Array.from({ length: OTHERS.top + 1 }, (_, i) => ({
       userId: `t2_p${i}`,
       username: `p${i}`,
     }));
+    const boards = variants(1, players.length);
     for (const [i, player] of players.entries()) {
       if (i === OTHERS.top) await store.del(KEYS.othersTop(1));
       await recordStart(store, player, 1, DAY_ONE);
-      await lockIn(store, player, input(1, DAY_ONE + HOUR + i * 1000), effects);
+      await lockIn(
+        store,
+        player,
+        input(1, DAY_ONE + HOUR + i * 1000, { placements: boards[i] }),
+        effects
+      );
     }
     // The last player came eleventh: their Lock in did not rebuild the deleted list.
     expect(await store.get(KEYS.othersTop(1))).toBeUndefined();
@@ -522,7 +568,10 @@ describe("see others' islands", () => {
     await store.set(KEYS.othersTop(1), '[]');
     const others = await open(store, ana);
     if (!others.ok) throw new Error('should be open');
-    expect(others.top.map((row) => row.username)).toEqual(['ana', 'ben']);
+    // Same board, same time: one row for both.
+    expect(others.top.map((row) => [row.username, row.same])).toEqual([
+      ['ana', 2],
+    ]);
   });
 
   it('keeps practice solves out, and a reset takes the player off the list', async () => {
@@ -660,5 +709,82 @@ describe('counts never go below zero (the "-1 lanterns" report)', () => {
     expect(
       Number((await store.hGetAll(KEYS.stats(1)))['solves'] ?? 0)
     ).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe('a community island', () => {
+  // Day 1's island under a community number, as a published island is served.
+  const number = communityNumber(1);
+  const community = { ...island(1), day: number };
+  const play = (nowMs: number): LockInInput => ({
+    island: community,
+    placements: community.solution,
+    snoovatar: undefined,
+    wantsRanked: true,
+    postDay: number,
+    lastDay: lastDay(),
+    nowMs,
+  });
+
+  it('counts the first Lock in on its post whenever it comes: it has no night', async () => {
+    const { store, effects } = setup();
+    expect(
+      rankedOpen(number, DAY_ONE + 40 * 24 * HOUR, lastDay(), undefined)
+    ).toBe(true);
+    const late = DAY_ONE + 40 * 24 * HOUR;
+    await recordStart(store, ana, number, late);
+    const outcome = await lockIn(store, ana, play(late + 60_000), effects);
+    expect(outcome).toMatchObject({
+      ok: true,
+      result: { ranked: true, rank: 1 },
+    });
+    const again = await lockIn(store, ana, play(late + 90_000), effects);
+    expect(again).toMatchObject({ ok: true, result: { ranked: false } });
+    expect(await store.zCard(KEYS.leaderboard(number))).toBe(1);
+  });
+
+  it('leaves streak, medals and the all-time board alone', async () => {
+    const { store, effects, input } = setup();
+    await recordStart(store, ana, 1, DAY_ONE);
+    await lockIn(store, ana, input(1, DAY_ONE + HOUR), effects);
+    const before = await store.hGetAll(KEYS.user(ana.userId));
+    const allTime = await store.zCard(KEYS.allTime);
+    await recordStart(store, ana, number, DAY_ONE + 2 * HOUR);
+    const outcome = await lockIn(store, ana, play(DAY_ONE + 3 * HOUR), effects);
+    expect(outcome).toMatchObject({
+      ok: true,
+      result: { ranked: true, streak: Number(before['streak']) },
+    });
+    const after = await store.hGetAll(KEYS.user(ana.userId));
+    expect(after['streak']).toBe(before['streak']);
+    expect(after['lastDay']).toBe(before['lastDay']);
+    expect(await store.zCard(KEYS.allTime)).toBe(allTime);
+    // Its own par count still grows, for "Your islands".
+    expect((await store.hGetAll(KEYS.stats(number)))['parHits']).toBe('1');
+  });
+
+  it("its list opens for the maker from the start, with the Creator's board pinned", async () => {
+    const { store, effects } = setup();
+    const creator = {
+      rank: null,
+      username: 'maker',
+      snoovatar: '',
+      pieces: community.par,
+      timeMs: 30_000,
+      placements: community.solution,
+    };
+    const maker: Player = { userId: 't2_maker', username: 'maker' };
+    const open = (player: Player) =>
+      readOthers(store, player, community, DAY_ONE, lastDay(), creator);
+    expect((await open(ana)).ok).toBe(false);
+    expect(await open(maker)).toMatchObject({ ok: true, creator, top: [] });
+    await recordStart(store, ana, number, DAY_ONE);
+    await lockIn(store, ana, play(DAY_ONE + HOUR), effects);
+    expect(await open(ana)).toMatchObject({
+      ok: true,
+      creator,
+      top: [{ username: 'ana', rank: 1 }],
+      parSolution: null,
+    });
   });
 });

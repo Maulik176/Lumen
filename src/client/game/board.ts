@@ -8,6 +8,7 @@ import {
   type BoardResponse,
   type BoardRow,
 } from '../../shared/api';
+import { isCommunity } from '../../shared/community';
 import { COPY } from '../../shared/config';
 import { formatTime } from './fit';
 import { element } from './hud';
@@ -99,6 +100,7 @@ export function boardSheet(
   onClose: () => void,
   onChange: () => void
 ): HTMLElement {
+  const community = isCommunity(day);
   const holder = element('div', 'sheet-body');
   holder.style.display = 'contents';
   const tabs = element('div', 'board-tabs');
@@ -169,17 +171,24 @@ export function boardSheet(
             element(
               'p',
               'sheet-empty',
-              board === null ? COPY.loadFailed : COPY.boardEmpty
+              board === null
+                ? COPY.loadFailed
+                : community
+                  ? COPY.communityBoardEmpty
+                  : COPY.boardEmpty
             ),
           ])
     );
     onChange();
   };
 
-  for (const [scope, label] of [
-    ['day', COPY.boardTonight],
-    ['alltime', COPY.boardAllTime],
-  ] as const) {
+  // A community island has its own board only: the all-time board is the daily islands'.
+  for (const [scope, label] of community
+    ? []
+    : ([
+        ['day', COPY.boardTonight],
+        ['alltime', COPY.boardAllTime],
+      ] as const)) {
     const tab = element('button', 'board-tab', label);
     tab.type = 'button';
     tab.setAttribute('role', 'tab');
@@ -189,7 +198,11 @@ export function boardSheet(
   }
   list.append(element('p', 'sheet-empty', '…'));
   holder.append(
-    element('h2', 'sheet-title', COPY.boardTitle),
+    element(
+      'h2',
+      'sheet-title',
+      community ? COPY.communityBoardTitle : COPY.boardTitle
+    ),
     tabs,
     list,
     close

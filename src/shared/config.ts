@@ -179,7 +179,7 @@ export const COPY = {
   communityLitOne: '1 player lit it',
   communityLitNone: 'Be the first to light it',
   communitySeeSky: 'See the sky',
-  communityRank: '#{rank} on this island',
+  communityRank: '{time} \u00b7 #{rank} on this island',
   /** On the result card of a community island: the daily post. */
   communityTonight: "Tonight's Lumen",
   /** A community post whose island was removed, or while the community side is switched off. */
@@ -362,6 +362,11 @@ export const COPY = {
   crowdParPast: '{percent}% hit par that night',
   crowdFew: 'You are among the first tonight.',
   crowdFewPast: 'Only a few lit it that night.',
+  /** The same lines on a community island, which has no nights. */
+  crowdParIsland: '{percent}% hit par',
+  crowdFewIsland: 'You are among the first to light it.',
+  communityBoardTitle: "This island's board",
+  communityBoardEmpty: 'No lanterns here yet.',
   othersHint: 'Tap an island to see how it was lit.',
   /** The player's own island, first in the list. */
   othersMine: 'Your island',

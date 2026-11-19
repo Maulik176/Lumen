@@ -82,6 +82,29 @@ body {
   letter-spacing: 0.03em;
 }
 
+/* A community island's maker: their snoovatar, or the initial on a paper disc. */
+.kicker:has(.kicker-face) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 4px;
+}
+
+.kicker-face {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: top;
+  background: var(--light);
+  color: var(--night);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 22px;
+  text-align: center;
+}
+
 .outline {
   position: absolute;
   right: 12px;

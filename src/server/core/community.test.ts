@@ -12,6 +12,7 @@ import {
   listMine,
   loadDraft,
   lookUpIsland,
+  postActivity,
   publishIsland,
   readCommunity,
   setIslandActive,
@@ -567,5 +568,34 @@ describe('community islands after publishing', () => {
       }),
     ]);
     expect(await listMine(store, null)).toEqual([]);
+  });
+});
+
+describe("what Reddit's triggers say about an island's post", () => {
+  it('a deleted post, or one a moderator removes or marks as spam, takes the island down', () => {
+    expect(postActivity({ postId: 't3_abc', reason: 'AUTHOR' })).toEqual({
+      postId: 't3_abc',
+      active: false,
+    });
+    expect(postActivity({ postId: 'abc' })).toEqual({
+      postId: 't3_abc',
+      active: false,
+    });
+    for (const action of ['removelink', 'spamlink'])
+      expect(postActivity({ action, targetPost: { id: 't3_abc' } })).toEqual({
+        postId: 't3_abc',
+        active: false,
+      });
+  });
+
+  it('approving it again brings it back; anything else changes nothing', () => {
+    expect(
+      postActivity({ action: 'approvelink', targetPost: { id: 't3_abc' } })
+    ).toEqual({ postId: 't3_abc', active: true });
+    expect(
+      postActivity({ action: 'removecomment', targetPost: { id: 't3_abc' } })
+    ).toBeNull();
+    expect(postActivity({ action: 'removelink' })).toBeNull();
+    expect(postActivity(null)).toBeNull();
   });
 });

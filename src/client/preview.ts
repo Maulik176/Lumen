@@ -106,24 +106,54 @@ let night: Night = post !== null && recallPast(post.day) ? 'past' : 'tonight';
 let tonightPost: string | null = null;
 let known = solved !== null || night === 'past';
 let heroSet = false;
+/** The server said this community island is gone or resting: the card says so, no button. */
+let refused: string | null = null;
+
+/** A community island's maker, as the kicker shows them: snoovatar (or initial) and name. */
+function makerKicker(maker: string, avatar: string): Node[] {
+  const face = document.createElement(avatar === '' ? 'span' : 'img');
+  face.className = 'kicker-face';
+  if (face instanceof HTMLImageElement) {
+    face.alt = '';
+    face.decoding = 'async';
+    face.src = avatar;
+  } else face.textContent = maker.slice(0, 1).toUpperCase();
+  return [
+    face,
+    document.createTextNode(COPY.communityKicker.replace('{maker}', maker)),
+  ];
+}
 
 function paint(): void {
   if (post === null) {
     byId('name').textContent = 'Lumen';
     return;
   }
-  byId('kicker').textContent = COPY.cardKicker
-    .replace('{day}', String(post.day))
-    .replace('{weekday}', weekdayLabel(post.weekday))
-    .replace('{par}', String(post.par));
+  const community = post.kind === 'community' ? post : null;
+  if (community !== null)
+    byId('kicker').replaceChildren(
+      ...makerKicker(community.maker ?? '', community.makerAvatar ?? '')
+    );
+  else
+    byId('kicker').textContent = COPY.cardKicker
+      .replace('{day}', String(post.day))
+      .replace('{weekday}', weekdayLabel(post.weekday))
+      .replace('{par}', String(post.par));
   byId('name').textContent = post.name;
   if (!heroSet) {
     heroSet = true;
     const hero = byId('hero');
     if (hero instanceof HTMLImageElement) {
       hero.addEventListener('load', () => hero.classList.add('shown'));
-      hero.src = HERO[biomeOfDay(post.day)];
+      hero.src = HERO[community?.biome ?? biomeOfDay(post.day)];
     }
+  }
+  if (refused !== null) {
+    play.hidden = true;
+    how.hidden = true;
+    line.replaceChildren(text('span', refused));
+    crowd.replaceChildren();
+    return;
   }
   const outline = document.getElementById('outline');
   if (post.rows !== undefined && outline instanceof HTMLCanvasElement) {
@@ -133,6 +163,10 @@ function paint(): void {
       height: CARD.outlineHeight,
       lit: solved !== null,
     });
+  }
+  if (community !== null) {
+    paintCommunity(community);
+    return;
   }
 
   card.classList.toggle('solved', solved !== null);
@@ -218,6 +252,62 @@ function paint(): void {
   crowd.replaceChildren(...lead, text('span', words.join(' · ')));
 }
 
+/** A community island's card: no nights, no streak, no countdown; how many have lit it. */
+function paintCommunity(post: PostData): void {
+  card.classList.toggle('solved', solved !== null);
+  card.classList.remove('elsewhere');
+  play.classList.toggle('waiting', !known);
+  play.textContent = solved !== null ? COPY.communitySeeSky : COPY.playButton;
+  how.textContent = COPY.howToPlay;
+  how.hidden = false;
+  if (solved === null) {
+    const label = post.label ?? 'gentle';
+    line.replaceChildren(
+      text(
+        'span',
+        COPY.communityCardLine
+          .replace('{par}', String(post.par))
+          .replace('{label}', COPY.builderLabels[label])
+          .replace(
+            '{lanterns}',
+            post.lanterns === 1 ? '1 lantern' : `${post.lanterns} lanterns`
+          )
+      )
+    );
+  } else {
+    const parts: Node[] = [
+      icon(TICK),
+      text(
+        'span',
+        COPY.cardSolved
+          .replace(
+            '{pieces}',
+            solved.pieces === 1 ? '1 piece' : `${solved.pieces} pieces`
+          )
+          .replace('{par}', String(solved.par))
+      ),
+    ];
+    if (solved.rank > 0)
+      parts.push(text('span', '\u00b7'), text('b', `#${solved.rank}`));
+    line.replaceChildren(...parts);
+  }
+  crowd.replaceChildren(
+    text(
+      'span',
+      skyCount === null
+        ? ''
+        : skyCount === 0
+          ? COPY.communityLitNone
+          : skyCount === 1
+            ? COPY.communityLitOne
+            : COPY.communityLit.replace(
+                '{count}',
+                skyCount.toLocaleString('en')
+              )
+    )
+  );
+}
+
 async function refresh(): Promise<void> {
   try {
     const asked = new URLSearchParams(location.search).get('day');
@@ -227,7 +317,15 @@ async function refresh(): Promise<void> {
         : `/api/card?day=${encodeURIComponent(asked)}`
     );
     const body: CardResponse = await response.json();
-    if (!body.ok) return;
+    if (!body.ok) {
+      refused =
+        body.reason === 'taken-down'
+          ? COPY.communityTakenDown
+          : body.reason === 'resting'
+            ? COPY.communityResting
+            : null;
+      return;
+    }
     post = post ?? body.post;
     if (post.rows === undefined) post = { ...post, rows: body.post.rows ?? [] };
     skyCount = body.skyCount;

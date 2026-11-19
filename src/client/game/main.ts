@@ -18,6 +18,7 @@ import {
   stylePreviewLanterns,
 } from '../../shared/api';
 import { arrivalPath } from '../../shared/arrival';
+import { skyChannel } from '../../shared/community';
 import { warmUpDay, type Biome } from '../../shared/calendar';
 import {
   BIOMES,
@@ -115,6 +116,9 @@ function localProgress(day: number): unknown {
 
 type Loaded = Extract<IslandResponse, { ok: true }>;
 
+/** Why an island post could not be opened, when the server said: its island is gone or resting. */
+let loadRefused: string | null = null;
+
 async function loadIsland(day: string | null): Promise<Loaded | null> {
   try {
     // ?trailer=1 and ?styles=1 are honoured only by the local test server; Reddit's decides.
@@ -127,6 +131,13 @@ async function loadIsland(day: string | null): Promise<Loaded | null> {
         : `/api/island?day=${encodeURIComponent(day)}${trailer}`
     );
     const body: IslandResponse = await response.json();
+    if (!body.ok)
+      loadRefused =
+        body.reason === 'taken-down'
+          ? COPY.communityTakenDown
+          : body.reason === 'resting'
+            ? COPY.communityResting
+            : null;
     return body.ok ? body : null;
   } catch {
     return null;
@@ -171,7 +182,7 @@ async function joinSky(
   try {
     const { connectRealtime } = await import('@devvit/web/client');
     connectRealtime<SkyLantern>({
-      channel: `sky_${day}`,
+      channel: skyChannel(day),
       onMessage: (lantern) => {
         if (typeof lantern.u !== 'string' || lantern.u === self) return;
         onNew({ u: lantern.u, s: lantern.s, a: cleanSnoovatar(lantern.a) });
@@ -254,6 +265,8 @@ type IslandOptions = {
   howToPlay?: () => void;
   /** Opens the Archipelago map of past islands. */
   explore?: () => void;
+  /** On a community island: tonight's daily post. */
+  lumen?: () => void;
   /** Opens the Island Builder. */
   build?: () => void;
   back?: () => void;
@@ -507,6 +520,7 @@ function mountIsland(
   if (options.backLabel !== undefined) actions.backLabel = options.backLabel;
   if (options.explore !== undefined && island.day > 1)
     actions.explore = options.explore;
+  if (options.lumen !== undefined) actions.lumen = options.lumen;
   if (tonight) actions.board = showBoard;
   actions.others = () => void showOthers();
   // Sharing is the player's own comment: only signed in, and only on its own tap.
@@ -663,7 +677,13 @@ function mountIsland(
       if (tonight && loaded.stylePreview === true)
         view.setSky(stylePreviewLanterns());
       // A quiet night: last night's lanterns keep tonight's company, faintly.
-      if (tonight && lanterns.length < SKY.quietBelow && island.day > 1)
+      // (A community island has no "last night".)
+      if (
+        tonight &&
+        island.community === undefined &&
+        lanterns.length < SKY.quietBelow &&
+        island.day > 1
+      )
         void joinSky(
           island.day - 1,
           false,
@@ -895,7 +915,7 @@ async function start(): Promise<void> {
     loadRider(),
   ]);
   if (loaded === null) {
-    status.textContent = COPY.loadFailed;
+    status.textContent = loadRefused ?? COPY.loadFailed;
     return;
   }
   status.remove();
@@ -952,10 +972,14 @@ async function start(): Promise<void> {
   // The ghost hand shows only in the tutorial, and on a first island whose tutorial was skipped.
   let handOn = false;
   const log = query.get('perf') === '1';
-  const journey = createJourney(
-    loaded.rankedOpen && query.get('archive') !== '1' ? 'ranked' : 'replay',
-    log
-  );
+  // A community island is not in JOURNEY_MAP.md: playing one sends no journey events.
+  const community = island.community !== undefined;
+  const journey = community
+    ? quietJourney()
+    : createJourney(
+        loaded.rankedOpen && query.get('archive') !== '1' ? 'ranked' : 'replay',
+        log
+      );
   if (wantTutorial) {
     const ended = await runTutorial(canvas, root, shared.sound, calm);
     if (ended === 'skipped') journey.tap('tutorial_skip');
@@ -965,7 +989,7 @@ async function start(): Promise<void> {
   }
   // A newcomer arriving on one of the week's harder days is offered an easier island first.
   // Tonight's clock has not started yet, so warming up costs nothing.
-  const easier = firstVisit ? warmUpDay(island.day) : null;
+  const easier = firstVisit && !community ? warmUpDay(island.day) : null;
   if (easier !== null && (await askWarmUp(root)) === 'warm') {
     const warm = await loadIsland(String(easier));
     if (warm !== null)
@@ -1094,9 +1118,25 @@ async function start(): Promise<void> {
     hand: handOn,
     journey,
     howToPlay: () => void howToPlay(),
-    explore: () => void openMap(),
+    // A community post leads to tonight's daily island instead of the map of past nights.
+    ...(community
+      ? { lumen: () => openTonight(loaded.tonightPost) }
+      : { explore: () => void openMap() }),
     ...(COMMUNITY.enabled ? { build: () => void openBuilderLayer() } : {}),
   });
+}
+
+/** Open tonight's daily post, from a community island's result card. */
+function openTonight(postId: string | null): void {
+  void import('@devvit/web/client')
+    .then(({ navigateTo, context }) =>
+      navigateTo(
+        postId === null
+          ? `https://www.reddit.com/r/${context.subredditName ?? DEV.resetSubreddit}/`
+          : `https://www.reddit.com/comments/${postId.replace(/^t3_/, '')}`
+      )
+    )
+    .catch(() => undefined);
 }
 
 start().catch((error: unknown) => {

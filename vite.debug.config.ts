@@ -11,9 +11,11 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
 import {
+  toCommunityPostData,
   toPostData,
   toPublicIsland,
   type CardResponse,
+  type CommunityCredit,
   type BoardResponse,
   type OthersResponse,
   type IslandResponse,
@@ -24,11 +26,16 @@ import {
 } from './src/shared/api';
 import type { Placement } from './src/shared/types';
 import { BIOMES, COMMUNITY } from './src/shared/config';
-import { fallbackName, nameFiltered } from './src/shared/community';
+import {
+  fallbackName,
+  isCommunity,
+  nameFiltered,
+} from './src/shared/community';
 import {
   puzzleOfDaily,
   readDailyFile,
   type DailyIsland,
+  type PlayableIsland,
 } from './src/shared/daily';
 import {
   medalFor,
@@ -112,6 +119,48 @@ function localApi(): Plugin {
   >();
   /** Unfinished boards by day. */
   const progress = new Map<number, Placement[]>();
+  /** Islands published locally, served as community islands (numbers from numberBase up). */
+  const localIslands: {
+    index: number;
+    draft: IslandDraft;
+    par: number;
+    label: DifficultyLabel;
+    inventory: { mirrors: number; prisms: number };
+    creatorPieces: number;
+    solution: Placement[];
+  }[] = [];
+  /** A day, the hero island, or a community island published here. */
+  const islandAt = (
+    day: number
+  ):
+    | { island: PlayableIsland; credit: CommunityCredit | undefined }
+    | undefined => {
+    if (isCommunity(day)) {
+      const local = localIslands[day - COMMUNITY.numberBase - 1];
+      if (local === undefined) return undefined;
+      const { draft } = local;
+      return {
+        island: {
+          day,
+          date: '2026-11-25',
+          weekday: 'wednesday',
+          biome: draft.biome,
+          name: draft.name,
+          rows: draft.rows,
+          inventory: local.inventory,
+          sourceColours: draftPuzzleText(draft, local.inventory).sourceColours,
+          par: local.par,
+          solution: local.solution,
+        },
+        credit: { maker: 'you', makerAvatar: '', label: local.label },
+      };
+    }
+    const island =
+      day >= 900 && day < 900 + BIOMES.length
+        ? heroIsland(day)
+        : load().days[day - 1];
+    return island === undefined ? undefined : { island, credit: undefined };
+  };
   return {
     name: 'lumen-local-api',
     configureServer(server) {
@@ -121,18 +170,25 @@ function localApi(): Plugin {
             'day'
           ) ?? '1'
         );
-        const island = load().days[day - 1];
+        const found = islandAt(day);
+        const island = found?.island;
+        const credit = found?.credit;
         const result = solved.get(day)?.result;
-        const body: CardResponse | { ok: false } =
+        const body: CardResponse =
           island === undefined
-            ? { ok: false }
+            ? { ok: false, reason: 'not-found' }
             : {
                 ok: true,
                 night: day === 2 ? 'past' : 'tonight',
-                tonightPost: day === 2 ? 't3_local' : null,
-                post: toPostData(island),
-                skyCount: 140,
-                nextInMs: 5 * 3_600_000 + 12 * 60_000,
+                tonightPost:
+                  day === 2 || credit !== undefined ? 't3_local' : null,
+                post:
+                  credit === undefined
+                    ? toPostData(island)
+                    : toCommunityPostData(island, credit),
+                skyCount: credit === undefined ? 140 : 3,
+                nextInMs:
+                  credit === undefined ? 5 * 3_600_000 + 12 * 60_000 : null,
                 streak: result?.streak ?? 0,
                 result:
                   result === undefined
@@ -159,7 +215,7 @@ function localApi(): Plugin {
               typeof parsed === 'object' && parsed !== null
                 ? { ...parsed }
                 : {};
-            const island = load().days[Number(fields['day']) - 1];
+            const island = islandAt(Number(fields['day']))?.island;
             const check =
               island === undefined
                 ? undefined
@@ -232,7 +288,8 @@ function localApi(): Plugin {
             'day'
           ) ?? '1'
         );
-        const island = load().days[day - 1];
+        const found = islandAt(day);
+        const island = found?.island;
         let body: OthersResponse = { ok: false, reason: 'not-found' };
         if (island !== undefined) {
           const puzzle = puzzleOfDaily(island);
@@ -293,8 +350,23 @@ function localApi(): Plugin {
                   },
             solves: 140,
             parHits: 25,
-            parSolution: mine === undefined ? island.solution : null,
-            creator: null,
+            parSolution:
+              mine === undefined && found?.credit === undefined
+                ? island.solution
+                : null,
+            creator:
+              found?.credit === undefined
+                ? null
+                : {
+                    rank: null,
+                    username: found.credit.maker,
+                    snoovatar: '',
+                    pieces:
+                      localIslands[day - COMMUNITY.numberBase - 1]
+                        ?.creatorPieces ?? island.par,
+                    timeMs: 52_000,
+                    placements: island.solution,
+                  },
           };
         }
         response.setHeader('content-type', 'application/json');
@@ -337,16 +409,14 @@ function localApi(): Plugin {
           .searchParams;
         const day = Number(asked.get('day') ?? '1');
         // Days 900 to 904 are the hand-made hero island, one per biome (see scripts/hero.mjs).
-        const island =
-          day >= 900 && day < 900 + BIOMES.length
-            ? heroIsland(day)
-            : load().days[day - 1];
+        const found = islandAt(day);
+        const island = found?.island;
         const body: IslandResponse =
           island === undefined
             ? { ok: false, reason: 'not-found' }
             : {
                 ok: true,
-                island: toPublicIsland(island),
+                island: toPublicIsland(island, found?.credit),
                 me: {
                   loggedIn: false,
                   username: null,
@@ -363,10 +433,10 @@ function localApi(): Plugin {
                     ? null
                     : (progress.get(day) ?? null),
                 },
-                rankedOpen: false,
-                skyCount: 140,
+                rankedOpen: isCommunity(day),
+                skyCount: found?.credit === undefined ? 140 : 3,
                 night: asked.get('night') === 'past' ? 'past' : 'tonight',
-                tonightPost: null,
+                tonightPost: found?.credit === undefined ? null : 't3_local',
                 sharedUrl: null,
                 ...(asked.get('styles') === '1' ? { stylePreview: true } : {}),
                 ...(asked.get('trailer') === '1'
@@ -394,7 +464,13 @@ function localApi(): Plugin {
           'comet',
         ] as const;
         // The hero island (days 900 and up, for scripts/hero.mjs) has an empty sky.
-        const count = day >= 900 ? 0 : day === 6 ? 4 : 140;
+        const count = isCommunity(day)
+          ? 3
+          : day >= 900
+            ? 0
+            : day === 6
+              ? 4
+              : 140;
         const body: SkyResponse = {
           ok: true,
           day,
@@ -413,15 +489,6 @@ function localApi(): Plugin {
       // The local player is signed in. The check is the server's own; the test proof is kept here.
       let builderDraft: unknown = null;
       let builderTutorial = false;
-      /** Islands published locally, served as community islands. */
-      const localIslands: {
-        index: number;
-        draft: IslandDraft;
-        par: number;
-        label: DifficultyLabel;
-        inventory: { mirrors: number; prisms: number };
-        creatorPieces: number;
-      }[] = [];
       let builderChecked: {
         key: string;
         par: number;
@@ -555,8 +622,13 @@ function localApi(): Plugin {
             return send(response, { ok: false, problem: 'name' });
           const index = localIslands.length + 1;
           const label = builderChecked.label;
+          const rechecked = checkIsland(draft, {
+            daily: dailyHashes(),
+            clock: () => performance.now(),
+          });
           localIslands.push({
             index,
+            solution: rechecked.ok ? rechecked.solution : [],
             draft: { ...draft, name: name || fallbackName(draft.biome, index) },
             par: builderChecked.par,
             label:
@@ -624,7 +696,7 @@ function localApi(): Plugin {
               typeof parsed === 'object' && parsed !== null
                 ? { ...parsed }
                 : {};
-            const island = load().days[Number(fields['day']) - 1];
+            const island = islandAt(Number(fields['day']))?.island;
             if (island === undefined) {
               body = { ok: false, reason: 'not-found' };
             } else {

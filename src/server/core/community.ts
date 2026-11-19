@@ -733,3 +733,33 @@ export async function listMine(
   }
   return islands;
 }
+
+/**
+ * What a trigger says about a post: deleted, removed or marked as spam (the island goes down),
+ * or approved again (it comes back). Null for anything else.
+ */
+export function postActivity(
+  payload: unknown
+): { postId: string; active: boolean } | null {
+  if (typeof payload !== 'object' || payload === null) return null;
+  const fields: Record<string, unknown> = { ...payload };
+  const withPrefix = (id: string): string =>
+    id.startsWith('t3_') ? id : `t3_${id}`;
+  const { postId, action, targetPost } = fields;
+  if (typeof postId === 'string' && postId !== '')
+    return { postId: withPrefix(postId), active: false };
+  if (typeof action !== 'string') return null;
+  const active =
+    action === 'approvelink'
+      ? true
+      : action === 'removelink' || action === 'spamlink'
+        ? false
+        : null;
+  if (active === null || typeof targetPost !== 'object' || targetPost === null)
+    return null;
+  const target: Record<string, unknown> = { ...targetPost };
+  const id = target['id'];
+  return typeof id === 'string' && id !== ''
+    ? { postId: withPrefix(id), active }
+    : null;
+}

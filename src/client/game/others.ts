@@ -27,13 +27,18 @@ export async function loadOthers(day: number): Promise<Others | null> {
 
 /** The one line: how many hit par, or something gentler while there are only a few. */
 export function crowdLine(others: Others, tonight: boolean): string {
+  // A community island (it has a Creator's board) has no nights to speak of.
+  const island = others.creator !== null;
   if (others.solves < OTHERS.fewSolves)
-    return tonight ? COPY.crowdFew : COPY.crowdFewPast;
+    return island
+      ? COPY.crowdFewIsland
+      : tonight
+        ? COPY.crowdFew
+        : COPY.crowdFewPast;
   const percent = Math.round((others.parHits / others.solves) * 100);
-  return (tonight ? COPY.crowdPar : COPY.crowdParPast).replace(
-    '{percent}',
-    String(percent)
-  );
+  return (
+    island ? COPY.crowdParIsland : tonight ? COPY.crowdPar : COPY.crowdParPast
+  ).replace('{percent}', String(percent));
 }
 
 type Shown = {
@@ -49,20 +54,34 @@ type Shown = {
 };
 
 function shownOf(entry: OtherIsland, name: string, mine: boolean): Shown {
+  // A row that stands for several players with exactly the same board says how many.
+  const same = entry.same ?? 1;
   return {
     rank: entry.rank,
     name,
     username: entry.username,
     snoovatar: entry.snoovatar,
-    detail: dayDetail(entry),
+    detail:
+      same > 1
+        ? `${dayDetail(entry)} \u00b7 ${COPY.samePlayers.replace('{count}', String(same))}`
+        : dayDetail(entry),
     placements: entry.placements,
     mine,
   };
 }
 
-/** Everything in the list, in order: the player's own island, the par answer, then the top. */
+/**
+ * Everything in the list, in order: on a community island the maker's own test first, then the
+ * player's own island, the par answer (an earlier night only), then the top of the board.
+ */
 export function othersRows(others: Others, par: number): Shown[] {
   const rows: Shown[] = [];
+  const creator = others.creator;
+  if (creator !== null)
+    rows.push({
+      ...shownOf(creator, COPY.creatorBoard, false),
+      detail: `u/${creator.username} \u00b7 ${dayDetail(creator)}`,
+    });
   const own = others.me;
   if (own !== null) rows.push(shownOf(own, COPY.othersMine, true));
   if (others.parSolution !== null)

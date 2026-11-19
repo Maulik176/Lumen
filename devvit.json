@@ -86,7 +86,9 @@
   },
   "triggers": {
     "onAppInstall": "/internal/triggers/on-app-install",
-    "onAppUpgrade": "/internal/triggers/on-app-upgrade"
+    "onAppUpgrade": "/internal/triggers/on-app-upgrade",
+    "onPostDelete": "/internal/triggers/on-post-delete",
+    "onModAction": "/internal/triggers/on-mod-action"
   },
   "scripts": {
     "build": "vite build && tsx scripts/build-check.ts",
