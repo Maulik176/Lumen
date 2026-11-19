@@ -1427,6 +1427,87 @@ div.others-row {
   flex: 1 1 0;
 }
 
+/* The Island panel's last row: "Your islands" (signed in) and Done. */
+.bd-settings-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.bd-settings-foot .bd-yours-open {
+  margin-right: auto;
+}
+
+/* "Your islands": the maker's published islands over the board, newest first. */
+.bd-yours {
+  position: absolute !important;
+  top: calc(var(--gap) + 48px + 6px + 38px + 6px);
+  left: 0;
+  right: 0;
+  z-index: 3;
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  max-height: 60vh;
+  background: var(--paper);
+  box-shadow: 0 10px 30px rgba(10, 6, 24, 0.45);
+}
+
+.bd-yours[hidden] {
+  display: none;
+}
+
+.bd-yours-list {
+  display: grid;
+  gap: 6px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.bd-yours-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: var(--tap);
+  padding: 6px;
+  border: 0;
+  border-radius: calc(var(--radius) - 4px);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  font: inherit;
+  color: var(--ink);
+  text-align: left;
+}
+
+.bd-yours-row.bd-yours-down {
+  opacity: 0.6;
+}
+
+.bd-yours-picture {
+  position: static;
+  inset: auto;
+  flex: none;
+  border-radius: calc(var(--radius) - 8px);
+  background: var(--night);
+}
+
+.bd-yours-words {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.bd-yours-name {
+  font-family: var(--display);
+  font-size: 16px;
+}
+
+.bd-yours-detail,
+.bd-yours-empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
 /* After publishing: the board glows warm once, as the island goes out into the world. */
 .bd-frame.bd-published::after {
   opacity: 1;

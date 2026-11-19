@@ -128,6 +128,7 @@ function localApi(): Plugin {
     inventory: { mirrors: number; prisms: number };
     creatorPieces: number;
     solution: Placement[];
+    created: number;
   }[] = [];
   /** A day, the hero island, or a community island published here. */
   const islandAt = (
@@ -628,6 +629,7 @@ function localApi(): Plugin {
           });
           localIslands.push({
             index,
+            created: Date.now(),
             solution: rechecked.ok ? rechecked.solution : [],
             draft: { ...draft, name: name || fallbackName(draft.biome, index) },
             par: builderChecked.par,
@@ -658,7 +660,7 @@ function localApi(): Plugin {
               name: island.draft.name,
               biome: island.draft.biome,
               rows: island.draft.rows,
-              created: island.index,
+              created: island.created,
               plays: island.index === 1 ? 12 : 0,
               parHits: island.index === 1 ? 5 : 0,
               active: true,

@@ -896,6 +896,9 @@ export const BUILDER_VIEW = {
   /** The island's picture in the confirm panel, in CSS pixels. */
   confirmPictureWidth: 168,
   confirmPictureHeight: 112,
+  /** Each island's picture in "Your islands". */
+  yoursPictureWidth: 64,
+  yoursPictureHeight: 44,
   /** After the maker lights their island in the test, night falls; the Builder returns after this. */
   testDoneMs: 1400,
   /**

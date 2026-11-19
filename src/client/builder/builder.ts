@@ -11,7 +11,9 @@
 import type {
   BuilderCheckResponse,
   BuilderDraftResponse,
+  BuilderMineResponse,
   BuilderPublishResponse,
+  YourIsland,
 } from '../../shared/api';
 import {
   applyTool,
@@ -283,12 +285,23 @@ export async function openBuilder(
     COPY.builderDone
   );
   done.type = 'button';
-  settings.append(worlds, sizes, spares, done);
+  // The maker's published islands, from the same panel (the top bar has no room to spare).
+  const yoursButton = element(
+    'button',
+    'button button-quiet bd-yours-open',
+    COPY.builderYours
+  );
+  yoursButton.type = 'button';
+  const settingsFoot = element('div', 'bd-settings-foot');
+  if (loggedIn) settingsFoot.append(yoursButton);
+  settingsFoot.append(done);
+  settings.append(worlds, sizes, spares, settingsFoot);
   let settingsOpen = false;
   settings.hidden = true;
   const showSettings = (open: boolean): void => {
     settingsOpen = open;
     settings.hidden = !open;
+    if (open) yours.hidden = true;
     island.setAttribute('aria-expanded', String(open));
   };
   island.addEventListener('click', () => showSettings(!settingsOpen));
@@ -328,6 +341,87 @@ export async function openBuilder(
     confirmCredit,
     confirmButtons
   );
+
+  // "Your islands": every island this player has published, newest first. Tap one to open it.
+  const yours = element('div', 'panel bd-yours');
+  yours.hidden = true;
+  const yoursList = element('div', 'bd-yours-list');
+  const yoursBack = element(
+    'button',
+    'button button-quiet',
+    COPY.builderYoursBack
+  );
+  yoursBack.type = 'button';
+  yours.append(
+    element('p', 'bd-confirm-title', COPY.builderYours),
+    yoursList,
+    yoursBack
+  );
+  yoursBack.addEventListener('click', () => {
+    yours.hidden = true;
+  });
+  yoursButton.addEventListener('click', () => void showYours());
+
+  const yourRow = (entry: YourIsland): HTMLElement => {
+    const row = element(
+      entry.active ? 'button' : 'div',
+      entry.active ? 'bd-yours-row' : 'bd-yours-row bd-yours-down'
+    );
+    if (row instanceof HTMLButtonElement) {
+      row.type = 'button';
+      row.addEventListener('click', () => host.open(entry.url));
+    }
+    const picture = element('canvas', 'bd-yours-picture');
+    const look = BIOME_LOOK[entry.biome];
+    drawIslandOutline(picture, entry.rows, {
+      width: BUILDER_VIEW.yoursPictureWidth,
+      height: BUILDER_VIEW.yoursPictureHeight,
+      lit: entry.plays > 0,
+      land: `#${look.groundA.toString(16).padStart(6, '0')}`,
+    });
+    const words = element('span', 'bd-yours-words');
+    const when = new Date(entry.created).toLocaleDateString('en', {
+      month: 'short',
+      day: 'numeric',
+    });
+    const plays =
+      entry.plays === 0
+        ? COPY.communityLitNone
+        : entry.plays === 1
+          ? COPY.communityLitOne
+          : fill(COPY.communityLit, { count: entry.plays });
+    words.append(
+      element('span', 'bd-yours-name', entry.name),
+      element(
+        'span',
+        'bd-yours-detail',
+        !entry.active
+          ? `${when} \u00b7 ${COPY.builderYoursTakenDown}`
+          : entry.plays === 0
+            ? `${when} \u00b7 ${plays}`
+            : `${when} \u00b7 ${fill(COPY.builderYoursRow, { plays, par: entry.parHits })}`
+      )
+    );
+    row.append(picture, words);
+    return row;
+  };
+
+  async function showYours(): Promise<void> {
+    showSettings(false);
+    yours.hidden = false;
+    yoursList.replaceChildren(element('p', 'bd-yours-empty', '\u2026'));
+    const answer = await fetch('/api/builder/mine')
+      .then((response): Promise<BuilderMineResponse> => response.json())
+      .catch(() => null);
+    const islands = answer?.islands ?? [];
+    yoursList.replaceChildren(
+      ...(answer === null
+        ? [element('p', 'bd-yours-empty', COPY.loadFailed)]
+        : islands.length === 0
+          ? [element('p', 'bd-yours-empty', COPY.builderYoursEmpty)]
+          : islands.map(yourRow))
+    );
+  }
 
   const hint = element('div', 'panel bd-hint');
   hint.setAttribute('role', 'status');
@@ -410,7 +504,7 @@ export async function openBuilder(
   publishButton.addEventListener('click', () => void publish());
   actions.append(undo, redo, clear, main);
 
-  screen.append(top, settings, confirm, hint, wrap, tools, actions);
+  screen.append(top, settings, confirm, yours, hint, wrap, tools, actions);
   root.append(screen);
 
   // --- Behaviour ----------------------------------------------------------------------------
