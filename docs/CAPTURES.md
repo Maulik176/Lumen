@@ -68,3 +68,29 @@ iPhone Mirroring's typing, not by Lumen).
   check takes 3.5 s on Maulik's laptop).
 - Every one of 23 taps on the 8x8 board landed on the intended tile (with a mouse through
   iPhone Mirroring; a thumb test is still Maulik's, H1).
+
+---
+
+## Run 2: Nov 19–20, 2026, local browser, Phase 2 build (not Reddit)
+
+Folder: `captures/2026-11-20-local-phase2/` (20 files). Taken in the app's browser pane against
+the local stand-in server (`npm run debug`), at 430x701, 360x460 and 1100x700, while building and
+judging Phase 2. **No Reddit chrome and no real players** (names like `test_1` and "u/you" are
+the stand-in's), and the pictures are half scale. Use them to plan shots; re-record on Reddit
+after the phone test (C1–C12) with real accounts.
+
+| File | What it shows | Use it for |
+|---|---|---|
+| 07, 08 | "Ready to publish", then the confirm panel: the island on a night tile, name, "Par 2 · 3 mirrors · Gentle", "Posts to r/lumen_game_dev as an island by u/maulik" | Gallery: Builder (BridgeDit's "Post Level" moment) |
+| 10 | "Your island is up." as the board glows | Video: the publish beat |
+| 11 | A community island's feed card: "Island by u/you", outline, "Par 2 · Gentle · 1 lantern", "3 players lit it" | Gallery: community islands; lesson 12 (feed card credit) |
+| 12 | Playing it: the top bar and the live line "u/maker_friend just lit Ember Bend" | Gallery: the shared sky on a player's island |
+| 13, 14 | Lantern rising, then "Lamplighter · #3 on this island" with See others' islands, Tonight's Lumen, Build an island | Video: a player's island end to end |
+| 15, 18 | See others' islands with "Creator's board" pinned first (desktop) | Gallery item 7, community version |
+| 16, 17 | Your islands, with plays and par hits; the empty state | Builder heading |
+| 06 | "Checking your island…" with light sweeping the board | Video: the check beat |
+| 01–05 | Nov 19 fixes: solid Island panel, one-row tutorial line, map's paper Build button | Polish proof |
+
+Bug shots (fixed before commit, kept for the record): `bug-01` the confirm panel's picture
+drawn outside the panel; `bug-02` a community card with no outline. Older top-bar order in 12
+("by u/you" above the name) was fixed after it was taken.

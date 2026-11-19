@@ -144,8 +144,14 @@ function paint(): void {
     heroSet = true;
     const hero = byId('hero');
     if (hero instanceof HTMLImageElement) {
+      const stock = HERO[community?.biome ?? biomeOfDay(post.day)];
       hero.addEventListener('load', () => hero.classList.add('shown'));
-      hero.src = HERO[community?.biome ?? biomeOfDay(post.day)];
+      // The island's own picture when the post has one; the world's stock picture otherwise,
+      // and whenever the picture cannot be loaded.
+      hero.addEventListener('error', () => {
+        if (!hero.src.endsWith(stock)) hero.src = stock;
+      });
+      hero.src = post.picture ?? stock;
     }
   }
   if (refused !== null) {

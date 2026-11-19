@@ -1,7 +1,10 @@
 import { Hono } from 'hono';
 import { nowMs } from '../core/clock';
 import type { UiResponse } from '@devvit/web/shared';
-import { context, reddit } from '@devvit/web/server';
+import { context, media, reddit } from '@devvit/web/server';
+import { toPostData } from '../../shared/api';
+import { TEST_PICTURE } from '../core/test-picture';
+import { islandForDay } from '../core/content';
 import { DEV, LAUNCH, TRAILER } from '../../shared/config';
 import { currentDay, resetPlayer, sharedCommentOf } from '../core/game';
 import { KEYS, redisStore } from '../core/store';
@@ -254,4 +257,43 @@ menu.post('/style-preview', async (c) => {
     },
     200
   );
+});
+
+/**
+ * Playtest subreddit only, before launch: does Reddit's media upload take a data URL in this
+ * build, how long does it take, and which host serves the result? It uploads a small render,
+ * then makes a test post whose feed card shows the uploaded picture instead of the stock one
+ * (PHASE 4: real pictures for community island cards). Details go to the server log.
+ */
+menu.post('/test-picture', async (c) => {
+  const refused = devToolsRefusal(context.subredditName);
+  if (refused !== null) return c.json<UiResponse>({ showToast: refused }, 200);
+  const began = performance.now();
+  try {
+    const asset = await media.upload({ url: TEST_PICTURE, type: 'image' });
+    const ms = Math.round(performance.now() - began);
+    console.log(
+      `Picture test: uploaded in ${ms} ms, id ${asset.mediaId}, url ${asset.mediaUrl}`
+    );
+    const island = islandForDay(currentDay(nowMs(), lastDay()));
+    if (island === undefined)
+      return c.json<UiResponse>(
+        { showToast: `Uploaded in ${ms} ms: ${asset.mediaUrl}` },
+        200
+      );
+    const post = await reddit.submitCustomPost({
+      title: `Lumen picture test (${ms} ms)`,
+      entry: 'default',
+      postData: { ...toPostData(island), picture: asset.mediaUrl },
+    });
+    console.log(`Picture test: post ${post.id}`);
+    return c.json<UiResponse>({ navigateTo: await openPost(post.id) }, 200);
+  } catch (error) {
+    const ms = Math.round(performance.now() - began);
+    console.error(`Picture test failed after ${ms} ms: ${String(error)}`);
+    return c.json<UiResponse>(
+      { showToast: `Upload failed: ${String(error).slice(0, 90)}` },
+      200
+    );
+  }
 });

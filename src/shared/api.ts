@@ -47,6 +47,11 @@ export type PostData = {
    * request. The server reads only `day` (the island's number) and loads the rest from Redis.
    */
   kind?: 'community';
+  /**
+   * A picture of this island for the card, uploaded to Reddit's media host (PHASE 4, being
+   * tested). The stock picture of its world when absent, or if it fails to load.
+   */
+  picture?: string;
   biome?: Biome;
   label?: DifficultyLabel;
   maker?: string;
@@ -362,7 +367,11 @@ export function readPostData(value: unknown): PostData | null {
     rows.length > 0 &&
     rows.every((row): row is string => typeof row === 'string')
   ) {
-    const data: PostData = { day, name, weekday, par, lanterns, rows };
+    const picture = cleanPicture(value['picture']);
+    const data: PostData =
+      picture === ''
+        ? { day, name, weekday, par, lanterns, rows }
+        : { day, name, weekday, par, lanterns, rows, picture };
     if (value['kind'] !== 'community') return data;
     const biome = BIOME_NAMES.find((entry) => entry === value['biome']);
     const label = LABELS.find((entry) => entry === value['label']);
@@ -379,6 +388,19 @@ export function readPostData(value: unknown): PostData | null {
     };
   }
   return { day, name, weekday, par, lanterns };
+}
+
+/**
+ * A card picture must be on one of Reddit's own hosts (an app may show only media Reddit hosts),
+ * over https. Anything else is dropped and the card shows its stock picture.
+ */
+export function cleanPicture(value: unknown): string {
+  if (typeof value !== 'string' || value.length > 500) return '';
+  return /^https:\/\/([a-z0-9-]+\.)*(redd\.it|redditmedia\.com|redditstatic\.com)\//.test(
+    value
+  )
+    ? value
+    : '';
 }
 
 /** Reddit's own image host is the only place a snoovatar may come from. */
