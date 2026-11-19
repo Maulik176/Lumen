@@ -411,3 +411,16 @@ B1–B10, C1–C11, D1–D6, E1–E12, F1–F6. Captures and what each is good f
   the maker is credited) is P2 and matters more than more editor tools. The checker proves an
   island solvable, not fun: build two or three showcase islands by hand before the gallery
   (`docs/SUBMISSION.md`).
+
+## Phase 4 queue (decided Nov 20)
+
+1. **Real pictures for community island cards (Option A, approved after Phase 3).** At Publish,
+   the Builder renders the island in 3D, unsolved (no pieces, lanterns unlit, only the suns'
+   straight light), with the game's opening camera; the server uploads it with
+   `media.upload` (data URL; tested Nov 20: 960 ms, a 21 KB JPEG on i.redd.it, PLATFORM.md) before
+   posting and stores it as `picture` in the post data. The card shows the stock picture at
+   once and swaps in the island's picture when it has loaded (the phone took 3 to 5 s); a failed
+   render or upload publishes without one, and a failed load keeps the stock picture. Remove the
+   "Dev: test picture upload" menu item when this lands.
+2. **Daily cards:** pre-render all 90 daily islands, unsolved, with the hero renderer (about
+   10–15 KB each, bundled; each card downloads only its own), the hand-made hero as fallback.

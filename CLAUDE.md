@@ -17,7 +17,9 @@ only when Maulik says.**
   identical boards, triggers `onPostDelete`/`onModAction`. Local: publish in `builder.html`,
   then `game.html?day=1000001` and `preview.html?day=1000001` (`&user=name` as another player;
   editing `config.ts` restarts the stand-in and forgets local islands). 431 tests.
-  **Next:** Maulik's phone test of C1–C12, then Phase 3 (Sunday pick) by Nov 23.
+  **Next:** Maulik's phone test of C1–C12, then Phase 3 (Sunday pick) by Nov 23, then the
+  Phase 4 queue at the end of `BUILDER_PLAN.md` (real card pictures, approved Nov 20).
+  v0.0.1.86 uploaded (adds the media permission and "Dev: test picture upload").
 - **The brief, word for word:** `docs/PHASE2_BRIEF.md`. First write `PHASE2_PLAN.md` (no code),
   then stop for Maulik's OK. Phase 1 is approved and phone-tested; read `BUILDER_PLAN.md` (plan,
   decisions in section 0, P1 report, the Nov 19 phone run and its fixes at the end).
