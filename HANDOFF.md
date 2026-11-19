@@ -23,6 +23,11 @@ superseded by O-14 below.
   trailer mode, warm-up offer, Archipelago map, day rollover by cron.
 - **Never run:** Android; two phones at once (live sky); frame rate on any real device.
 - **Everything still untested, with how to test it: `docs/TESTS-TO-RUN.md`** (Nov 17).
+- **Nov 19: Island Builder phase 1** (approved exception; plan and report in `BUILDER_PLAN.md`):
+  flat editor with live light, Island panel (world, size 6/7/8, spare mirrors), first-island
+  tutorial, server check (par, inventory, difficulty label, exact-copy refusal), the maker's
+  test in 3D with a server-timed proof, drafts saved per player. Opens from the result card and
+  the map. `COMMUNITY.enabled` switches the whole community side off. Publishing is phase 2.
 - **Nov 18 (Maulik's two-player test):** on a quiet night (under `SKY.quietBelow` lanterns) last
   night's lanterns show faintly, and the first player of the night read them as tonight's. Now,
   while the lantern rises, one line says "First lantern tonight. The faint ones are last

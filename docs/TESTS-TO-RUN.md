@@ -38,6 +38,17 @@ whether they do (saying they will is not the same).
 | S4 | Finger accuracy on the densest Saturday board on a small phone: can they hit the tile they mean, first time? | Friend |
 | S5 | Does anyone come back the next day without being reminded? | Maulik |
 
+## 1c. Island Builder, phase 1 (Nov 19)
+
+| # | Test | How |
+| --- | --- | --- |
+| B1 | The tutorial makes a first island | Lock in today's island, tap **Build an island**: pick a world, place a sun, turn it, place a lantern, Next, a rock or tree, spare mirrors, Check, then light it yourself in 3D. Night falls and the Builder comes back saying you lit it |
+| B2 | Taps on an 8x8 board | Island → Size 8: can you hit the tile you mean, every time, with a thumb? |
+| B3 | Refusals read well | One mirror lights it ("too easy"), no lantern, a lantern already lit, too many suns |
+| B4 | The draft comes back | Build half an island, close the Builder, reopen: it's all there |
+| B5 | From the map | Explore past islands → **Build an island** opens it; closing returns |
+| B6 | How long a hard check takes on Reddit | Build a big open 8x8 with 3 suns and 6 coloured lanterns, Check, then tell Claude; it reads the time from the server log |
+
 ## 2. Fixed in code, never confirmed on a phone
 
 | # | Test | How |

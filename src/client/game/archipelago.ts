@@ -52,7 +52,9 @@ export function openArchipelago(
   islands: readonly PastIsland[] | null,
   calm: boolean,
   onPick: (day: number) => void,
-  onClose: () => void
+  onClose: () => void,
+  /** Opens the Island Builder; no button when absent. */
+  onBuild?: () => void
 ): Archipelago {
   const layer = element('div', calm ? 'layer map calm' : 'layer map');
   const sea = element('div', 'map-sea');
@@ -170,6 +172,16 @@ export function openArchipelago(
     element('span', 'title-name', COPY.mapHint)
   );
   bar.append(title, back);
+  if (onBuild !== undefined) {
+    const build = element(
+      'button',
+      'button button-quiet map-build',
+      COPY.builderOpen
+    );
+    build.type = 'button';
+    build.addEventListener('click', onBuild);
+    layer.append(build);
+  }
 
   const scroll = element('div', 'map-scroll');
   scroll.append(sea);

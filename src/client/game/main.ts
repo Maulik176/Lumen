@@ -10,6 +10,7 @@ import {
   type LockInRequest,
   type LockInResponse,
   type PastResponse,
+  type BuilderTestResponse,
   type ShareResponse,
   type SkyLantern,
   type SkyResponse,
@@ -17,7 +18,16 @@ import {
 } from '../../shared/api';
 import { arrivalPath } from '../../shared/arrival';
 import { warmUpDay, type Biome } from '../../shared/calendar';
-import { BIOMES, COPY, SKY, VIEW } from '../../shared/config';
+import {
+  BIOMES,
+  BUILDER_VIEW,
+  COMMUNITY,
+  COPY,
+  SKY,
+  VIEW,
+} from '../../shared/config';
+import type { Placement } from '../../shared/types';
+import type { BuilderHost, TestIsland } from '../builder/builder';
 import {
   hintFor,
   keepRefining,
@@ -39,8 +49,8 @@ import { validatePlacements } from '../../shared/validate';
 import { rememberSolved } from '../card-cache';
 import { createSound, type Sound } from './audio';
 import { createGhostHand } from './hand';
-import { createJourney, type Journey } from './journey';
-import { applyTheme, createHud, type HudActions } from './hud';
+import { createJourney, quietJourney, type Journey } from './journey';
+import { applyTheme, createHud, fill, type HudActions } from './hud';
 import { boardSheet } from './board';
 import { askWarmUp, ruleCard } from './cards';
 import { loadOthers, othersSheet } from './others';
@@ -231,8 +241,8 @@ type Shared = {
 };
 
 type IslandOptions = {
-  /** Tonight's island, or an earlier one opened for practice. */
-  mode: 'tonight' | 'practice';
+  /** Tonight's island, an earlier one opened for practice, or a Builder island its maker tests. */
+  mode: 'tonight' | 'practice' | 'test';
   /** Ask the server to rank a Lock in. It still decides for itself. */
   ranked: boolean;
   hints: boolean;
@@ -242,11 +252,19 @@ type IslandOptions = {
   howToPlay?: () => void;
   /** Opens the Archipelago map of past islands. */
   explore?: () => void;
+  /** Opens the Island Builder. */
+  build?: () => void;
   back?: () => void;
   /** What the back arrow and the result card's back button say: where `back` goes. */
   backLabel?: string;
   /** Shown in the top bar in place of the island's name (e.g. "Practice · Name"). */
   note?: string;
+  /**
+   * Builder test: Lock in asks this instead of the server's daily Lock in. It returns the pieces
+   * the server confirmed, or null; then night falls on the island and `tested` is called.
+   */
+  test?: (placements: Placement[]) => Promise<number | null>;
+  tested?: (pieces: number) => void;
 };
 
 type Mounted = {
@@ -345,6 +363,23 @@ function mountIsland(
     if (busy || !state.light.solved || state.phase === 'locked') return;
     busy = true;
     hud.setBusy(true);
+    // A Builder test: the server checks the maker's solve, night falls, and the Builder returns.
+    if (options.test !== undefined) {
+      const pieces = await options.test(state.placements);
+      if (pieces === null) {
+        busy = false;
+        hud.setBusy(false);
+        hud.notice(COPY.builderProblems.failed);
+        return;
+      }
+      apply(lockIn(state));
+      hud.quiet(true);
+      layout();
+      sound.nightPad();
+      await view.nightfall((index) => sound.chime(index));
+      options.tested?.(pieces);
+      return;
+    }
     const request: LockInRequest = {
       day: island.day,
       placements: state.placements,
@@ -466,6 +501,7 @@ function mountIsland(
   };
   if (options.howToPlay !== undefined) actions.howToPlay = options.howToPlay;
   if (options.back !== undefined) actions.back = options.back;
+  if (options.build !== undefined) actions.build = options.build;
   if (options.backLabel !== undefined) actions.backLabel = options.backLabel;
   if (options.explore !== undefined && island.day > 1)
     actions.explore = options.explore;
@@ -660,6 +696,8 @@ function mountIsland(
       lumenLockIn: () => void commit(),
       // Stands in for a realtime message: another player has just lit the island.
       lumenArrive: (name: string) => welcome({ u: name, s: 'plain', a: '' }),
+      // Where a tile's centre is on screen, for measuring tap sizes.
+      lumenScreen: (x: number, y: number) => view.screenOf(x, y),
     });
     perfTimer = window.setInterval(() => {
       const stats = view.stats();
@@ -699,12 +737,137 @@ function mountIsland(
   };
 }
 
+/**
+ * A Builder island, opened in the real game for its maker to light. The server starts the test
+ * clock first, and confirms the solve; then night falls on the island and the Builder returns.
+ */
+async function testIsland(
+  island: TestIsland,
+  shared: Shared
+): Promise<{ pieces: number } | null> {
+  const send = (path: string, body: unknown): Promise<Response> =>
+    fetch(path, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  await send('/api/builder/test-start', { draft: island.draft }).catch(
+    () => undefined
+  );
+  const { draft, inventory, par } = island;
+  const name =
+    draft.name.trim() === '' ? COPY.builderUnnamed : draft.name.trim();
+  const loaded: Loaded = {
+    ok: true,
+    island: {
+      day: 0,
+      date: '',
+      weekday: 'sunday',
+      biome: draft.biome,
+      name,
+      rows: draft.rows,
+      inventory,
+      sourceColours: puzzleFromText({
+        rows: draft.rows,
+        inventory,
+        sourceColours: [],
+      }).sources.map(() => 'white'),
+      par,
+    },
+    me: {
+      loggedIn: true,
+      username: shared.rider.username,
+      streak: 0,
+      style: 'plain',
+      tutorialDone: true,
+      result: null,
+      placements: null,
+      shared: false,
+      sharedComment: null,
+      skyNoteSeen: true,
+      rulesSeen: [...shared.rulesSeen],
+      progress: null,
+    },
+    rankedOpen: false,
+    skyCount: 0,
+    night: 'tonight',
+    tonightPost: null,
+    sharedUrl: null,
+  };
+  return new Promise((resolve) => {
+    const layer = openLayer();
+    let mounted: Mounted | null = null;
+    const finish = (value: { pieces: number } | null): void => {
+      mounted?.dispose();
+      layer.close();
+      resolve(value);
+    };
+    mounted = mountIsland(layer.canvas, layer.root, loaded, shared, {
+      mode: 'test',
+      ranked: false,
+      hints: false,
+      hand: false,
+      journey: quietJourney(),
+      note: fill(COPY.builderTestNote, { name }),
+      backLabel: COPY.builderTestBack,
+      back: () => finish(null),
+      test: async (placements) => {
+        try {
+          const response = await send('/api/builder/test-solve', {
+            draft,
+            placements,
+          });
+          const body: BuilderTestResponse = await response.json();
+          return body.ok ? body.pieces : null;
+        } catch {
+          return null;
+        }
+      },
+      tested: (pieces) =>
+        window.setTimeout(() => finish({ pieces }), BUILDER_VIEW.testDoneMs),
+    });
+  });
+}
+
+/** The Island Builder on `root`. Its code is loaded only when it is first opened. */
+async function startBuilder(
+  root: HTMLElement,
+  shared: Shared,
+  close: BuilderHost['close']
+): Promise<{ dispose: () => void }> {
+  const { openBuilder } = await import('../builder/builder');
+  const host: BuilderHost = {
+    click: () => shared.sound.click(),
+    test: (island) => testIsland(island, shared),
+  };
+  if (close !== undefined) host.close = close;
+  return openBuilder(root, host);
+}
+
 async function start(): Promise<void> {
   const root = byId('hud');
   const canvas = document.querySelector('canvas');
   const status = byId('status');
   if (canvas === null) throw new Error('missing canvas');
   applyTheme(document.documentElement);
+
+  // builder.html: this page as the Island Builder, on its own (the Workshop post).
+  if (
+    document.documentElement.dataset['builder'] === '1' &&
+    COMMUNITY.enabled
+  ) {
+    status.remove();
+    const rider = await loadRider();
+    const calm =
+      query.get('calm') === '1' ||
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    await startBuilder(
+      root,
+      { rider, sound: createSound(), calm, rulesSeen: new Set(RULE_KINDS) },
+      undefined
+    );
+    return;
+  }
 
   const [loaded, rider] = await Promise.all([
     loadIsland(query.get('day')),
@@ -810,6 +973,21 @@ async function start(): Promise<void> {
   let layerOpen = false;
   let tonight: Mounted | null = null;
 
+  /** The Island Builder, over tonight's island; closing it returns to tonight unchanged. */
+  const openBuilderLayer = async (): Promise<void> => {
+    if (layerOpen) return;
+    layerOpen = true;
+    tonight?.pause(true);
+    const layer = openLayer();
+    let opened: { dispose: () => void } | null = null;
+    opened = await startBuilder(layer.root, shared, () => {
+      opened?.dispose();
+      layer.close();
+      layerOpen = false;
+      tonight?.pause(false);
+    });
+  };
+
   /** How to play, over tonight's island; the board is untouched underneath. */
   const howToPlay = async (): Promise<void> => {
     if (layerOpen) return;
@@ -846,7 +1024,14 @@ async function start(): Promise<void> {
         map.close();
         tonight?.pause(false);
         layerOpen = false;
-      }
+      },
+      COMMUNITY.enabled
+        ? () => {
+            map.close();
+            layerOpen = false;
+            void openBuilderLayer();
+          }
+        : undefined
     );
   };
 
@@ -889,6 +1074,7 @@ async function start(): Promise<void> {
     journey,
     howToPlay: () => void howToPlay(),
     explore: () => void openMap(),
+    ...(COMMUNITY.enabled ? { build: () => void openBuilderLayer() } : {}),
   });
 }
 

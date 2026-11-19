@@ -34,6 +34,8 @@ export type HudActions = {
   backLabel?: string;
   /** Result card: the list of earlier islands. Left out on day 1, when there are none. */
   explore?: () => void;
+  /** Opens the Island Builder (after a ranked Lock in, when the community side is on). */
+  build?: () => void;
   /** Result card: tapping the time and place opens tonight's board. */
   board?: () => void;
   /** Result card: where everyone put their pieces. Only after a solve that allows it. */
@@ -97,7 +99,7 @@ export type Hud = {
 };
 
 /** Hand-drawn style: single round strokes, slightly loose. Drawn on a 26 x 26 grid. */
-const ICONS = {
+export const ICONS = {
   /** A small paper sky lantern: crown, shade, hoop. */
   lantern:
     'M7.200 9.400q5.800-5.200 11.600 0l-1.700 11.400H8.900zM8.900 20.800h8.200M13 13.600c1.300-1 1.400-2.700 0-4.400-1.400 1.700-1.300 3.400 0 4.400z',
@@ -130,7 +132,7 @@ export function element<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
-function icon(path: string): SVGSVGElement {
+export function icon(path: string): SVGSVGElement {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('viewBox', '0 0 26 26');
   svg.setAttribute('aria-hidden', 'true');
@@ -153,7 +155,7 @@ function iconButton(
   return button;
 }
 
-function fill(
+export function fill(
   template: string,
   values: Record<string, string | number>
 ): string {
@@ -208,7 +210,12 @@ export function createHud(
   const top = element('header', 'panel bar bar-top');
   const title = element('div', 'title');
   title.append(
-    element('span', 'title-number', `Lumen #${island.day}`),
+    // A Builder island being tested has no number yet.
+    element(
+      'span',
+      'title-number',
+      island.day > 0 ? `Lumen #${island.day}` : COPY.builderTitle
+    ),
     element('span', 'title-name', note ?? island.name)
   );
   const inventory = element('div', 'inventory');
@@ -312,6 +319,7 @@ export function createHud(
   };
   const againButton = button(COPY.playAgain, 'quiet', actions.playAgain);
   const exploreButton = button(COPY.explore, 'quiet', actions.explore);
+  const buildButton = button(COPY.builderOpen, 'quiet', actions.build);
   const othersButton = button(COPY.others, 'main', actions.others);
   /** Once shared, the reply's address: the share button then opens it instead of posting. */
   let sharedAt: string | null = null;
@@ -474,7 +482,7 @@ export function createHud(
       // A ranked result is final; anything else can be played again.
       // Tonight's islands open after a ranked solve; an earlier night's are open after any solve.
       const shown = outcome.ranked
-        ? [othersButton, shareButton, exploreButton]
+        ? [othersButton, shareButton, exploreButton, buildButton]
         : backButton !== null
           ? [othersButton, againButton, backButton]
           : [tonightButton, againButton, exploreButton];

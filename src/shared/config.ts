@@ -76,6 +76,97 @@ export const RULES = {
  * `{pieces}`, `{par}` and similar are filled in by the UI.
  */
 export const COPY = {
+  /** The Island Builder (BUILDER_PLAN.md). One line each, in the game's voice. */
+  builderTitle: 'Island Builder',
+  builderOpen: 'Build an island',
+  builderName: 'Name your island',
+  builderWorld: 'World',
+  builderSize: 'Size',
+  builderSpare: 'Spare mirrors',
+  /** Opens the panel with world, size and spare mirrors, and closes it. */
+  builderIsland: 'Island',
+  builderDone: 'Done',
+  builderTools: {
+    sun: 'Sun',
+    lantern: 'Lantern',
+    rock: 'Rock',
+    tree: 'Tree',
+    water: 'Water',
+    stone: 'Stone',
+    eraser: 'Erase',
+  },
+  /** Spoken names for the tool buttons, where the short label is not enough. */
+  builderToolNames: {
+    sun: 'Sun crystal',
+    lantern: 'Lantern',
+    rock: 'Rock',
+    tree: 'Tree',
+    water: 'Water',
+    stone: 'Stone mirror',
+    eraser: 'Eraser',
+  },
+  builderBiomes: {
+    moss: 'Moss',
+    snow: 'Snow',
+    blossom: 'Blossom',
+    dune: 'Dune',
+    autumn: 'Autumn',
+  },
+  builderUndo: 'Undo',
+  builderRedo: 'Redo',
+  builderClear: 'Clear',
+  builderCheck: 'Check island',
+  builderChecking: 'Checking\u2026',
+  builderTest: 'Test your island',
+  builderNext: 'Next',
+  builderSkip: 'Skip',
+  builderClose: 'Close the Builder',
+  builderHelp: 'Pick a tool, then tap a tile. Tap again to turn it.',
+  /** After a check. {pieces} reads like "4 mirrors and 1 prism". */
+  builderChecked: 'Par {par} \u00b7 players get {pieces} \u00b7 {label}',
+  builderMirrors: '{count} mirrors',
+  builderMirrorsOne: '1 mirror',
+  builderPrisms: ' and {count} prisms',
+  builderPrismsOne: ' and 1 prism',
+  builderLabels: { gentle: 'Gentle', tricky: 'Tricky', fiendish: 'Fiendish' },
+  builderTested: 'You lit it with {pieces} (par {par}). Publishing comes next.',
+  /** The main button once the maker has lit their island (Publish arrives in phase 2). */
+  builderLit: 'Lit by you',
+  builderTestLeft: 'Light every lantern yourself to finish the test.',
+  builderTestNote: 'Test \u00b7 {name}',
+  builderTestBack: 'Back to the Builder',
+  builderUnnamed: 'Your island',
+  builderSaved: 'Saved',
+  builderProblems: {
+    'no-sun': 'Place a sun first.',
+    'no-lantern': 'Place a lantern for the light to reach.',
+    'already-lit': 'A lantern is lit already. Move it out of the light.',
+    'too-easy':
+      'One piece lights it. Add a rock or tree to block the easy way.',
+    unsolvable: 'Six pieces cannot light every lantern. Open a path.',
+    'too-complex':
+      'This island is too complex to verify. Try removing a piece.',
+    duplicate: 'This is the same as another island. Change a tile or two.',
+    malformed: 'Something is off with this island. Try Clear.',
+    'signed-out': 'Sign in to check and share your island.',
+    'slow-down': 'One moment, then check again.',
+    off: 'The Builder is resting. Try again later.',
+    failed: 'The island could not be checked. Try again in a moment.',
+    'too-many-suns': 'Three suns at most.',
+    'too-many-lanterns': 'Six lanterns at most.',
+  },
+  /** The first-island tutorial: one line per step. */
+  builderLessons: {
+    biome: 'Pick a world for your island',
+    sun: 'Tap a tile to place a sun',
+    turn: 'Tap the sun again to turn its light',
+    lantern: "Place a lantern where the light can't reach",
+    colour: 'Tap the lantern to colour it',
+    block: 'Add a rock or a tree to block the easy way',
+    spare: 'Spare mirrors: more makes it gentler',
+    check: 'Check your island',
+    test: 'Now light it yourself',
+  },
   /** Feed card and expanded-view title. {day}, {name}, {weekday} are filled in. */
   postTitle: 'Lumen #{day} · {name} · {weekday}',
   /** Feed card, one line under the title. {lanterns} is the lantern count. */
@@ -612,6 +703,66 @@ export const GLARE = {
   paleTo: 0.85,
   edgeMax: 0.5,
   sunMin: 0.5,
+} as const;
+
+/**
+ * The Island Builder and community islands (BUILDER_PLAN.md). Players build an island, the
+ * server proves it and sets par, the maker lights it themselves, then it is posted.
+ */
+export const COMMUNITY = {
+  /** The whole community side: Builder buttons, menu item and endpoints. Off = the daily game only. */
+  enabled: true,
+  /** Board sizes on offer, and the one a new island starts at. 8 gives 44 px tiles at 360 px wide. */
+  sizes: [6, 7, 8],
+  defaultSize: 7,
+  maxSuns: 3,
+  maxLanterns: 6,
+  /** Par must land in this range. Below: too easy to be a puzzle. Above: the solver stops looking. */
+  minPar: 2,
+  maxPar: 6,
+  /**
+   * The solver looks for par with up to maxPar mirrors and this many prisms. The island then
+   * gets par's own mirrors plus the creator's spare mirrors, and exactly par's prisms.
+   */
+  searchPrisms: 2,
+  /** Spare mirrors the creator may give players, and the default. More is gentler. */
+  spareChoices: [0, 1, 2],
+  defaultSpare: 1,
+  /**
+   * Search nodes for the server's check, and the time it must stay under. Nodes, because the
+   * engine cannot read a clock; each check logs nodes and milliseconds so this can be set from
+   * Devvit's real speed (BUILDER_PLAN.md 1.6). Over the limit: "too complex to verify".
+   */
+  solveNodes: 400_000,
+  solveBudgetMs: 8000,
+  /** One check per player every this many seconds. */
+  checkGapSeconds: 3,
+  /** Difficulty score bands for the labels (daily Sunday runs 60–82, Saturday 94–120). */
+  trickyFrom: 70,
+  fiendishFrom: 94,
+  nameMax: 24,
+  /** Edits the Builder can undo. */
+  undoSteps: 100,
+  /** How long a draft and a passing test are kept, in seconds. */
+  draftSeconds: 30 * 86_400,
+  testSeconds: 86_400,
+} as const;
+
+/** The Builder's flat board and its timings. */
+export const BUILDER_VIEW = {
+  /** Gap between the board and the screen's edge, in CSS pixels (4 keeps 8x8 tiles at 44 px on a 360 px phone). */
+  gutterPx: 4,
+  /** Drawn at no more than this many device pixels per CSS pixel. */
+  maxPixelRatio: 3,
+  /** The light's glow and its bright core, as a share of a tile's width. */
+  beamGlow: 0.42,
+  beamCore: 0.12,
+  /** The ring on a tile just tapped. */
+  flashMs: 380,
+  /** A draft is saved this long after the last change. */
+  saveAfterMs: 900,
+  /** After the maker lights their island in the test, night falls; the Builder returns after this. */
+  testDoneMs: 1400,
 } as const;
 
 /** First-time teaching: the goal shown before any words. Times in milliseconds. */

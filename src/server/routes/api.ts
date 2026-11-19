@@ -59,7 +59,7 @@ const MEDAL_NAME = {
 export const skyChannel = (day: number): string => `sky_${day}`;
 
 /** Who is asking, or null when logged out. */
-async function whoIsAsking(): Promise<Player> {
+export async function whoIsAsking(): Promise<Player> {
   const userId = context.userId;
   if (userId === undefined) return null;
   const username = await reddit.getCurrentUsername().catch(() => undefined);

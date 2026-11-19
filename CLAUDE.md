@@ -55,6 +55,12 @@ maintains Lumen until submission (Devpost by Dec 7). Start every session by read
   "Back to islands" on map islands, brighter feed card picture, Devpost thumbnail with the real
   island. 349 tests. Human checks from the review are in `docs/TESTS-TO-RUN.md` section 1b.
 
+- **Nov 19: Island Builder phase 1 built** (Maulik: the Builder is Lumen's most important
+  feature; `BUILDER_PLAN.md` is the plan and the phase reports). Unpublished through judging;
+  `runAs: 'USER'` with `SUBMIT_POST` in P2, maker credited everywhere. Flat editor (3D tiles
+  measured under 44 px), 3D for testing. `COMMUNITY` in config, `shared/builder.ts`,
+  `server/core/check.ts` + `community.ts`, `routes/builder.ts`, `client/builder/`. 385 tests.
+
 **History** (what each session built; kept for context, oldest first, M8 last):
 - **Island Builder is cut.** Sunday uses a generated island. Brief kept in `docs/HANDOFF-ARCHIVE.md`.
 - Onboarding (Nov 14): first visit runs three tutorial islands (`src/shared/tutorial.ts`,

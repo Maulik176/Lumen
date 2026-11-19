@@ -17,6 +17,9 @@
       },
       "howto": {
         "entry": "howto.html"
+      },
+      "builder": {
+        "entry": "builder.html"
       }
     }
   },

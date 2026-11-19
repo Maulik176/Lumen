@@ -111,3 +111,18 @@ export function createJourney(kind: JourneyKind, log: boolean): Journey {
     },
   };
 }
+
+/**
+ * A journey that sends nothing: a Builder island's test is not one of the journeys in
+ * JOURNEY_MAP.md, so it reports no events at all.
+ */
+export function quietJourney(): Journey {
+  return {
+    ready: () => undefined,
+    play: () => undefined,
+    tap: () => undefined,
+    lockInHeaders: () => ({}),
+    locked: () => undefined,
+    leave: () => undefined,
+  };
+}

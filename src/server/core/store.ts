@@ -116,4 +116,10 @@ export const KEYS = {
   stickyOfPost: (postId: string) => `post:${postId}:sticky`,
   /** Held for a minute after the results comment is rewritten, so it is not rewritten again. */
   stickyFresh: (postId: string) => `post:${postId}:stickyfresh`,
+  /** The Island Builder draft a player is working on (JSON). */
+  draft: (userId: string) => `draft:${userId}`,
+  /** Counter: one Builder check per player every few seconds. */
+  builderTurn: (userId: string) => `cm:turn:${userId}`,
+  /** The player's last passing check, its test start and their own solve (JSON). */
+  builderCheck: (userId: string) => `cm:check:${userId}`,
 } as const;

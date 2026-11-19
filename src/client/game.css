@@ -1262,3 +1262,360 @@ div.others-row {
 .lesson.offering .lesson-dots {
   display: none;
 }
+
+/*
+ * The Island Builder: a full-height column over the night. Top bar, one line of guidance, the
+ * board (as large as fits), tools, then actions. Panels here sit in the flow, not absolutely.
+ */
+.bd {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--gap) 0 calc(var(--gap) + env(safe-area-inset-bottom, 0px));
+  pointer-events: auto;
+  background:
+    radial-gradient(
+      ellipse at 50% 0%,
+      rgba(240, 169, 74, 0.16),
+      transparent 60%
+    ),
+    var(--night);
+  color: var(--ink);
+}
+
+.bd .panel {
+  position: relative;
+  margin: 0 var(--gap);
+}
+
+.bd-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 48px;
+  padding: 0 6px 0 10px;
+}
+
+.bd-close {
+  width: var(--tap);
+  margin-left: -6px;
+}
+
+.bd-title {
+  flex: none;
+  font-family: var(--display);
+  font-size: 16px;
+  white-space: nowrap;
+}
+
+.bd-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 34px;
+  padding: 0 6px;
+  border: 0;
+  border-bottom: 1.5px solid
+    color-mix(in srgb, var(--ink-soft) 45%, transparent);
+  border-radius: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+}
+
+.bd-name:focus {
+  outline: none;
+  border-bottom-color: var(--amber);
+}
+
+.bd-name.bd-name-bad {
+  border-bottom-color: var(--medal-lamplighter);
+}
+
+.bd-island {
+  flex: none;
+  min-height: 36px;
+  padding: 0 12px;
+}
+
+.bd-settings {
+  position: absolute !important;
+  /* Below the top bar and the guidance line, so the tutorial's words stay in view. */
+  top: calc(var(--gap) + 48px + 6px + 38px + 6px);
+  left: 0;
+  right: 0;
+  z-index: 3;
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  box-shadow: 0 10px 30px rgba(10, 6, 24, 0.45);
+}
+
+.bd-settings[hidden] {
+  display: none;
+}
+
+.bd-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.bd-label {
+  flex: 0 0 100%;
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--ink-soft);
+}
+
+/* Each choice is a full 44 px target, drawn a little smaller inside. */
+.bd-world,
+.bd-chip {
+  position: relative;
+  width: var(--tap);
+  height: var(--tap);
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.bd-world {
+  border-radius: 50%;
+  background-clip: content-box !important;
+  padding: 5px;
+  box-shadow: inset 0 0 0 5px var(--paper);
+}
+
+.bd-chip::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border-radius: calc(var(--radius) - 6px);
+  box-shadow: inset 0 0 0 1.5px
+    color-mix(in srgb, var(--ink-soft) 50%, transparent);
+}
+
+.bd-world[aria-pressed='true'] {
+  outline: 2.5px solid var(--ink);
+  outline-offset: -3px;
+}
+
+.bd-chip[aria-pressed='true']::before {
+  background: color-mix(in srgb, var(--amber) 55%, transparent);
+  box-shadow: inset 0 0 0 1.5px var(--ink);
+}
+
+.bd-chip {
+  z-index: 0;
+}
+
+.bd-chip::before {
+  z-index: -1;
+}
+
+.bd-done {
+  justify-self: end;
+  min-height: 38px;
+}
+
+.bd-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 4px 6px 4px 14px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.bd-hint-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.bd-link {
+  flex: none;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: calc(var(--radius) - 4px);
+  background: none;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 13.5px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.bd-link[hidden] {
+  display: none;
+}
+
+.bd-board {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+}
+
+.bd-canvas {
+  position: static;
+  inset: auto;
+  width: auto;
+  height: auto;
+  border-radius: calc(var(--radius) - 6px);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--paper) 30%, transparent),
+    0 18px 40px rgba(6, 3, 18, 0.55);
+  touch-action: none;
+}
+
+.bd-tools {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px;
+}
+
+.bd-tool {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 52px;
+  display: grid;
+  place-items: center;
+  gap: 1px;
+  padding: 4px 0 3px;
+  border: 0;
+  border-radius: calc(var(--radius) - 4px);
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.bd-tool svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.bd-tool[aria-pressed='true'] {
+  background: var(--amber);
+  color: var(--amber-ink);
+}
+
+.bd-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+}
+
+.bd-actions .icon-button {
+  width: 48px;
+}
+
+.bd-actions .icon-button:disabled {
+  opacity: 0.35;
+}
+
+.bd-redo svg {
+  transform: scaleX(-1);
+}
+
+.bd-main {
+  flex: 1 1 auto;
+  margin-left: 4px;
+}
+
+/* The tutorial's pointer: whatever its step is about breathes with a warm ring. */
+.bd-glow {
+  animation: bd-glow 1.6s ease-in-out infinite;
+}
+
+@keyframes bd-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(240, 169, 74, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(240, 169, 74, 0.75);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bd-glow {
+    animation: none;
+    box-shadow: 0 0 0 3px rgba(240, 169, 74, 0.75);
+  }
+}
+
+/* "Build an island" on the map, at its foot. */
+.map-build {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--gap) * 2 + env(safe-area-inset-bottom, 0px));
+  z-index: 11;
+  transform: translateX(-50%);
+  min-width: 200px;
+  box-shadow: 0 8px 24px rgba(6, 3, 18, 0.45);
+}
+
+/* Desktop and wide views: the Builder stays a comfortable column. */
+.hud.wide .bd,
+.bd {
+  max-width: 100%;
+}
+
+@media (min-width: 760px) {
+  .bd {
+    left: 50%;
+    right: auto;
+    width: min(560px, 100%);
+    transform: translateX(-50%);
+  }
+}
+
+/* Short screens (the 460 px floor): icons without words, slimmer bars, more room for the board. */
+@media (max-height: 560px) {
+  .bd {
+    gap: 4px;
+  }
+
+  .bd-top {
+    min-height: 44px;
+  }
+
+  .bd-hint {
+    min-height: 32px;
+    font-size: 13px;
+  }
+
+  .bd-tool {
+    min-height: var(--tap);
+  }
+
+  .bd-tool span {
+    display: none;
+  }
+
+  .bd-settings {
+    top: calc(var(--gap) + 44px + 4px + 32px + 4px);
+  }
+}
+
+@media (max-width: 380px) {
+  .bd-hint {
+    font-size: 13px;
+  }
+}

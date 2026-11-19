@@ -5,6 +5,7 @@ import { telemetry } from '@devvit/analytics/server/reddit';
 import { TELEMETRY_DEFAULT_CLIENT_BASE_PATH } from '@devvit/analytics/shared/reddit';
 import { refreshClock } from './core/clock';
 import { api } from './routes/api';
+import { builder } from './routes/builder';
 import { journeyRoutes } from './routes/journey';
 import { forms } from './routes/forms';
 import { menu } from './routes/menu';
@@ -25,6 +26,7 @@ internal.route('/scheduler', scheduler);
 
 // Journeys first: its routes sit under /api/telemetry, inside /api.
 app.route(TELEMETRY_DEFAULT_CLIENT_BASE_PATH, journeyRoutes(telemetry));
+app.route('/api/builder', builder);
 app.route('/api', api);
 app.route('/internal', internal);
 

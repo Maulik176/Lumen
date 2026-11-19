@@ -33,7 +33,8 @@ export function partsOf(colour: LanternColour): ('red' | 'green' | 'blue')[] {
   return [];
 }
 
-function draw(
+/** Trace one colour's shape (not filled or stroked yet), centred on x, y. */
+export function drawShape(
   pen: CanvasRenderingContext2D,
   shape: Shape,
   x: number,
@@ -70,7 +71,7 @@ export function badgeTexture(colour: LanternColour): CanvasTexture | null {
     pen.lineJoin = 'round';
     parts.forEach((part, index) => {
       const x = parts.length === 1 ? 64 : 38 + index * 52;
-      draw(pen, COLOUR_SHAPE[part], x, 33, 17);
+      drawShape(pen, COLOUR_SHAPE[part], x, 33, 17);
       pen.lineWidth = 9;
       pen.strokeStyle = 'rgba(26, 20, 40, 0.92)';
       pen.stroke();

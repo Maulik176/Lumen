@@ -10,7 +10,10 @@
   },
   "include": [
     "../vite.config.ts",
-    "../vite.debug.config.ts"
+    "../vite.debug.config.ts",
+    "../src/server/core/check.ts",
+    "../src/server/core/content.ts",
+    "../content/puzzles.json"
   ],
   "exclude": [],
   "references": [

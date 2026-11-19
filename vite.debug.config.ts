@@ -35,6 +35,34 @@ import {
   validatePlacements,
 } from './src/shared/validate';
 
+import { readDraft } from './src/shared/builder';
+import { checkIsland, dailyHashes } from './src/server/core/check';
+import { checkKey, draftPuzzleText } from './src/shared/builder';
+import { puzzleFromText } from './src/shared/puzzle-text';
+import { trace } from './src/shared/trace';
+
+/** Reads a request's JSON body, or {} when there is none. */
+function readBody(
+  request: import('node:http').IncomingMessage
+): Promise<Record<string, unknown>> {
+  return new Promise((resolve) => {
+    let text = '';
+    request.on('data', (chunk: Buffer) => {
+      text += chunk.toString();
+    });
+    request.on('end', () => {
+      try {
+        const value: unknown = JSON.parse(text);
+        resolve(
+          typeof value === 'object' && value !== null ? { ...value } : {}
+        );
+      } catch {
+        resolve({});
+      }
+    });
+  });
+}
+
 function localApi(): Plugin {
   const load = () =>
     readDailyFile(
@@ -372,6 +400,95 @@ function localApi(): Plugin {
         response.setHeader('content-type', 'application/json');
         response.end(JSON.stringify(body));
       });
+      // The Island Builder, with the real check and test proof on an in-memory store. The local
+      // player is signed in as "you". ?signedout=1 on the page is not modelled here.
+      // The local player is signed in. The check is the server's own; the test proof is kept here.
+      let builderDraft: unknown = null;
+      let builderTutorial = false;
+      let builderChecked: {
+        key: string;
+        inventory: { mirrors: number; prisms: number };
+      } | null = null;
+      const send = (
+        response: import('node:http').ServerResponse,
+        body: unknown
+      ): void => {
+        response.setHeader('content-type', 'application/json');
+        response.end(JSON.stringify(body));
+      };
+      server.middlewares.use('/api/builder/draft', (request, response) => {
+        if (request.method === 'PUT') {
+          void readBody(request).then((body) => {
+            const draft = readDraft(body['draft']);
+            if (draft !== null) builderDraft = draft;
+            send(response, { ok: draft !== null });
+          });
+          return;
+        }
+        send(response, {
+          ok: true,
+          loggedIn: true,
+          draft: readDraft(builderDraft),
+          tutorialDone: builderTutorial,
+        });
+      });
+      server.middlewares.use('/api/builder/check', (request, response) => {
+        void readBody(request).then((body) => {
+          const draft = readDraft(body['draft']);
+          if (draft === null)
+            return send(response, { ok: false, problem: 'malformed' });
+          const outcome = checkIsland(draft, {
+            daily: dailyHashes(),
+            clock: () => performance.now(),
+          });
+          console.log(
+            `[builder] check ${draft.size}x${draft.size}: ${outcome.ok ? `par ${outcome.par}` : outcome.problem}, ${outcome.nodes} nodes, ${Math.round(outcome.ms)} ms`
+          );
+          if (!outcome.ok)
+            return send(response, { ok: false, problem: outcome.problem });
+          builderChecked = {
+            key: checkKey(draft),
+            inventory: outcome.inventory,
+          };
+          send(response, {
+            ok: true,
+            par: outcome.par,
+            inventory: outcome.inventory,
+            difficulty: outcome.difficulty,
+            label: outcome.label,
+          });
+        });
+      });
+      server.middlewares.use('/api/builder/test-start', (_request, response) =>
+        send(response, { ok: builderChecked !== null })
+      );
+      server.middlewares.use('/api/builder/test-solve', (request, response) => {
+        void readBody(request).then((body) => {
+          const draft = readDraft(body['draft']);
+          if (
+            draft === null ||
+            builderChecked === null ||
+            checkKey(draft) !== builderChecked.key
+          )
+            return send(response, { ok: false, problem: 'changed' });
+          const puzzle = puzzleFromText(
+            draftPuzzleText(draft, builderChecked.inventory)
+          );
+          const check = validatePlacements(puzzle, body['placements']);
+          if (!check.ok)
+            return send(response, { ok: false, problem: 'bad-pieces' });
+          if (!trace(puzzle, check.placements).solved)
+            return send(response, { ok: false, problem: 'not-lit' });
+          send(response, { ok: true, pieces: check.placements.length, ms: 0 });
+        });
+      });
+      server.middlewares.use(
+        '/api/builder/tutorial-done',
+        (_request, response) => {
+          builderTutorial = true;
+          send(response, { ok: true });
+        }
+      );
       server.middlewares.use('/api/start', (_request, response) =>
         response.end('{"ok":true}')
       );

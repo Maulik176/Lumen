@@ -7,6 +7,7 @@ import type { DailyIsland } from './daily';
 import type { BeamColour, Inventory, Medal, Placement } from './types';
 import type { RuleKind } from './rules';
 import type { PlacementProblem } from './validate';
+import type { CheckProblem, DifficultyLabel, IslandDraft } from './builder';
 
 /** What a player's device is told about an island. Never includes the solution. */
 export type PublicIsland = {
@@ -324,3 +325,32 @@ export function stylePreviewLanterns(): SkyLantern[] {
     a: '',
   }));
 }
+
+/** The Island Builder (BUILDER_PLAN.md). */
+export type BuilderDraftResponse = {
+  ok: true;
+  loggedIn: boolean;
+  draft: IslandDraft | null;
+  /** The first-island tutorial was finished or skipped. */
+  tutorialDone: boolean;
+};
+
+export type BuilderRefusal = CheckProblem | 'signed-out' | 'slow-down' | 'off';
+
+export type BuilderCheckResponse =
+  | {
+      ok: true;
+      par: number;
+      inventory: Inventory;
+      difficulty: number;
+      label: DifficultyLabel;
+    }
+  | { ok: false; problem: BuilderRefusal };
+
+export type BuilderTestResponse =
+  | { ok: true; pieces: number; ms: number }
+  | {
+      ok: false;
+      problem:
+        'signed-out' | 'not-checked' | 'changed' | 'bad-pieces' | 'not-lit';
+    };
