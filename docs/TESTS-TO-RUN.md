@@ -48,6 +48,13 @@ whether they do (saying they will is not the same).
 | B4 | The draft comes back | Build half an island, close the Builder, reopen: it's all there |
 | B5 | From the map | Explore past islands → **Build an island** opens it; closing returns |
 | B6 | How long a hard check takes on Reddit | Build a big open 8x8 with 3 suns and 6 coloured lanterns, Check, then tell Claude; it reads the time from the server log |
+| B7 | Nov 19 fixes: the last edit and the finished work survive | Place a piece and close the Builder at once, reopen: the piece is there. Check and test an island, close, reopen: still "Lit by you" |
+| B8 | Nov 19 fixes: names and lines | Name it "Maulik's Hollow" (phone keyboard): accepted. Type `<`: brown underline and the rule line at once. Every hint line fits one row |
+| B9 | Nov 19 fixes: panel and map | The Island panel is solid (no lanterns through it); the map's Build button is a clear paper button and the last island scrolls above it |
+
+Claude ran the full A1–H6 list on the iPhone on Nov 19 (results at the end of `BUILDER_PLAN.md`,
+captures in `docs/CAPTURES.md`). Still Maulik's: Skip on a fresh account, thumb taps on 8x8,
+Reduce Motion highlights, sound, a second device, signed out, desktop, Android.
 
 ## 2. Fixed in code, never confirmed on a phone
 

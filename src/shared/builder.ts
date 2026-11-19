@@ -240,7 +240,9 @@ export function nameProblem(name: string): NameProblem | null {
   const trimmed = name.trim();
   if (trimmed === '') return 'empty';
   if (trimmed.length > COMMUNITY.nameMax) return 'too-long';
-  if (!/^[A-Za-z0-9 ]+$/.test(trimmed)) return 'characters';
+  // Letters in any script (with their accents), digits, spaces, hyphens and apostrophes, straight
+  // or curly (a phone's keyboard types the curly one).
+  if (!/^[\p{L}\p{M}\p{N} '\u2019-]+$/u.test(trimmed)) return 'characters';
   return null;
 }
 

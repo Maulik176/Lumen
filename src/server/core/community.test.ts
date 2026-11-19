@@ -6,6 +6,7 @@ import {
   checkIsland,
   checkKey,
   finishTest,
+  islandStatus,
   loadDraft,
   recordCheck,
   saveDraft,
@@ -197,6 +198,31 @@ describe('test your island', () => {
       problem: 'changed',
     });
     expect(checkKey(changed)).not.toBe(checkKey(twoMirrors()));
+  });
+
+  it('reopening the Builder finds the unchanged island still checked, and lit', async () => {
+    // Nov 19 review: after reopening, "Lit by you" went back to "Check island".
+    const store = await checked();
+    expect(await islandStatus(store, ana, twoMirrors())).toMatchObject({
+      checked: { par: 2, label: expect.any(String) },
+      tested: null,
+    });
+    await startTest(store, ana, twoMirrors(), 0);
+    await finishTest(store, ana, twoMirrors(), answer, 30_000);
+    expect(await islandStatus(store, ana, twoMirrors())).toMatchObject({
+      checked: { par: 2 },
+      tested: { pieces: 2 },
+    });
+    // Any other island, or nobody signed in: nothing to remember.
+    const edited = { ...twoMirrors(), spare: 2 };
+    expect(await islandStatus(store, ana, edited)).toEqual({
+      checked: null,
+      tested: null,
+    });
+    expect(await islandStatus(store, null, twoMirrors())).toEqual({
+      checked: null,
+      tested: null,
+    });
   });
 
   it('pieces must fit the island and its inventory', async () => {

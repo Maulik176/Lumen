@@ -379,3 +379,35 @@ and the Builder returns. 385 tests.
 
 **Not yet:** publishing (P2). After a passing test the line says "Publishing comes next" and the
 button reads "Lit by you". Suns are white only (coloured suns could come later).
+
+### P1 on a real phone (Nov 19, v0.0.1.76, iPhone 15 Plus through iPhone Mirroring)
+
+Claude ran test cases A1–H6 (`docs/TESTS-TO-RUN.md` 1c) on the phone. Passed: A1–A3, A5,
+B1–B10, C1–C11, D1–D6, E1–E12, F1–F6. Captures and what each is good for: `docs/CAPTURES.md`.
+
+- **Server speed:** the 8x8 Monster hits the 400,000-node limit in **1.12 s** on Reddit's server
+  (3.5 s on the laptop). There is room to raise `COMMUNITY.solveNodes` about four times and still
+  answer within about 5 s, so bigger islands pass. Maulik's call.
+- **Fixed after the run** (each with a test, or measured in the browser where it is layout):
+  1. An edit made under a second before closing was lost (closing saved only to the device,
+     and a signed-in player's draft comes from the server). Closing, hiding the app and leaving
+     the page now save at once (`client/builder/saver.ts`, `keepalive`), and reopening waits for
+     that save.
+  2. Reopening asked for a check and a test already done. `/api/builder/draft` now returns the
+     server's check and the maker's solve for that exact island (`islandStatus`), and undoing
+     back to a checked island keeps it checked.
+  3. Names: apostrophes (straight and the phone's curly one), hyphens and letters in any script
+     are allowed; anything else shows "Names use letters, numbers, spaces, ' and -." as you type.
+  4. A test that the server refuses to start no longer opens: "Check your island again, then
+     test it." (check expired or replaced) or "The test could not start. Try again." (no network).
+  5. The Island panel is solid paper (lanterns showed through it); Skip on the first step closes it.
+  6. "Build an island" on the map is a paper button and the map scrolls the last island clear
+     of it (it was dark on dark, behind the last island).
+  7. Seven hint lines wrapped at 360 px. All are shorter now, and a test holds every line to the
+     row's measured width (`BUILDER_VIEW.lineChars`, `lessonChars`, `lessonNextChars`).
+- **Left for Maulik:** B11 (Skip on a fresh account), H1 (thumb on 8x8), H4 (Reduce Motion),
+  H5 (sound), G2 (second device), G3 (signed out), H2–H3 (desktop), H6 (Android).
+- **From the outside review, for later:** the creator-to-player loop (publish, someone plays it,
+  the maker is credited) is P2 and matters more than more editor tools. The checker proves an
+  island solvable, not fun: build two or three showcase islands by hand before the gallery
+  (`docs/SUBMISSION.md`).

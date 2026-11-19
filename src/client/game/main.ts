@@ -11,6 +11,7 @@ import {
   type LockInResponse,
   type PastResponse,
   type BuilderTestResponse,
+  type BuilderTestStartResponse,
   type ShareResponse,
   type SkyLantern,
   type SkyResponse,
@@ -27,7 +28,7 @@ import {
   VIEW,
 } from '../../shared/config';
 import type { Placement } from '../../shared/types';
-import type { BuilderHost, TestIsland } from '../builder/builder';
+import type { BuilderHost, TestIsland, TestResult } from '../builder/builder';
 import {
   hintFor,
   keepRefining,
@@ -744,16 +745,19 @@ function mountIsland(
 async function testIsland(
   island: TestIsland,
   shared: Shared
-): Promise<{ pieces: number } | null> {
+): Promise<TestResult> {
   const send = (path: string, body: unknown): Promise<Response> =>
     fetch(path, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body),
     });
-  await send('/api/builder/test-start', { draft: island.draft }).catch(
-    () => undefined
-  );
+  // The server must have this island's check before the maker spends time solving it.
+  const started = await send('/api/builder/test-start', { draft: island.draft })
+    .then((response): Promise<BuilderTestStartResponse> => response.json())
+    .catch(() => null);
+  if (started === null) return { lit: false, why: 'failed' };
+  if (!started.ok) return { lit: false, why: 'not-checked' };
   const { draft, inventory, par } = island;
   const name =
     draft.name.trim() === '' ? COPY.builderUnnamed : draft.name.trim();
@@ -797,7 +801,7 @@ async function testIsland(
   return new Promise((resolve) => {
     const layer = openLayer();
     let mounted: Mounted | null = null;
-    const finish = (value: { pieces: number } | null): void => {
+    const finish = (value: TestResult): void => {
       mounted?.dispose();
       layer.close();
       resolve(value);
@@ -810,7 +814,7 @@ async function testIsland(
       journey: quietJourney(),
       note: fill(COPY.builderTestNote, { name }),
       backLabel: COPY.builderTestBack,
-      back: () => finish(null),
+      back: () => finish({ lit: false, why: 'left' }),
       test: async (placements) => {
         try {
           const response = await send('/api/builder/test-solve', {
@@ -824,7 +828,10 @@ async function testIsland(
         }
       },
       tested: (pieces) =>
-        window.setTimeout(() => finish({ pieces }), BUILDER_VIEW.testDoneMs),
+        window.setTimeout(
+          () => finish({ lit: true, pieces }),
+          BUILDER_VIEW.testDoneMs
+        ),
     });
   });
 }

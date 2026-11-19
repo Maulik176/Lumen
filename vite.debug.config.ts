@@ -407,7 +407,10 @@ function localApi(): Plugin {
       let builderTutorial = false;
       let builderChecked: {
         key: string;
+        par: number;
+        label: string;
         inventory: { mirrors: number; prisms: number };
+        tested: number | null;
       } | null = null;
       const send = (
         response: import('node:http').ServerResponse,
@@ -425,10 +428,29 @@ function localApi(): Plugin {
           });
           return;
         }
+        const draft = readDraft(builderDraft);
+        const same =
+          draft !== null &&
+          builderChecked !== null &&
+          checkKey(draft) === builderChecked.key;
         send(response, {
           ok: true,
           loggedIn: true,
-          draft: readDraft(builderDraft),
+          draft,
+          status: {
+            checked:
+              same && builderChecked !== null
+                ? {
+                    par: builderChecked.par,
+                    inventory: builderChecked.inventory,
+                    label: builderChecked.label,
+                  }
+                : null,
+            tested:
+              same && builderChecked?.tested != null
+                ? { pieces: builderChecked.tested }
+                : null,
+          },
           tutorialDone: builderTutorial,
         });
       });
@@ -448,7 +470,10 @@ function localApi(): Plugin {
             return send(response, { ok: false, problem: outcome.problem });
           builderChecked = {
             key: checkKey(draft),
+            par: outcome.par,
+            label: outcome.label,
             inventory: outcome.inventory,
+            tested: null,
           };
           send(response, {
             ok: true,
@@ -459,9 +484,17 @@ function localApi(): Plugin {
           });
         });
       });
-      server.middlewares.use('/api/builder/test-start', (_request, response) =>
-        send(response, { ok: builderChecked !== null })
-      );
+      server.middlewares.use('/api/builder/test-start', (request, response) => {
+        void readBody(request).then((body) => {
+          const draft = readDraft(body['draft']);
+          const ok =
+            draft !== null &&
+            builderChecked !== null &&
+            checkKey(draft) === builderChecked.key;
+          if (ok && builderChecked !== null) builderChecked.tested = null;
+          send(response, ok ? { ok } : { ok, problem: 'not-checked' });
+        });
+      });
       server.middlewares.use('/api/builder/test-solve', (request, response) => {
         void readBody(request).then((body) => {
           const draft = readDraft(body['draft']);
@@ -479,6 +512,7 @@ function localApi(): Plugin {
             return send(response, { ok: false, problem: 'bad-pieces' });
           if (!trace(puzzle, check.placements).solved)
             return send(response, { ok: false, problem: 'not-lit' });
+          builderChecked.tested = check.placements.length;
           send(response, { ok: true, pieces: check.placements.length, ms: 0 });
         });
       });

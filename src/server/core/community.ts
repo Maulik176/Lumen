@@ -10,6 +10,7 @@ import {
   type DifficultyLabel,
   type IslandDraft,
 } from '../../shared/builder';
+import type { BuilderStatus } from '../../shared/api';
 import { COMMUNITY } from '../../shared/config';
 import { puzzleFromText } from '../../shared/puzzle-text';
 import { trace } from '../../shared/trace';
@@ -180,6 +181,28 @@ export async function startTest(
     COMMUNITY.testSeconds
   );
   return 'started';
+}
+
+/** The check and the maker's solve the server holds for exactly this island, if any. */
+export async function islandStatus(
+  store: Store,
+  player: Player,
+  draft: IslandDraft
+): Promise<BuilderStatus> {
+  const none: BuilderStatus = { checked: null, tested: null };
+  if (player === null) return none;
+  const checked = readChecked(
+    await store.get(KEYS.builderCheck(player.userId))
+  );
+  if (checked === null || checked.key !== checkKey(draft)) return none;
+  return {
+    checked: {
+      par: checked.par,
+      inventory: checked.inventory,
+      label: checked.label,
+    },
+    tested: checked.test === undefined ? null : { pieces: checked.test.pieces },
+  };
 }
 
 export type TestOutcome =

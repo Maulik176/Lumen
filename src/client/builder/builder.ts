@@ -45,6 +45,7 @@ import type { Inventory } from '../../shared/types';
 import { element, fill, icon, ICONS } from '../game/hud';
 import { onTap } from '../game/taps';
 import { createBoard } from './board';
+import { delayedSave } from './saver';
 
 export type TestIsland = {
   draft: IslandDraft;
@@ -52,12 +53,17 @@ export type TestIsland = {
   par: number;
 };
 
+/**
+ * How a test ended: lit (the server confirmed the solve and its pieces), left without lighting
+ * it, or never started because the server no longer had the check, or could not be reached.
+ */
+export type TestResult =
+  | { lit: true; pieces: number }
+  | { lit: false; why: 'left' | 'not-checked' | 'failed' };
+
 export type BuilderHost = {
-  /**
-   * Open the island in the real game for the maker to light. Resolves with how many pieces they
-   * used once the server has confirmed it, or null if they left without lighting it.
-   */
-  test: (island: TestIsland) => Promise<{ pieces: number } | null>;
+  /** Open the island in the real game for the maker to light. */
+  test: (island: TestIsland) => Promise<TestResult>;
   /** Leave the Builder. Absent on its own page, where there is nowhere else to go. */
   close?: () => void;
   click: () => void;
@@ -65,6 +71,12 @@ export type BuilderHost = {
 
 const DRAFT_KEY = 'lumen.builder.draft';
 const TUTORIAL_KEY = 'lumen.builder.tutorial';
+
+/**
+ * The last draft save sent to the server. Reopening the Builder waits for it, so the draft read
+ * back is never older than the one just sent on closing.
+ */
+let lastSave: Promise<unknown> = Promise.resolve();
 
 /** Tool icons, drawn in the same hand as the game's (26 x 26, stroked). */
 const TOOL_ICON: Record<BuilderTool, string> = {
@@ -126,6 +138,7 @@ export async function openBuilder(
   root: HTMLElement,
   host: BuilderHost
 ): Promise<{ dispose: () => void }> {
+  await lastSave;
   const loaded = await fetch('/api/builder/draft')
     .then((response): Promise<BuilderDraftResponse> => response.json())
     .catch(() => null);
@@ -157,9 +170,16 @@ export async function openBuilder(
     label: keyof typeof COPY.builderLabels;
   } | null = null;
   let tested: { key: string; pieces: number } | null = null;
+  // The server's check and solve for the draft it kept: reopening keeps work already done.
+  const serverDraft = loaded?.draft ?? null;
+  if (start.draft !== null && start.draft === serverDraft) {
+    const key = checkKey(start.draft);
+    const known = loaded?.status;
+    if (known?.checked) checked = { key, ...known.checked };
+    if (known?.tested) tested = { key, pieces: known.tested.pieces };
+  }
   let status = '';
   let busy = false;
-  let saveTimer = 0;
 
   // --- The screen ---------------------------------------------------------------------------
   const screen = element('div', 'bd');
@@ -330,24 +350,38 @@ export async function openBuilder(
   root.append(screen);
 
   // --- Behaviour ----------------------------------------------------------------------------
-  const save = (): void => {
-    window.clearTimeout(saveTimer);
-    saveTimer = window.setTimeout(() => {
+  const saver = delayedSave(
+    () => {
       remember(DRAFT_KEY, JSON.stringify(history.draft));
       if (loggedIn)
-        void fetch('/api/builder/draft', {
+        // keepalive lets the save finish even when the page is going away.
+        lastSave = fetch('/api/builder/draft', {
           method: 'PUT',
+          keepalive: true,
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ draft: history.draft }),
         }).catch(() => undefined);
-    }, BUILDER_VIEW.saveAfterMs);
+    },
+    BUILDER_VIEW.saveAfterMs,
+    {
+      set: (run, ms) => window.setTimeout(run, ms),
+      clear: (id) => window.clearTimeout(id),
+    }
+  );
+  const save = (): void => saver.change();
+  // Closing the app or switching away may never come back to this page: save first.
+  const away = (): void => {
+    if (document.visibilityState === 'hidden') saver.flush();
   };
+  const leaving = (): void => saver.flush();
+  document.addEventListener('visibilitychange', away);
+  window.addEventListener('pagehide', leaving);
 
-  /** Anything that changes the tiles or spare mirrors makes the check and test stale. */
+  /**
+   * The check and the test belong to one version of the island (render compares keys), so
+   * undoing back to a checked island needs no second check.
+   */
   const changed = (): void => {
-    const key = checkKey(history.draft);
-    if (checked !== null && checked.key !== key) checked = null;
-    if (tested !== null && tested.key !== key) tested = null;
     save();
     render();
   };
@@ -369,6 +403,8 @@ export async function openBuilder(
 
   function finishTutorial(): void {
     lesson = 'done';
+    // Skipping on the first step would otherwise leave the Island panel open.
+    showSettings(false);
     remember(TUTORIAL_KEY, '1');
     if (loggedIn)
       void fetch('/api/builder/tutorial-done', { method: 'POST' }).catch(
@@ -381,7 +417,9 @@ export async function openBuilder(
   name.addEventListener('input', () => {
     // The name is not an edit to undo, and does not change the island's check.
     history = { ...history, draft: { ...history.draft, name: name.value } };
+    status = '';
     save();
+    render();
   });
 
   const stopTaps = onTap(canvas, (clientX, clientY) => {
@@ -443,14 +481,18 @@ export async function openBuilder(
     const draft = history.draft;
     const island = { draft, inventory: checked.inventory, par: checked.par };
     const key = checkKey(draft);
-    const lit = await host.test(island);
+    const result = await host.test(island);
     busy = false;
-    if (lit === null) {
-      status = COPY.builderTestLeft;
-    } else {
-      tested = { key, pieces: lit.pieces };
+    if (result.lit) {
+      tested = { key, pieces: result.pieces };
       status = '';
       learn({ type: 'tested' });
+    } else if (result.why === 'not-checked') {
+      checked = null;
+      status = COPY.builderTestRecheck;
+    } else {
+      status =
+        result.why === 'left' ? COPY.builderTestLeft : COPY.builderTestFailed;
     }
     render();
     layout();
@@ -515,7 +557,12 @@ export async function openBuilder(
           : COPY.builderCheck;
     main.disabled = busy || isTested;
 
+    const problem = nameProblem(draft.name);
+    const badName = problem === 'characters' || problem === 'too-long';
+    name.classList.toggle('bd-name-bad', badName);
     let line = status;
+    if (line === '' && badName && lesson === 'done')
+      line = COPY.builderNameRule;
     if (line === '' && isTested && tested !== null)
       line = fill(COPY.builderTested, {
         pieces: tested.pieces === 1 ? '1 piece' : `${tested.pieces} pieces`,
@@ -533,11 +580,6 @@ export async function openBuilder(
     hintText.textContent = line;
     next.hidden = !(lesson === 'colour' || lesson === 'block');
     skip.hidden = !teaching;
-    const problem = nameProblem(draft.name);
-    name.classList.toggle(
-      'bd-name-bad',
-      problem === 'characters' || problem === 'too-long'
-    );
     layout();
   }
 
@@ -549,8 +591,9 @@ export async function openBuilder(
 
   return {
     dispose() {
-      window.clearTimeout(saveTimer);
-      remember(DRAFT_KEY, JSON.stringify(history.draft));
+      saver.flush();
+      document.removeEventListener('visibilitychange', away);
+      window.removeEventListener('pagehide', leaving);
       stopTaps();
       window.removeEventListener('resize', resize);
       screen.remove();

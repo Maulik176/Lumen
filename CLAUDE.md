@@ -61,6 +61,11 @@ maintains Lumen until submission (Devpost by Dec 7). Start every session by read
   measured under 44 px), 3D for testing. `COMMUNITY` in config, `shared/builder.ts`,
   `server/core/check.ts` + `community.ts`, `routes/builder.ts`, `client/builder/`. 385 tests.
 
+- **Nov 19 (Opus): P1 phone run and fixes.** Claude ran Builder cases A1–H6 on Maulik's iPhone
+  through iPhone Mirroring; results and fixes at the end of `BUILDER_PLAN.md`. Phone captures
+  are kept locally in `captures/` (gitignored), indexed in `docs/CAPTURES.md`: raw material for
+  the Devpost gallery and video. Server check speed: 400k nodes in 1.12 s. 395 tests.
+
 **History** (what each session built; kept for context, oldest first, M8 last):
 - **Island Builder is cut.** Sunday uses a generated island. Brief kept in `docs/HANDOFF-ARCHIVE.md`.
 - Onboarding (Nov 14): first visit runs three tutorial islands (`src/shared/tutorial.ts`,

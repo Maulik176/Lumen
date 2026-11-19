@@ -327,13 +327,24 @@ export function stylePreviewLanterns(): SkyLantern[] {
 }
 
 /** The Island Builder (BUILDER_PLAN.md). */
+/** What the server remembers about one island of the player's: its check, and the maker's solve. */
+export type BuilderStatus = {
+  checked: { par: number; inventory: Inventory; label: DifficultyLabel } | null;
+  tested: { pieces: number } | null;
+};
+
 export type BuilderDraftResponse = {
   ok: true;
   loggedIn: boolean;
   draft: IslandDraft | null;
+  /** For the draft above, so reopening the Builder does not ask for work already done. */
+  status: BuilderStatus;
   /** The first-island tutorial was finished or skipped. */
   tutorialDone: boolean;
 };
+
+export type BuilderTestStartResponse =
+  { ok: true } | { ok: false; problem: 'signed-out' | 'not-checked' };
 
 export type BuilderRefusal = CheckProblem | 'signed-out' | 'slow-down' | 'off';
 

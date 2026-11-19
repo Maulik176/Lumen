@@ -109,6 +109,16 @@ appear.
 Sizes: GIFs at phone width (about 360×640) or 320×240; stills 16:9 around 2000 px wide.
 Check Devpost's current limits on the upload form before exporting.
 
+**Raw material:** `docs/CAPTURES.md` lists every phone capture from the test runs (real Reddit
+app, real iPhone) and which gallery item or video beat each one serves. Use it as the shot list,
+then re-record those moments at full resolution.
+
+**Showcase islands for the Builder pictures** (outside review, Nov 19): the checker proves an
+island can be solved, not that it is fun. Before the Builder pictures and the first community
+posts, build two or three islands by hand, each with one clear discovery: a rock that forces an
+unexpected detour, a prism whose two colours need two routes, a stone mirror that has to be
+used. Play-test them on friends before they appear in the gallery.
+
 ### Write-up (lesson 13)
 
 Devpost's standard headings, about 350 words. Under "What it does", one heading and one

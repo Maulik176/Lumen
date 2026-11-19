@@ -1351,6 +1351,8 @@ div.others-row {
   display: grid;
   gap: 8px;
   padding: 10px 12px 12px;
+  /* Solid paper: the board's lanterns must not show through and pass for a world button. */
+  background: var(--paper);
   box-shadow: 0 10px 30px rgba(10, 6, 24, 0.45);
 }
 
@@ -1560,7 +1562,7 @@ div.others-row {
   }
 }
 
-/* "Build an island" on the map, at its foot. */
+/* "Build an island" on the map, at its foot: a paper button that reads on the night sea. */
 .map-build {
   position: fixed;
   left: 50%;
@@ -1568,7 +1570,15 @@ div.others-row {
   z-index: 11;
   transform: translateX(-50%);
   min-width: 200px;
-  box-shadow: 0 8px 24px rgba(6, 3, 18, 0.45);
+  background: var(--paper);
+  box-shadow:
+    inset 0 0 0 1.5px var(--ink-soft),
+    0 8px 24px rgba(6, 3, 18, 0.45);
+}
+
+/* Room below the last island, so it can scroll clear of the Build button. */
+.map-foot {
+  height: calc(var(--tap) + var(--gap) * 4 + env(safe-area-inset-bottom, 0px));
 }
 
 /* Desktop and wide views: the Builder stays a comfortable column. */

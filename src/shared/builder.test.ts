@@ -17,7 +17,7 @@ import {
   withEdit,
   type IslandDraft,
 } from './builder';
-import { COMMUNITY } from './config';
+import { BUILDER_VIEW, COMMUNITY, COPY } from './config';
 import { puzzleFromText } from './puzzle-text';
 import { trace } from './trace';
 
@@ -177,6 +177,17 @@ describe('names, fingerprints and labels', () => {
     expect(nameProblem('Hello <b>')).toBe('characters');
   });
 
+  it('names may have apostrophes (as a phone types them too), hyphens and accents', () => {
+    // Nov 19 review: "Maulik's hollow" was refused, with no word why.
+    expect(nameProblem("Maulik's hollow")).toBeNull();
+    expect(nameProblem('Maulik’s Hollow')).toBeNull();
+    expect(nameProblem('Frost-Hollow')).toBeNull();
+    expect(nameProblem('Café Lumière')).toBeNull();
+    expect(nameProblem('दीप द्वीप')).toBeNull();
+    expect(nameProblem('Hi <3')).toBe('characters');
+    expect(nameProblem('a/b')).toBe('characters');
+  });
+
   it('the same island always has the same fingerprint, and a changed tile changes it', () => {
     const draft = applyTool(emptyDraft(6, 'moss'), 'rock', 2, 2).draft;
     expect(islandHash(draft.rows)).toBe(islandHash([...draft.rows]));
@@ -202,6 +213,49 @@ describe('names, fingerprints and labels', () => {
     ).toBeNull();
     expect(readDraft({ ...draft, biome: 'lava' })).toBeNull();
     expect(readDraft(null)).toBeNull();
+  });
+});
+
+describe('the Builder speaks in one row', () => {
+  // Nov 19, iPhone: two lines wrapped onto a second row. Measured at 360 px wide (13 px system
+  // font), seven did; BUILDER_VIEW holds the budgets.
+  const worst = (template: string): string =>
+    template
+      .replace('{par}', String(COMMUNITY.maxPar))
+      .replace(
+        '{pieces}',
+        COPY.builderMirrors.replace(
+          '{count}',
+          String(COMMUNITY.maxPar + Math.max(...COMMUNITY.spareChoices))
+        ) +
+          COPY.builderPrisms.replace('{count}', String(COMMUNITY.searchPrisms))
+      )
+      .replace('{label}', COPY.builderLabels.fiendish);
+
+  it('every line in the hint row fits', () => {
+    const lines = [
+      ...Object.values(COPY.builderProblems),
+      COPY.builderHelp,
+      COPY.builderTestLeft,
+      COPY.builderNameRule,
+      COPY.builderTestRecheck,
+      COPY.builderTestFailed,
+      worst(COPY.builderChecked),
+      // The maker may use every piece: 8 mirrors and 2 prisms.
+      worst(COPY.builderTested.replace('{pieces}', '10 pieces')),
+    ];
+    for (const line of lines)
+      expect(line.length, line).toBeLessThanOrEqual(BUILDER_VIEW.lineChars);
+  });
+
+  it('every tutorial line fits beside Skip, and beside Next where it shows', () => {
+    for (const [step, line] of Object.entries(COPY.builderLessons)) {
+      const room =
+        step === 'colour' || step === 'block'
+          ? BUILDER_VIEW.lessonNextChars
+          : BUILDER_VIEW.lessonChars;
+      expect(line.length, line).toBeLessThanOrEqual(room);
+    }
   });
 });
 

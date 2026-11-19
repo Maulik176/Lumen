@@ -185,6 +185,7 @@ export function openArchipelago(
 
   const scroll = element('div', 'map-scroll');
   scroll.append(sea);
+  if (onBuild !== undefined) scroll.append(element('div', 'map-foot'));
   layer.append(scroll, bar);
   document.body.append(layer);
   return { close: () => layer.remove() };

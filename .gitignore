@@ -15,3 +15,6 @@ coverage
 
 # Generated pages for the logo renders (content/brand/build.mjs)
 content/brand/.sheets/
+
+# Phone captures from test runs: local only (docs/CAPTURES.md)
+captures/

@@ -7,6 +7,7 @@ import type {
   BuilderCheckResponse,
   BuilderDraftResponse,
   BuilderTestResponse,
+  BuilderTestStartResponse,
 } from '../../shared/api';
 import { readDraft } from '../../shared/builder';
 import { COMMUNITY } from '../../shared/config';
@@ -15,6 +16,7 @@ import {
   checkIsland,
   dailyHashes,
   finishTest,
+  islandStatus,
   loadDraft,
   recordCheck,
   saveDraft,
@@ -53,10 +55,18 @@ builder.get('/draft', async (c) => {
           .hGetAll(KEYS.user(player.userId))
           .catch((): Record<string, string> => ({})),
   ]);
+  const status =
+    draft === null
+      ? { checked: null, tested: null }
+      : await islandStatus(store, player, draft).catch(() => ({
+          checked: null,
+          tested: null,
+        }));
   return c.json<BuilderDraftResponse>({
     ok: true,
     loggedIn: player !== null,
     draft,
+    status,
     tutorialDone: user['builderTutorial'] === '1',
   });
 });
@@ -107,12 +117,21 @@ builder.post('/check', async (c) => {
 
 builder.post('/test-start', async (c) => {
   const player = await whoIsAsking();
+  if (player === null)
+    return c.json<BuilderTestStartResponse>({
+      ok: false,
+      problem: 'signed-out',
+    });
   const draft = readDraft((await body(c))['draft']);
-  if (player === null || draft === null) return c.json({ ok: false });
-  const started = await startTest(store, player, draft, nowMs()).catch(
-    () => 'not-checked' as const
+  const started =
+    draft === null
+      ? 'not-checked'
+      : await startTest(store, player, draft, nowMs()).catch(
+          () => 'not-checked' as const
+        );
+  return c.json<BuilderTestStartResponse>(
+    started === 'started' ? { ok: true } : { ok: false, problem: 'not-checked' }
   );
-  return c.json({ ok: started === 'started' });
 });
 
 builder.post('/test-solve', async (c) => {

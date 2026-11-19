@@ -121,18 +121,23 @@ export const COPY = {
   builderNext: 'Next',
   builderSkip: 'Skip',
   builderClose: 'Close the Builder',
-  builderHelp: 'Pick a tool, then tap a tile. Tap again to turn it.',
-  /** After a check. {pieces} reads like "4 mirrors and 1 prism". */
-  builderChecked: 'Par {par} \u00b7 players get {pieces} \u00b7 {label}',
+  builderHelp: 'Pick a tool and tap a tile. Tap again to turn it.',
+  /** After a check: what players will get. {pieces} reads like "4 mirrors and 1 prism". */
+  builderChecked: 'Par {par} \u00b7 {pieces} \u00b7 {label}',
   builderMirrors: '{count} mirrors',
   builderMirrorsOne: '1 mirror',
   builderPrisms: ' and {count} prisms',
   builderPrismsOne: ' and 1 prism',
   builderLabels: { gentle: 'Gentle', tricky: 'Tricky', fiendish: 'Fiendish' },
-  builderTested: 'You lit it with {pieces} (par {par}). Publishing comes next.',
+  builderTested: 'Lit with {pieces} (par {par}). Publishing comes next.',
   /** The main button once the maker has lit their island (Publish arrives in phase 2). */
   builderLit: 'Lit by you',
   builderTestLeft: 'Light every lantern yourself to finish the test.',
+  /** The server no longer has this island's check (it expired, or another check replaced it). */
+  builderTestRecheck: 'Check your island again, then test it.',
+  builderTestFailed: 'The test could not start. Try again.',
+  /** Shown while the name has a character it cannot use. */
+  builderNameRule: "Names use letters, numbers, spaces, ' and -.",
   builderTestNote: 'Test \u00b7 {name}',
   builderTestBack: 'Back to the Builder',
   builderUnnamed: 'Your island',
@@ -140,18 +145,16 @@ export const COPY = {
   builderProblems: {
     'no-sun': 'Place a sun first.',
     'no-lantern': 'Place a lantern for the light to reach.',
-    'already-lit': 'A lantern is lit already. Move it out of the light.',
-    'too-easy':
-      'One piece lights it. Add a rock or tree to block the easy way.',
-    unsolvable: 'Six pieces cannot light every lantern. Open a path.',
-    'too-complex':
-      'This island is too complex to verify. Try removing a piece.',
-    duplicate: 'This is the same as another island. Change a tile or two.',
+    'already-lit': 'A lantern is lit already. Move it from the light.',
+    'too-easy': 'One piece lights it. Block the easy way.',
+    unsolvable: 'Six pieces cannot light it. Open a path.',
+    'too-complex': 'Too complex to verify. Try removing a piece.',
+    duplicate: 'Same as another island. Change a tile or two.',
     malformed: 'Something is off with this island. Try Clear.',
     'signed-out': 'Sign in to check and share your island.',
     'slow-down': 'One moment, then check again.',
     off: 'The Builder is resting. Try again later.',
-    failed: 'The island could not be checked. Try again in a moment.',
+    failed: 'Could not check it. Try again in a moment.',
     'too-many-suns': 'Three suns at most.',
     'too-many-lanterns': 'Six lanterns at most.',
   },
@@ -160,9 +163,9 @@ export const COPY = {
     biome: 'Pick a world for your island',
     sun: 'Tap a tile to place a sun',
     turn: 'Tap the sun again to turn its light',
-    lantern: "Place a lantern where the light can't reach",
+    lantern: 'Place a lantern out of the light',
     colour: 'Tap the lantern to colour it',
-    block: 'Add a rock or a tree to block the easy way',
+    block: 'Block the easy way with a rock',
     spare: 'Spare mirrors: more makes it gentler',
     check: 'Check your island',
     test: 'Now light it yourself',
@@ -763,6 +766,14 @@ export const BUILDER_VIEW = {
   saveAfterMs: 900,
   /** After the maker lights their island in the test, night falls; the Builder returns after this. */
   testDoneMs: 1400,
+  /**
+   * The longest line the hint row shows on one row, in characters. Measured Nov 19 at 360 px wide
+   * (13 px system font, about 6 px a letter): 320 px for a line on its own, 263 beside Skip, 205
+   * beside Next and Skip. Kept a little under, since letters vary in width.
+   */
+  lineChars: 50,
+  lessonChars: 38,
+  lessonNextChars: 30,
 } as const;
 
 /** First-time teaching: the goal shown before any words. Times in milliseconds. */
