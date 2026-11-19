@@ -284,8 +284,12 @@ export async function openBuilder(
   hint.append(hintText, next, skip);
 
   const wrap = element('div', 'bd-board');
+  // The frame hugs the board, so the light that sweeps it during a check stays on the island.
+  const frame = element('div', 'bd-frame');
+  frame.style.setProperty('--bd-sweep', `${BUILDER_VIEW.checkSweepMs}ms`);
   const canvas = element('canvas', 'bd-canvas');
-  wrap.append(canvas);
+  frame.append(canvas);
+  wrap.append(frame);
   const board = createBoard(canvas);
 
   const tools = element('div', 'panel bd-tools');
@@ -454,11 +458,17 @@ export async function openBuilder(
     }
     busy = true;
     const draft = history.draft;
-    status = COPY.builderChecking;
+    status = COPY.builderCheckingLine;
+    frame.classList.add('bd-checking');
     render();
+    const began = performance.now();
     const answer = await post<BuilderCheckResponse>('/api/builder/check', {
       draft,
     });
+    // A quick answer still lets the light finish its pass, so the check reads as one.
+    const rest = BUILDER_VIEW.checkMinMs - (performance.now() - began);
+    if (rest > 0) await new Promise((done) => window.setTimeout(done, rest));
+    frame.classList.remove('bd-checking');
     busy = false;
     if (answer === null) status = COPY.builderProblems.failed;
     else if (!answer.ok) status = COPY.builderProblems[answer.problem];

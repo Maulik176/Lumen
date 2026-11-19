@@ -117,6 +117,7 @@ export const COPY = {
   builderClear: 'Clear',
   builderCheck: 'Check island',
   builderChecking: 'Checking\u2026',
+  builderCheckingLine: 'Checking your island\u2026',
   builderTest: 'Test your island',
   builderNext: 'Next',
   builderSkip: 'Skip',
@@ -735,8 +736,10 @@ export const COMMUNITY = {
    * Search nodes for the server's check, and the time it must stay under. Nodes, because the
    * engine cannot read a clock; each check logs nodes and milliseconds so this can be set from
    * Devvit's real speed (BUILDER_PLAN.md 1.6). Over the limit: "too complex to verify".
+   * Nov 19: 400,000 nodes took 1.12 s on Reddit's server, so doubled (Maulik): about 2.3 s at
+   * worst there, about 7 s on a laptop.
    */
-  solveNodes: 400_000,
+  solveNodes: 800_000,
   solveBudgetMs: 8000,
   /** One check per player every this many seconds. */
   checkGapSeconds: 3,
@@ -764,6 +767,12 @@ export const BUILDER_VIEW = {
   flashMs: 380,
   /** A draft is saved this long after the last change. */
   saveAfterMs: 900,
+  /**
+   * While the server checks an island, a band of light sweeps across the board, once per this
+   * many ms; the sweep shows for at least checkMinMs, so a quick answer still reads as a check.
+   */
+  checkSweepMs: 1100,
+  checkMinMs: 900,
   /** After the maker lights their island in the test, night falls; the Builder returns after this. */
   testDoneMs: 1400,
   /**

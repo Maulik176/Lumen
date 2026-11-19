@@ -1466,6 +1466,60 @@ div.others-row {
   place-items: center;
 }
 
+/* Hugs the board; carries the light that sweeps across it while the server checks. */
+.bd-frame {
+  position: relative;
+  border-radius: calc(var(--radius) - 6px);
+}
+
+.bd-frame .bd-canvas {
+  display: block;
+}
+
+.bd-frame::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 38%,
+    rgba(255, 226, 160, 0.55) 50%,
+    transparent 62%
+  );
+  background-size: 260% 100%;
+  background-position: 130% 0;
+  mix-blend-mode: screen;
+  transition: opacity 200ms ease;
+}
+
+.bd-frame.bd-checking::after {
+  opacity: 1;
+  animation: bd-sweep var(--bd-sweep, 1100ms) ease-in-out infinite;
+}
+
+@keyframes bd-sweep {
+  from {
+    background-position: 130% 0;
+  }
+  to {
+    background-position: -30% 0;
+  }
+}
+
+/* Reduced motion: no travelling light, the board warms softly instead. */
+@media (prefers-reduced-motion: reduce) {
+  .bd-frame::after {
+    background: rgba(255, 226, 160, 0.22);
+  }
+  .bd-frame.bd-checking::after {
+    animation: none;
+    transition-duration: 400ms;
+  }
+}
+
 .bd-canvas {
   position: static;
   inset: auto;
