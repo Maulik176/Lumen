@@ -73,3 +73,20 @@ export function journeyStep(
   }
   return { memory: { started, allLit }, calls };
 }
+
+/**
+ * True when an answer from the platform says it will not record this page's journeys: a
+ * playtest build, or a published one whose journey map is not approved yet. The client then
+ * stops sending, quietly. A failed request is not a refusal.
+ */
+export function journeyRefused(answer: unknown): boolean {
+  if (typeof answer !== 'object' || answer === null) return false;
+  const fields: Record<string, unknown> = { ...answer };
+  const receipt = fields['receipt'];
+  if (typeof receipt !== 'object' || receipt === null) return false;
+  const details: Record<string, unknown> = { ...receipt };
+  const status = details['status'];
+  return (
+    typeof status === 'string' && status.startsWith('JOURNEY_RECEIPT_DENIED')
+  );
+}

@@ -10,7 +10,8 @@ end); waiting for Maulik's phone test before P2.**
 
 ## 0. Decided (Maulik, Nov 19)
 
-- **Unpublished** through judging; target P4 by Nov 25 (1.1).
+- **Never published** before the hackathon ends (the official page forbids it, Nov 19); target
+  P4 by Nov 25 (1.1). Everything runs in a playtest build on r/lumen_game_dev.
 - **`runAs: 'USER'` with `SUBMIT_POST`, plus the three safeguards** (1.2). The maker gets the
   credit everywhere, even when Reddit posts from the app account: title, feed card, game, results
   comment, and above all every Sunday pick says who built it.
@@ -32,15 +33,13 @@ end); waiting for Maulik's phone test before P2.**
 
 Each has my recommendation. The ones marked **must answer** change what gets built.
 
-### 1.1 The Nov 25 deadline says "published and re-reviewed before Dec 1" — **must answer**
+### 1.1 No publish, no app review (settled Nov 19)
 
-On Nov 17 the organizers said they prefer uploading and playtesting to app-review publication
-during the event, and we decided not to publish (CLAUDE.md, HANDOFF section 5). The master
-prompt's last line assumes a publish and re-review. These two conflict.
-
-**Recommendation:** keep the Nov 17 decision. No publish, no review. Upload and install on
-r/LumenGame as planned. P4 by Nov 25 still matters, because the first Sunday pick runs
-Saturday Nov 28. Nothing in this plan needs a review in order to work during the event.
+The official hackathon page: "PLEASE DO NOT SUBMIT YOUR APP FOR PUBLISHING ... you should be
+uploading and playtesting your app, not publishing it." So no `devvit publish` and no review at
+any point before the hackathon ends. Builds reach r/lumen_game_dev, the playtest and judging
+subreddit, through `npm run release` (`docs/LAUNCH.md`). P4 by Nov 25 still matters, because
+the first Sunday pick runs Saturday Nov 28. Nothing in this plan needs a publish to work.
 
 ### 1.2 Posting "as the user" — **must answer**
 
@@ -48,10 +47,10 @@ The prompt asks for `submitCustomPost({ runAs: 'USER', userGeneratedContent })`.
 - That needs a new permission: `asUser: ["SUBMIT_COMMENT", "SUBMIT_POST"]` in `devvit.json`.
 - The SDK requires `userGeneratedContent` whenever `runAs: 'USER'` creates a custom post. It is
   in the typings, so we'd set it.
-- **Before the app is approved, Reddit posts it from the app account for everyone except the app
-  owner.** We saw exactly this with Share on Nov 17 (PLATFORM.md section 4). With no review
-  during the event, every player and every judge would get an app-account post. Only Maulik's
-  own islands would show his name as author.
+- **In a playtest build Reddit posts it from the app account for everyone except the app
+  owner.** We saw exactly this with Share on Nov 17 (PLATFORM.md section 4). Lumen stays a
+  playtest build through judging, so every player and every judge gets an app-account post.
+  Only Maulik's own islands show his name as author; the title and the game name every maker.
 - PLATFORM.md also records one `runAs: 'USER'` failure on desktop ("refresh token does not
   exist").
 
@@ -131,15 +130,16 @@ Over budget: *"This island is too complex to verify. Try removing a piece."*
 - **"No streak or flair effect"** on community islands: a solve there counts for that island's
   own board and sky only. Medals, streaks and the all-time board are untouched.
 
-### 1.9 Journeys and app review
+### 1.9 Journeys and permissions in a playtest build
 
 - **JOURNEY_MAP.md is not changed.** The Builder and community islands send no Journeys events.
-  Proposed events for after judging go in `docs/JOURNEYS-BUILDER.md` (a note only).
-- **New permission:** `SUBMIT_POST` (only if 1.2 stays `runAs: 'USER'`). It would matter only at
-  a future publish, and we are not publishing during the event.
+  Proposed events for after judging go in `docs/JOURNEYS-BUILDER.md` (a note only). Reddit
+  records no journeys for a playtest build anyway; the game stops sending after the first
+  refusal, quietly (HANDOFF section 5).
+- **New permission:** `SUBMIT_POST` (only if 1.2 stays `runAs: 'USER'`). A playtest build uses
+  it as the app account for everyone but the owner; nothing waits on a review.
 - **New entry point and menu items** (`builder`, "Create a Lumen island" for users, "Exclude
-  from Sunday pick" for mods, mod "Post the Lumen Workshop"). These only matter at a future
-  publish too.
+  from Sunday pick" for mods, mod "Post the Lumen Workshop") work in a playtest build.
 
 ### 1.10 Launch-day risk, and a switch
 
@@ -329,7 +329,7 @@ The daily puzzle rules, the solver and its results, and `content/puzzles.json` a
 | **P1** | Editor, live light, draft save, Check (with server timing logs), Test your island. No publishing. Opens from the result card and the Archipelago as a layer | Nov 20 |
 | **P2** | Publish, community island posts and cards, their boards, sky and others' islands, the maker's first board, the switch | Nov 22 |
 | **P3** | Sunday pick, Islandwright flair, Archipelago section, Workshop post, menus, mod exclude, dev tools | Nov 23 |
-| Launch | Nov 24: daily game on r/LumenGame, with the switch on only if P2 and P3 passed your phone test | Nov 24 |
+| Launch | Nov 24: daily game on r/lumen_game_dev (`docs/LAUNCH.md` section 2), with the switch on only if P2 and P3 passed your phone test | Nov 24 |
 | **P4** | Polish at all three sizes, edge cases, README, HANDOFF, LAUNCH, SUBMISSION rows (Builder gallery pictures with Check and Publish visible, as BridgeDit did) | Nov 25 |
 | First pick | Saturday Nov 28, 20:00 UTC; first community Sunday is Nov 29 | Nov 28 |
 

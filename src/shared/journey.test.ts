@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   isJourneyAction,
   isJourneyKind,
+  journeyRefused,
   journeyStep,
   NEW_JOURNEY,
   type JourneyCall,
@@ -63,5 +64,34 @@ describe('journeyStep', () => {
     expect(isJourneyKind('u/someone')).toBe(false);
     expect(isJourneyAction('tutorial_skip')).toBe(true);
     expect(isJourneyAction('anything else')).toBe(false);
+  });
+});
+
+describe('a journey Reddit will not record', () => {
+  it('is recognised from the start answer, so the page stops sending', () => {
+    const denied = (status: string) => ({
+      journeyId: '',
+      receipt: { status, message: '' },
+    });
+    expect(journeyRefused(denied('JOURNEY_RECEIPT_DENIED_PLAYTEST'))).toBe(
+      true
+    );
+    expect(
+      journeyRefused(denied('JOURNEY_RECEIPT_DENIED_NOT_ALLOWLISTED'))
+    ).toBe(true);
+    expect(
+      journeyRefused({
+        journeyId: 'j-1',
+        receipt: { status: 'JOURNEY_RECEIPT_DENIED_PLAYTEST', message: '' },
+      })
+    ).toBe(true);
+    expect(
+      journeyRefused({
+        journeyId: 'j-1',
+        receipt: { status: 'JOURNEY_RECEIPT_VALID', message: '' },
+      })
+    ).toBe(false);
+    // A failed request is not a refusal: the next attempt may get through.
+    expect(journeyRefused(undefined)).toBe(false);
   });
 });

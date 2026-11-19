@@ -2,11 +2,12 @@ import { Hono } from 'hono';
 import { nowMs } from '../core/clock';
 import type { UiResponse } from '@devvit/web/shared';
 import { context, reddit } from '@devvit/web/server';
-import { DEV, TRAILER } from '../../shared/config';
+import { DEV, LAUNCH, TRAILER } from '../../shared/config';
 import { currentDay, resetPlayer, sharedCommentOf } from '../core/game';
 import { KEYS, redisStore } from '../core/store';
 import { lastDay } from '../core/content';
 import { ensureDailyPost } from '../core/post';
+import { devToolsRefusal } from '../core/devtools';
 
 export const menu = new Hono();
 
@@ -46,8 +47,10 @@ menu.post('/post-today', async (c) => {
 });
 
 /** Opens a small form asking which day to post. For testing any island; such posts are unranked
- * unless the day is today. */
+ * unless the day is today. Off after launch: a post for a later day would give it away. */
 menu.post('/post-day', (c) => {
+  if (LAUNCH.launched)
+    return c.json<UiResponse>({ showToast: DEV.launchedToast }, 200);
   return c.json<UiResponse>(
     {
       showForm: {
@@ -73,11 +76,8 @@ menu.post('/post-day', (c) => {
 
 /** Developer tool, playtest subreddit only: forget my tutorial and my solve of today's island. */
 menu.post('/reset-me', async (c) => {
-  if (context.subredditName !== DEV.resetSubreddit)
-    return c.json<UiResponse>(
-      { showToast: 'Only on the playtest subreddit' },
-      200
-    );
+  const refused = devToolsRefusal(context.subredditName);
+  if (refused !== null) return c.json<UiResponse>({ showToast: refused }, 200);
   try {
     const { userId } = context;
     const username = await reddit.getCurrentUsername();
@@ -131,11 +131,8 @@ async function removeSharedReply(
 
 /** Playtest subreddit only: asks which day "today" should be. */
 menu.post('/set-today', (c) => {
-  if (context.subredditName !== DEV.resetSubreddit)
-    return c.json<UiResponse>(
-      { showToast: 'Only on the playtest subreddit' },
-      200
-    );
+  const refused = devToolsRefusal(context.subredditName);
+  if (refused !== null) return c.json<UiResponse>({ showToast: refused }, 200);
   return c.json<UiResponse>(
     {
       showForm: {
@@ -166,11 +163,8 @@ menu.post('/set-today', (c) => {
  * day. Other accounts' own solves are not touched (they cannot be listed).
  */
 menu.post('/clean-up', async (c) => {
-  if (context.subredditName !== DEV.resetSubreddit)
-    return c.json<UiResponse>(
-      { showToast: 'Only on the playtest subreddit' },
-      200
-    );
+  const refused = devToolsRefusal(context.subredditName);
+  if (refused !== null) return c.json<UiResponse>({ showToast: refused }, 200);
   try {
     const app = await reddit.getAppUser();
     const posts = await reddit
@@ -219,11 +213,9 @@ menu.post('/clean-up', async (c) => {
  * again turns it off.
  */
 menu.post('/style-preview', async (c) => {
+  // Not a destructive tool (it changes only the moderator's own view), so it stays after launch.
   if (context.subredditName !== DEV.resetSubreddit)
-    return c.json<UiResponse>(
-      { showToast: 'Only on the playtest subreddit' },
-      200
-    );
+    return c.json<UiResponse>({ showToast: DEV.elsewhereToast }, 200);
   const { userId } = context;
   if (userId === undefined)
     return c.json<UiResponse>({ showToast: 'Sign in first' }, 200);

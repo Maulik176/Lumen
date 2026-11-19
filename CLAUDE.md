@@ -22,8 +22,12 @@ Vite). It is an entry for Reddit's Game of the Day hackathon; submission closes 
 - **Captures are submission material:** after every phone run, copy the computer-use captures
   (the session's `tool-results/` folder) into `captures/<date>-iphone/` (gitignored: the repo is
   public) and index the useful ones in `docs/CAPTURES.md`, which maps them to `docs/SUBMISSION.md`.
-- **Upload:** `bash .tmp/upload.sh`, then `pgrep -fl dev-build` and kill anything left. Push to
-  GitHub after every phase without asking.
+- **Upload:** before launch `bash .tmp/upload.sh` (then `pgrep -fl dev-build` and kill anything
+  left); after launch only `npm run release` (`docs/LAUNCH.md` section 3). Never
+  `devvit publish`. Push to GitHub after every phase without asking.
+- **Nov 19, never publish (official page):** r/lumen_game_dev is the judging subreddit. Launch day
+  steps, release routine, phone check: `docs/LAUNCH.md`. `LAUNCH.launched` in config is flipped on
+  launch day. Journeys start route answers a refused start quietly; client stops sending.
 
 **As of Mon Nov 16, 2026 (M9 done, feature freeze in force). Resume from `HANDOFF.md`.**
 All nine milestones are built except the cut Island Builder. Fable's work is finished; Opus 5.5
@@ -76,7 +80,7 @@ maintains Lumen until submission (Devpost by Dec 7). Start every session by read
   island. 349 tests. Human checks from the review are in `docs/TESTS-TO-RUN.md` section 1b.
 
 - **Nov 19: Island Builder phase 1 built** (Maulik: the Builder is Lumen's most important
-  feature; `BUILDER_PLAN.md` is the plan and the phase reports). Unpublished through judging;
+  feature; `BUILDER_PLAN.md` is the plan and the phase reports). Never published (playtest build);
   `runAs: 'USER'` with `SUBMIT_POST` in P2, maker credited everywhere. Flat editor (3D tiles
   measured under 44 px), 3D for testing. `COMMUNITY` in config, `shared/builder.ts`,
   `server/core/check.ts` + `community.ts`, `routes/builder.ts`, `client/builder/`. 385 tests.
@@ -162,8 +166,8 @@ maintains Lumen until submission (Devpost by Dec 7). Start every session by read
   phone: snoovatar on the sky lantern, smoothness of the rise, clipping.
 
 - App: `lumen-game` (the name `lumen` was taken). Listing: developers.reddit.com/apps/lumen-game.
-  Owner account u/Dry_Promotion2506. Playtest subreddit `r/lumen_game_dev`. Launch subreddit
-  `r/LumenGame` still to be created by Maulik (needed by Nov 24).
+  Owner account u/Dry_Promotion2506. **r/lumen_game_dev** (public, approved) is both the
+  playtest subreddit and the one players and judges use; there is no r/LumenGame.
 - `npx devvit login` expires within hours; a 401 from playtest means log in again. Claude cannot
   open reddit.com in its browser tools: Maulik does anything that needs the Reddit site.
 - Public repo: https://github.com/Maulik176/Lumen (`origin`, `main` only). Branch
@@ -257,9 +261,12 @@ How the work is laid out (so a fresh session can continue):
   "Too complex to verify. Try removing a piece."
 - **Share:** the app posts one stickied "Lumen #N results" comment at post creation; shares are
   replies under it.
-- **No app review during the event (Nov 17, organizers):** upload and playtest only; judges need
-  an accessible demo post in a public subreddit. Publish (with `JOURNEY_MAP.md`) only after
-  judging, if at all. HANDOFF section 5 lists what this changes (Share as a non-owner first).
+- **Never publish before the hackathon ends (official page, Nov 19):** no `devvit publish`, no
+  app review. Upload and playtest only, on r/lumen_game_dev. Launch day and the release routine:
+  `docs/LAUNCH.md`. After launch every upload is live, so only `npm run release` uploads, and
+  `LAUNCH.launched` (config) turns off destructive dev tools, the clock shift and `npm run dev`.
+  In a playtest build `runAs: 'USER'` posts as the app for everyone but the owner (so every line
+  names the player) and Journeys are refused (the client stops quietly). HANDOFF section 5.
 - **Snoovatars:** texture from `i.redd.it` with `crossOrigin` (proven). Client sends its own
   `context.snoovatar` at Lock in; server validates the host. Glyph when an account has none.
 - **Prisms** can turn light as well as split it. Generator treats them as scarce;
@@ -351,7 +358,8 @@ scripts/      gen, report (run with tsx)
 
 | Command | Does |
 | --- | --- |
-| `npm run dev` | `devvit playtest` against the subreddit in `devvit.json` (`dev.subreddit`) |
+| `npm run dev` | `devvit playtest` against r/lumen_game_dev (before launch only: it uploads every save; refuses once `LAUNCH.launched`) |
+| `npm run release` | After launch, the only upload: checks, asks, uploads once, stops the watcher, tags `release-<version>` (`docs/LAUNCH.md`) |
 | `npm test` | Vitest: unit tests beside the code in `src/`, fixture tests in `tests/` |
 | `npm run bench` | Solver speed report by par on open islands (not part of `npm test`) |
 | `npm run test:types` | `tsc --build` |

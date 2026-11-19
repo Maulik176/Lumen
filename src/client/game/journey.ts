@@ -6,6 +6,7 @@
 import type { TelemetryClient } from '@devvit/analytics/client/reddit';
 import type { PlayEvent } from '../../shared/play';
 import {
+  journeyRefused,
   journeyStep,
   NEW_JOURNEY,
   type JourneyAction,
@@ -32,6 +33,8 @@ export type Journey = {
 };
 
 let readySent = false;
+/** Reddit said it will not record journeys for this build: send nothing more from this page. */
+let refused = false;
 
 export function createJourney(kind: JourneyKind, log: boolean): Journey {
   let memory: JourneyMemory = NEW_JOURNEY;
@@ -42,8 +45,9 @@ export function createJourney(kind: JourneyKind, log: boolean): Journey {
 
   const run = (call: (telemetry: Telemetry) => Promise<unknown>): void => {
     const send = async (): Promise<unknown> => {
-      if (client === null) return undefined;
+      if (client === null || refused) return undefined;
       const answer = await call(client).catch(() => undefined);
+      if (journeyRefused(answer)) refused = true;
       if (log) console.log('[journey]', JSON.stringify(answer));
       return answer;
     };
@@ -92,6 +96,7 @@ export function createJourney(kind: JourneyKind, log: boolean): Journey {
       make({ type: 'interaction', action });
     },
     lockInHeaders() {
+      if (refused) return {};
       const id = client?.getActiveJourneyId();
       return id === undefined || id === '' ? {} : { 'x-devvit-journey-id': id };
     },

@@ -3,6 +3,14 @@
 Saved word for word so it survives a compacted session. Start with STEP 0 (write
 `PHASE2_PLAN.md`) and stop for Maulik's OK before any code.
 
+**Correction (Maulik, Nov 19, from the official hackathon page): never publish.** No
+`devvit publish` and no app review before the hackathon ends; r/lumen_game_dev (public,
+approved) is the playtest and judging subreddit, and uploads go through `npm run release`
+(`docs/LAUNCH.md`). So "Before app approval" in item 1 below means "throughout the event":
+`runAs: 'USER'` posts as the app account for everyone but the owner, and crediting the true
+creator in the title and the game is the normal case, not a fallback. The plan must not include
+any publish or review step.
+
 ---
 
 ISLAND BUILDER, PHASE 2: PUBLISHING AND COMMUNITY ISLAND POSTS

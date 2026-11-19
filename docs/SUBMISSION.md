@@ -133,6 +133,21 @@ prism, all lit, Lock in, nightfall, the shared sky, tonight's board. End on phon
 side by side. Record with the trailer (`HANDOFF.md`, submission checklist). A longer full
 walkthrough can be linked from the write-up.
 
+### A note for judges: Lumen is a playtest build (put in the write-up)
+
+The hackathon asks entries to be uploaded and playtested, never published, so Lumen runs as a
+playtest build on r/lumen_game_dev. Two things therefore look slightly different, and both are
+designed for:
+
+> **Who posted it.** In a playtest build Reddit posts "as the player" from the app's own
+> account (u/lumen-game) for everyone except the developer. So every line Lumen writes names the
+> player itself: shared results start "u/name · Lumen #N", and community islands are titled
+> "Island by u/name" and credit their maker in the game.
+>
+> **Journeys.** Lumen is instrumented with Devvit Journeys (`JOURNEY_MAP.md`), but Reddit
+> records no journeys for playtest builds. The game notices the refusal and stops sending,
+> silently; nothing a player sees depends on it.
+
 ### Post title and feed card (lessons 11–12)
 
 - Post title today: `Lumen #{day} · {name} · {weekday}` (`COPY.postTitle`). Adding a difficulty

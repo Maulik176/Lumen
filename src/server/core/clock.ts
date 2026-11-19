@@ -1,11 +1,12 @@
 /**
- * The server's clock. Everywhere it is the real time, except on the playtest subreddit, where a
- * moderator can move "today" to any day from the menu to test Saturdays, past islands, the
- * warm-up offer and the turn of the day. The shift is read once at the start of each request.
+ * The server's clock. Everywhere it is the real time, except on the playtest subreddit before
+ * launch, where a moderator can move "today" to any day from the menu to test Saturdays, past
+ * islands, the warm-up offer and the turn of the day. The shift is read once at the start of
+ * each request. After launch it is real time there too, whatever shift was left stored.
  */
 import { context } from '@devvit/web/server';
 import { dayAt } from '../../shared/calendar';
-import { DEV } from '../../shared/config';
+import { clockShift, devToolsOpen } from './devtools';
 import { KEYS, redisStore as store } from './store';
 
 const MS_PER_DAY = 86_400_000;
@@ -16,13 +17,13 @@ export function nowMs(): number {
   return Date.now() + shiftMs;
 }
 
-/** Read the shift for this request. Always zero outside the playtest subreddit. */
+/** Read the shift for this request. Zero outside the playtest subreddit, and after launch. */
 export async function refreshClock(): Promise<void> {
   shiftMs = 0;
   try {
-    if (context.subredditName !== DEV.resetSubreddit) return;
-    const stored = Number(await store.get(KEYS.devShift));
-    if (Number.isFinite(stored)) shiftMs = stored;
+    const where = context.subredditName;
+    if (!devToolsOpen(where)) return;
+    shiftMs = clockShift(where, await store.get(KEYS.devShift));
   } catch {
     // Outside a request, or Redis is unavailable: real time.
   }

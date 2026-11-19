@@ -11,8 +11,10 @@ into a sky shared with everyone who lit the island that night.
 Lumen is a daily 3D light puzzle that lives inside a Reddit post. It was made for Reddit's Game
 of the Day hackathon on Devvit Web.
 
-- **Play it:** a daily post in r/LumenGame (the app listing is
-  [developers.reddit.com/apps/lumen-game](https://developers.reddit.com/apps/lumen-game)).
+- **Play it:** a daily post in [r/lumen_game_dev](https://www.reddit.com/r/lumen_game_dev/)
+  (the app listing is
+  [developers.reddit.com/apps/lumen-game](https://developers.reddit.com/apps/lumen-game)). As
+  the hackathon asks, Lumen is uploaded and playtested there, not published.
 - **No setup:** tap "Light the lanterns" on the post. Signed out works too.
 
 ## How to play
@@ -94,8 +96,8 @@ Then open `http://localhost:5199/game.html?day=7` (`&calm=1` for reduced motion,
 | --- | --- |
 | `npm test` | All tests (engine, server rules, client logic) |
 | `npm run test:types` / `npm run lint` | Type check and lint |
-| `npm run dev` | Playtest on the dev subreddit in `devvit.json` (stop it when done) |
-| `npm run deploy` | Check everything, then upload a version |
+| `npm run dev` | Playtest on r/lumen_game_dev before launch (stop it when done; it uploads every save) |
+| `npm run release` | After launch: check everything, confirm, upload once, stop the watcher (`docs/LAUNCH.md`) |
 | `npm run report` | Par and difficulty per weekday |
 | `npm run hero` | Re-render the feed card pictures (needs `npm run debug` running) |
 

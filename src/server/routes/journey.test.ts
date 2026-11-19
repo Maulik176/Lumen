@@ -104,4 +104,14 @@ describe('journey routes', () => {
       expect((await routes.fetch(request)).status).toBe(400);
     expect(sent).toEqual([]);
   });
+
+  it('a start the platform turns down (a playtest build) answers quietly', async () => {
+    // Uploaded, never published: Reddit records no journeys. That is normal, not an error, so
+    // the answer is the SDK's own "no journey" shape and the client logs nothing.
+    const { server } = stub();
+    server.startJourney = async () => ({ journeyId: '', receipt });
+    const response = await journeyRoutes(server).fetch(post('/journey/start'));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ journeyId: '', receipt });
+  });
 });

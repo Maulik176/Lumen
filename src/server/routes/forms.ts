@@ -3,13 +3,16 @@ import type { UiResponse } from '@devvit/web/shared';
 import { islandForDay } from '../core/content';
 import { setToday } from '../core/clock';
 import { createIslandPost } from '../core/post';
-import { DEV } from '../../shared/config';
+import { DEV, LAUNCH } from '../../shared/config';
+import { devToolsRefusal } from '../core/devtools';
 import { context } from '@devvit/web/server';
 import { openPost } from './menu';
 
 export const forms = new Hono();
 
 forms.post('/post-day', async (c) => {
+  if (LAUNCH.launched)
+    return c.json<UiResponse>({ showToast: DEV.launchedToast }, 200);
   const value: unknown = await c.req.json().catch(() => null);
   const fields: Record<string, unknown> =
     typeof value === 'object' && value !== null ? { ...value } : {};
@@ -29,11 +32,8 @@ forms.post('/post-day', async (c) => {
 });
 
 forms.post('/set-today', async (c) => {
-  if (context.subredditName !== DEV.resetSubreddit)
-    return c.json<UiResponse>(
-      { showToast: 'Only on the playtest subreddit' },
-      200
-    );
+  const refused = devToolsRefusal(context.subredditName);
+  if (refused !== null) return c.json<UiResponse>({ showToast: refused }, 200);
   const value: unknown = await c.req.json().catch(() => null);
   const fields: Record<string, unknown> =
     typeof value === 'object' && value !== null ? { ...value } : {};

@@ -1293,10 +1293,24 @@ export const TRAILER = {
   armedSeconds: 600,
 } as const;
 
-/** Developer tools that exist only on the playtest subreddit. */
+/**
+ * Launch day. r/lumen_game_dev is both the playtest subreddit and the one players and judges
+ * use (the app is never published during the hackathon), so on launch day this flips to true:
+ * every dev tool that wipes data, posts test islands or moves the clock stops working there, the
+ * clock ignores any shift left stored, and `npm run dev` refuses to start a playtest watcher
+ * (every save would go live). Releases then go through `npm run release` (docs/LAUNCH.md).
+ */
+export const LAUNCH = {
+  launched: false,
+};
+
+/** Developer tools that exist only on the playtest subreddit, and only until launch. */
 export const DEV = {
   /** "Reset my Lumen progress" works in this subreddit and nowhere else. */
   resetSubreddit: 'lumen_game_dev',
+  /** What a moderator sees when a dev tool is refused. */
+  elsewhereToast: 'Only on the playtest subreddit',
+  launchedToast: 'Dev tools are off: Lumen has launched.',
   /** "Dev: preview lantern styles" lasts this long (seconds) for the moderator who turned it on. */
   previewSeconds: 1800,
 } as const;

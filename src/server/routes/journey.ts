@@ -79,12 +79,12 @@ export function journeyRoutes(server: JourneyServer): Hono {
     );
   });
 
-  routes.post(TELEMETRY_JOURNEY_ENDPOINTS.start, async (c) => {
-    const response = await server.startJourney();
-    if (response.journeyId === '')
-      return c.json({ error: 'No journey id', receipt: response.receipt }, 500);
-    return c.json(response);
-  });
+  // In a build Reddit does not record (uploaded, never published) the start comes back with no
+  // journey id and a "denied" receipt. That is expected, so it is passed on as it is: the SDK
+  // client reads it as "no journey" without logging a failure.
+  routes.post(TELEMETRY_JOURNEY_ENDPOINTS.start, async (c) =>
+    c.json(await server.startJourney())
+  );
 
   routes.post(TELEMETRY_JOURNEY_ENDPOINTS.progress, async (c) => {
     const { journeyId, progress, action, actionDetails } = await body(c.req);
