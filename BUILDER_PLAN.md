@@ -322,7 +322,7 @@ The daily puzzle rules, the solver and its results, and `content/puzzles.json` a
 
 ---
 
-## 7. Phases (each ends with tests, types, lint, build, a local look at 360x460, 430x701 and desktop, one commit, an upload to r/lumen_game_dev, a short report, and your phone test)
+## 7. Phases (each ends with tests, types, lint, build, a local look at 360x460, 430x701 and desktop, one commit, a push to GitHub (Maulik, Nov 19), an upload to r/lumen_game_dev, a short report, and your phone test)
 
 | Phase | Builds | Target |
 | --- | --- | --- |
