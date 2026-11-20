@@ -91,8 +91,12 @@ export const KEYS = {
   allTime: 'lb:alltime',
   /** Hash: username to the pieces they locked in with (ranked only), for "See others' islands". */
   boards: (day: number) => `boards:${day}`,
-  /** The top of the night's board with each player's pieces, rebuilt when a Lock in reaches it. */
-  othersTop: (day: number) => `others:${day}`,
+  /**
+   * The top of the night's board, one row per board with its pieces and its first two players,
+   * rebuilt when a Lock in reaches it. "v2" since Nov 20: lists kept before then lack the second
+   * player, so they are never read again (they expire on their own).
+   */
+  othersTop: (day: number) => `others:v2:${day}`,
   stats: (day: number) => `stats:${day}`,
   sky: (day: number) => `sky:${day}`,
   user: (userId: string) => `user:${userId}`,
