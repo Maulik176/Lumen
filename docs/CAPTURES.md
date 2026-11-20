@@ -117,3 +117,36 @@ accounted for" fix. The stand-in ran the real game code with a crowd of made-up 
 Seen while looking (not fixed, to check on a phone): on desktop one lantern sits partly behind
 the player's own; the "You" label sits a little right of the lantern in headless shots (Maulik's
 own phone shot shows it centred).
+
+---
+
+## Run 4: Nov 21, 2026, local video clips, real game code (not Reddit)
+
+Folder: `captures/2026-11-21-video-local/` (six H.264 clips at 30 fps, 42 MB). Made for the
+one-minute video (`docs/VIDEO.md`) with `tools/record.mjs` in that folder: headless Chrome on
+the stand-in (port 5299, run from a frozen copy of the committed code so other sessions' edits
+cannot restart it mid-take), the page's clock moved exactly 1/30 s per frame, so motion is
+smooth whatever the software renderer's speed. Island: **Lumen #2, Willow Prism** (Wed Nov 25,
+moss, a prism and three coloured lanterns) with a made-up crowd of 140 players (letter seals,
+no snoovatars). No Reddit around the game, no sound, no perf overlay.
+
+| File | Size | What it shows (timecodes in the clip) | Beat (VIDEO.md) |
+|---|---|---|---|
+| `trailer-phone.mp4` | 644x1398, 30 s | Trailer mode, no interface: 0:00 the start card (trim), 0:01 the camera turns, 0:03–0:09 the answer placed piece by piece, the prism splitting the light, 0:10 nightfall and blooms, 0:13–0:24 the lantern rises into 140 lanterns, 0:25 "Lumen / A new island every night." | 1 (hook), 5, 10 |
+| `trailer-desktop.mp4` | 1600x900, 30 s | The same trailer on a desktop-shaped screen, wide framing | 10 (desktop half) |
+| `taps-phone-hires.mp4` | 1074x2330, 5.3 s | Close-up at 2.5x: the coloured-lantern rule card, then a mirror placed, turned ("Tap it again to turn it") and the light travelling | 3 |
+| `play-phone.mp4` | 644x1398, 44.4 s | The whole player path with the interface: 0:04–0:10 taps (mirror, prism, two mirrors), 0:10 "All lit · 4 pieces (par 4)", 0:11 Lock in, nightfall, blooms, "Your lantern joins everyone who lit tonight's island.", the rise, 0:28 the result card (Lamplighter, #4 tonight), 0:39 tonight's board. **Do not use 0:28–0:38**: that See others' islands shows the busy-night bug (VIDEO.md) | 3, 4, 5, 6 (board) |
+| `others-phone.mp4` | 644x1398, 17 s | See others' islands done right: 0:01 "13% hit par tonight", "Your island · 4 pieces · 0:11 · same as u/ember3 and 16 others", three other boards with "39 players", "50 players", "34 players"; 0:05 one tapped and shown lit on the island; 0:11 tonight's board | 6 |
+| `builder-phone.mp4` | 644x1398, 45 s | The Island Builder with its first-island lessons: 0:01 a world, 0:03 the name "Petal Detour" typed, 0:05 a sun turned to shine down, a lantern out of the light, 0:10 a rock blocks the easy way, spare mirrors, trees, 0:16 "Checking your island…" then "Par 2 · Gentle. Light it yourself", 0:20 the test in 3D, two mirrors, "All lit · 2 pieces (par 2)", Lock in, nightfall, 0:30 back to "Lit with 2 (par 2) · Gentle. Ready to publish.", 0:39 the confirm panel (picture, "Posts to r/lumen_game_dev as an island by u/islandmaker"), 0:42 the celebration: dusk over the board, the lantern blooms, motes rise, "Your island is up." | 7 |
+
+**Re-recording:** start the stand-in (`npx vite --config vite.debug.config.ts --no-open --port
+5299 --strictPort`), then `node captures/2026-11-21-video-local/tools/record.mjs seed play-phone`
+(clips: `trailer-phone`, `trailer-desktop`, `trailer-phone-calm`, `play-phone`, `play-desktop`,
+`others-phone`, `others-desktop`, `builder-phone`; the Builder clip needs a freshly started
+stand-in) and `bash captures/2026-11-21-video-local/tools/make-mp4.sh <clip>`. About 3 s of work
+per second of clip at 1.5x.
+
+**Found while recording:** See others' islands is empty, with "Everyone so far lit it just as you
+did.", on a night with more than 40 players at par (VIDEO.md, "Bug found while recording").
+`play-phone` was recorded with 42 at par and shows it; `others-phone` uses a crowd with 10% at
+par.
