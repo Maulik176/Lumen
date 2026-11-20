@@ -8,6 +8,7 @@
  * Not used by the Reddit build.
  */
 import { readFileSync } from 'node:fs';
+import type { IncomingMessage } from 'node:http';
 import { join } from 'node:path';
 import { defineConfig, type Plugin } from 'vite';
 import {
@@ -20,7 +21,7 @@ import {
   type OthersResponse,
   type IslandResponse,
   type LockInResponse,
-  type LockInResult,
+  type OtherIsland,
   type PastResponse,
   type SkyResponse,
 } from './src/shared/api';
@@ -32,16 +33,11 @@ import {
   nameFiltered,
 } from './src/shared/community';
 import {
-  puzzleOfDaily,
   readDailyFile,
   type DailyIsland,
   type PlayableIsland,
 } from './src/shared/daily';
-import {
-  medalFor,
-  scoreSubmission,
-  validatePlacements,
-} from './src/shared/validate';
+import { validatePlacements } from './src/shared/validate';
 
 import { readDraft } from './src/shared/builder';
 import { checkIsland, dailyHashes } from './src/server/core/check';
@@ -53,7 +49,27 @@ import {
   type IslandDraft,
 } from './src/shared/builder';
 import { puzzleFromText } from './src/shared/puzzle-text';
+import { isRuleKind } from './src/shared/rules';
 import { trace } from './src/shared/trace';
+import { nightStart, seedCrowd } from './src/server/core/crowd';
+import {
+  lockIn,
+  markRuleSeen,
+  markTutorialDone,
+  pastIslands,
+  playerState,
+  rankedOpen,
+  readAllTime,
+  readLeaderboard,
+  readOthers,
+  readSky,
+  recordStart,
+  saveProgress,
+  skyCount,
+  type Player,
+} from './src/server/core/game';
+import { memoryStore } from './src/server/core/memory-store';
+import { KEYS } from './src/server/core/store';
 
 /** Reads a request's JSON body, or {} when there is none. */
 function readBody(
@@ -112,13 +128,35 @@ function localApi(): Plugin {
       solution: [],
     };
   };
-  /** Lock ins remembered by day, standing in for Redis. */
-  const solved = new Map<
-    number,
-    { result: LockInResult; placements: Placement[] }
-  >();
-  /** Unfinished boards by day. */
-  const progress = new Map<number, Placement[]>();
+  /**
+   * The stand-in's Redis. Everything a player can see about other players (Lock in, the board,
+   * See others' islands, the sky, every count) runs the real game code on it, as on Reddit, so
+   * a local judge pass looks at what a real post would hold (Nov 20: a made-up list here hid
+   * a bug that grouped boards caused). `fetch('/api/forget')` empties it.
+   */
+  let store = memoryStore();
+  const boot = Date.now();
+  /** The page that asked: the stand-in reads ?user=, ?signedout=1 and ?night=past from it. */
+  const pageOf = (request: IncomingMessage): URLSearchParams =>
+    new URL(request.headers.referer ?? 'http://localhost/', 'http://localhost')
+      .searchParams;
+  /** Who is asking: the page's ?user= (default "you"), or nobody with ?signedout=1. */
+  const playerOf = (request: IncomingMessage): Player => {
+    const page = pageOf(request);
+    if (page.get('signedout') === '1') return null;
+    const name = page.get('user') ?? 'you';
+    return { userId: `t2_${name}`, username: name };
+  };
+  /**
+   * The moment it is for an island: inside its own night, moving with real time so Lock in
+   * times are real; ?night=past on the page reads it the next day, when the night is over.
+   */
+  const nowFor = (island: PlayableIsland, request: IncomingMessage): number =>
+    nightStart(island) +
+    3_600_000 +
+    ((Date.now() - boot) % (20 * 3_600_000)) +
+    (pageOf(request).get('night') === 'past' ? 86_400_000 : 0);
+  const days = (): number => load().days.length;
   /** Islands published locally, served as community islands (numbers from numberBase up). */
   const localIslands: {
     index: number;
@@ -129,6 +167,7 @@ function localApi(): Plugin {
     creatorPieces: number;
     solution: Placement[];
     created: number;
+    maker: string;
   }[] = [];
   /** A day, the hero island, or a community island published here. */
   const islandAt = (
@@ -153,7 +192,7 @@ function localApi(): Plugin {
           par: local.par,
           solution: local.solution,
         },
-        credit: { maker: 'you', makerAvatar: '', label: local.label },
+        credit: { maker: local.maker, makerAvatar: '', label: local.label },
       };
     }
     const island =
@@ -165,245 +204,204 @@ function localApi(): Plugin {
   return {
     name: 'lumen-local-api',
     configureServer(server) {
-      server.middlewares.use('/api/card', (request, response) => {
-        const day = Number(
-          new URL(request.url ?? '', 'http://localhost').searchParams.get(
-            'day'
-          ) ?? '1'
-        );
-        const found = islandAt(day);
-        const island = found?.island;
-        const credit = found?.credit;
-        const result = solved.get(day)?.result;
-        const body: CardResponse =
-          island === undefined
-            ? { ok: false, reason: 'not-found' }
-            : {
-                ok: true,
-                night: day === 2 ? 'past' : 'tonight',
-                tonightPost:
-                  day === 2 || credit !== undefined ? 't3_local' : null,
-                post:
-                  credit === undefined
-                    ? toPostData(island)
-                    : toCommunityPostData(island, credit),
-                skyCount: credit === undefined ? 140 : 3,
-                nextInMs:
-                  credit === undefined ? 5 * 3_600_000 + 12 * 60_000 : null,
-                streak: result?.streak ?? 0,
-                result:
-                  result === undefined
-                    ? null
-                    : {
-                        pieces: result.pieces,
-                        par: result.par,
-                        rank: result.rank,
-                        streak: result.streak,
-                      },
-              };
+      const reply = (
+        response: import('node:http').ServerResponse,
+        body: unknown
+      ): void => {
         response.setHeader('content-type', 'application/json');
         response.end(JSON.stringify(body));
+      };
+      const askedDay = (request: IncomingMessage, name = 'day'): number =>
+        Number(
+          new URL(request.url ?? '', 'http://localhost').searchParams.get(
+            name
+          ) ?? '1'
+        );
+      /** On a community island made here: the maker's own test, pinned first in the list. */
+      const creatorOf = (day: number): OtherIsland | null => {
+        if (!isCommunity(day)) return null;
+        const local = localIslands[day - COMMUNITY.numberBase - 1];
+        if (local === undefined) return null;
+        return {
+          rank: null,
+          username: local.maker,
+          snoovatar: '',
+          pieces: local.creatorPieces,
+          timeMs: 52_000,
+          placements: local.solution,
+        };
+      };
+      /** Where a post's night stands, as the real server says: tonight, or past with ?night=past. */
+      const nightAt = (
+        day: number,
+        request: IncomingMessage
+      ): { night: 'tonight' | 'past'; tonightPost: string | null } =>
+        !isCommunity(day) && pageOf(request).get('night') === 'past'
+          ? { night: 'past', tonightPost: 't3_local' }
+          : {
+              night: 'tonight',
+              tonightPost: isCommunity(day) ? 't3_local' : null,
+            };
+
+      server.middlewares.use('/api/card', (request, response) => {
+        const day = askedDay(request);
+        const found = islandAt(day);
+        if (found === undefined)
+          return reply(response, { ok: false, reason: 'not-found' });
+        const { island, credit } = found;
+        void Promise.all([
+          playerState(store, playerOf(request), day),
+          skyCount(store, day),
+        ]).then(([me, count]) => {
+          const body: CardResponse = {
+            ok: true,
+            ...nightAt(day, request),
+            post:
+              credit === undefined
+                ? toPostData(island)
+                : toCommunityPostData(island, credit),
+            skyCount: count,
+            nextInMs: credit === undefined ? 5 * 3_600_000 + 12 * 60_000 : null,
+            streak: me.streak,
+            result:
+              me.result === null
+                ? null
+                : {
+                    pieces: me.result.pieces,
+                    par: me.result.par,
+                    rank: me.result.rank,
+                    streak: me.result.streak,
+                  },
+          };
+          reply(response, body);
+        });
       });
       server.middlewares.use('/api/progress', (request, response) => {
-        let text = '';
-        request.on('data', (chunk: Buffer) => {
-          text += chunk.toString();
-        });
-        request.on('end', () => {
-          try {
-            const parsed: unknown = JSON.parse(text);
-            const fields: Record<string, unknown> =
-              typeof parsed === 'object' && parsed !== null
-                ? { ...parsed }
-                : {};
-            const island = islandAt(Number(fields['day']))?.island;
-            const check =
-              island === undefined
-                ? undefined
-                : validatePlacements(
-                    puzzleOfDaily(island),
-                    fields['placements']
-                  );
-            if (island !== undefined && check?.ok === true)
-              progress.set(island.day, check.placements);
-          } catch {
-            // Nothing saved.
-          }
-          response.end('{"ok":true}');
+        void readBody(request).then(async (fields) => {
+          const island = islandAt(Number(fields['day']))?.island;
+          if (island !== undefined)
+            await saveProgress(
+              store,
+              playerOf(request),
+              island,
+              fields['placements']
+            );
+          reply(response, { ok: true });
         });
       });
       server.middlewares.use('/api/forget', (_request, response) => {
-        solved.clear();
-        progress.clear();
-        response.end('{"ok":true}');
+        store = memoryStore();
+        reply(response, { ok: true });
       });
-      // Made-up test names, as in the sky stand-in. The player is 'you'.
+      /**
+       * A realistic crowd on one island, played through the real Lock in (src/server/core/crowd.ts):
+       * fetch('/api/dev/crowd?day=1&players=8&seed=a') adds players p0, p1... (prefix= to rename
+       * them); most place the par answer. Then open the game as any of them with ?user=p0.
+       */
+      server.middlewares.use('/api/dev/crowd', (request, response) => {
+        const asked = new URL(request.url ?? '', 'http://localhost')
+          .searchParams;
+        const island = islandAt(Number(asked.get('day') ?? '1'))?.island;
+        if (island === undefined)
+          return reply(response, { ok: false, reason: 'not-found' });
+        void seedCrowd(store, island, {
+          players: Number(asked.get('players') ?? '8'),
+          seed: asked.get('seed') ?? 'local',
+          resets: Number(asked.get('resets') ?? '0'),
+          tooFast: asked.get('fast') === '1',
+          practiceShare: Number(asked.get('practice') ?? '0.1'),
+          parShare: Number(asked.get('par') ?? '0.6'),
+          prefix: asked.get('prefix') ?? 'p',
+          lastDay: days(),
+        }).then((night) =>
+          reply(response, {
+            ok: true,
+            players: night.players.map((p) => ({
+              username: p.username,
+              ranked: p.ranked,
+              pieces: p.board.length,
+            })),
+          })
+        );
+      });
+      /**
+       * A community island made here without the Builder, for checks that need one quickly:
+       * fetch('/api/dev/island?day=2&maker=mohak&name=Blossom%20Island%20%233') serves day 2's
+       * island as a community island by u/mohak. Answers its island number.
+       */
+      server.middlewares.use('/api/dev/island', (request, response) => {
+        const asked = new URL(request.url ?? '', 'http://localhost').searchParams;
+        const from = load().days[Number(asked.get('day') ?? '2') - 1];
+        if (from === undefined)
+          return reply(response, { ok: false, reason: 'not-found' });
+        const index = localIslands.length + 1;
+        const biome = asked.get('biome');
+        localIslands.push({
+          index,
+          created: Date.now(),
+          solution: from.solution,
+          draft: {
+            size: from.rows.length,
+            biome: BIOMES.find((b) => b === biome) ?? from.biome,
+            name: asked.get('name') ?? fallbackName(from.biome, index),
+            spare: 0,
+            rows: from.rows,
+          },
+          par: from.par,
+          label: 'gentle',
+          inventory: from.inventory,
+          creatorPieces: from.par,
+          maker: asked.get('maker') ?? 'you',
+        });
+        reply(response, { ok: true, day: COMMUNITY.numberBase + index });
+      });
       server.middlewares.use('/api/leaderboard', (request, response) => {
+        const day = askedDay(request);
         const scope = new URL(
           request.url ?? '',
           'http://localhost'
         ).searchParams.get('scope');
-        const names = Array.from({ length: 10 }, (_, i) => `test_${i + 1}`);
-        const body: BoardResponse =
+        const username = playerOf(request)?.username ?? null;
+        void (
           scope === 'alltime'
-            ? {
+            ? readAllTime(store, username).then((board): BoardResponse => ({
                 ok: true,
                 scope: 'alltime',
-                top: names.map((username, i) => ({
-                  rank: i + 1,
-                  username,
-                  snoovatar: '',
-                  medals: 12 - i,
-                })),
-                me: { rank: 31, username: 'you', snoovatar: '', medals: 1 },
-                total: 40,
-              }
-            : {
-                ok: true,
-                scope: 'day',
-                top: names.map((username, i) => ({
-                  rank: i === 9 ? null : i + 1,
-                  username,
-                  snoovatar: '',
-                  pieces: 4 + Math.floor(i / 4),
-                  timeMs: 41_000 + i * 9_000,
-                })),
-                me: {
-                  rank: 23,
-                  username: 'you',
-                  snoovatar: '',
-                  pieces: 5,
-                  timeMs: 83_000,
-                },
-                total: 140,
-              };
-        response.setHeader('content-type', 'application/json');
-        response.end(JSON.stringify(body));
+                ...board,
+              }))
+            : readLeaderboard(store, day, username).then(
+                (board): BoardResponse => ({ ok: true, scope: 'day', ...board })
+              )
+        ).then((body) => reply(response, body));
       });
-      // Made-up islands for "See others' islands": the first three at par, the rest with one
-      // extra mirror on a spare grass tile (the fifth with no stored pieces). A day solved here with a ranked Lock in counts as
-      // tonight (with the player's own island, no par answer); any other day as an earlier night.
       server.middlewares.use('/api/others', (request, response) => {
-        const day = Number(
-          new URL(request.url ?? '', 'http://localhost').searchParams.get(
-            'day'
-          ) ?? '1'
-        );
-        const found = islandAt(day);
-        const island = found?.island;
-        let body: OthersResponse = { ok: false, reason: 'not-found' };
-        if (island !== undefined) {
-          const puzzle = puzzleOfDaily(island);
-          const used = new Set(
-            island.solution.map((p) => p.y * puzzle.width + p.x)
-          );
-          const spare = puzzle.terrain.flatMap((ground, tile) =>
-            ground === 'grass' &&
-            !used.has(tile) &&
-            !puzzle.fixedMirrors.some(
-              (m) => m.y * puzzle.width + m.x === tile
-            ) &&
-            !puzzle.sources.some((m) => m.y * puzzle.width + m.x === tile) &&
-            !puzzle.lanterns.some((m) => m.y * puzzle.width + m.x === tile)
-              ? [tile]
-              : []
-          );
-          const top = Array.from({ length: 10 }, (_, i) => {
-            const tile = spare[(i * 7) % Math.max(1, spare.length)];
-            const extra: Placement[] =
-              i < 3 || tile === undefined
-                ? []
-                : [
-                    {
-                      x: tile % puzzle.width,
-                      y: Math.floor(tile / puzzle.width),
-                      piece: {
-                        kind: 'mirror',
-                        orientation: i % 2 === 0 ? 'slash' : 'backslash',
-                      },
-                    },
-                  ];
-            return {
-              rank: i + 1,
-              username: `test_${i + 1}`,
-              snoovatar: '',
-              pieces: island.par + extra.length,
-              timeMs: 41_000 + i * 9_000,
-              // The fifth stands for a solve locked in before pieces were stored.
-              placements: i === 4 ? null : [...island.solution, ...extra],
-            };
-          });
-          const mine = solved.get(day);
-          body = {
-            ok: true,
-            day,
-            top,
-            me:
-              mine === undefined
-                ? null
-                : {
-                    rank: 23,
-                    username: 'you',
-                    snoovatar: '',
-                    pieces: mine.result.pieces,
-                    timeMs: mine.result.elapsedMs,
-                    placements: mine.placements,
-                  },
-            solves: 140,
-            parHits: 25,
-            parSolution:
-              mine === undefined && found?.credit === undefined
-                ? island.solution
-                : null,
-            creator:
-              found?.credit === undefined
-                ? null
-                : {
-                    rank: null,
-                    username: found.credit.maker,
-                    snoovatar: '',
-                    pieces:
-                      localIslands[day - COMMUNITY.numberBase - 1]
-                        ?.creatorPieces ?? island.par,
-                    timeMs: 52_000,
-                    placements: island.solution,
-                  },
-          };
-        }
-        response.setHeader('content-type', 'application/json');
-        response.end(JSON.stringify(body));
+        const day = askedDay(request);
+        const island = islandAt(day)?.island;
+        if (island === undefined)
+          return reply(response, { ok: false, reason: 'not-found' });
+        void readOthers(
+          store,
+          playerOf(request),
+          island,
+          nowFor(island, request),
+          days(),
+          creatorOf(day)
+        ).then((others) => {
+          const body: OthersResponse = others.ok
+            ? { ...others, day }
+            : { ok: false, reason: 'locked' };
+          reply(response, body);
+        });
       });
       server.middlewares.use('/api/past', (request, response) => {
-        const before = Number(
-          new URL(request.url ?? '', 'http://localhost').searchParams.get(
-            'before'
-          ) ?? '1'
-        );
-        const body: PastResponse = {
-          ok: true,
-          islands: load()
-            .days.filter((island) => island.day < before)
-            .reverse()
-            .map((island) => ({
-              day: island.day,
-              name: island.name,
-              weekday: island.weekday,
-              biome: island.biome,
-              par: island.par,
-              // Seeded so the map can be looked at: a medal on some days, a made-up crowd on all.
-              medal:
-                solved.get(island.day)?.result.medal ??
-                (island.day % 3 === 0
-                  ? 'lamplighter'
-                  : island.day % 4 === 0
-                    ? 'glow'
-                    : null),
-              rows: island.rows,
-              solves: (island.day * 137) % 420,
-            })),
-        };
-        response.setHeader('content-type', 'application/json');
-        response.end(JSON.stringify(body));
+        const before = askedDay(request, 'before');
+        const islands = load()
+          .days.filter((island) => island.day < before)
+          .reverse();
+        void pastIslands(store, playerOf(request), islands).then((list) => {
+          const body: PastResponse = { ok: true, islands: list };
+          reply(response, body);
+        });
       });
       server.middlewares.use('/api/island', (request, response) => {
         const asked = new URL(request.url ?? '', 'http://localhost')
@@ -411,79 +409,41 @@ function localApi(): Plugin {
         const day = Number(asked.get('day') ?? '1');
         // Days 900 to 904 are the hand-made hero island, one per biome (see scripts/hero.mjs).
         const found = islandAt(day);
-        const island = found?.island;
-        const body: IslandResponse =
-          island === undefined
-            ? { ok: false, reason: 'not-found' }
-            : {
-                ok: true,
-                island: toPublicIsland(island, found?.credit),
-                me: {
-                  loggedIn: false,
-                  username: null,
-                  streak: 0,
-                  style: 'plain',
-                  tutorialDone: false,
-                  result: solved.get(day)?.result ?? null,
-                  placements: solved.get(day)?.placements ?? null,
-                  shared: false,
-                  sharedComment: null,
-                  skyNoteSeen: false,
-                  rulesSeen: [],
-                  progress: solved.has(day)
-                    ? null
-                    : (progress.get(day) ?? null),
-                },
-                rankedOpen: isCommunity(day),
-                skyCount: found?.credit === undefined ? 140 : 3,
-                night: asked.get('night') === 'past' ? 'past' : 'tonight',
-                tonightPost: found?.credit === undefined ? null : 't3_local',
-                sharedUrl: null,
-                ...(asked.get('styles') === '1' ? { stylePreview: true } : {}),
-                ...(asked.get('trailer') === '1'
-                  ? { trailer: { solution: island.solution } }
-                  : {}),
-              };
-        response.setHeader('content-type', 'application/json');
-        response.end(JSON.stringify(body));
+        if (found === undefined)
+          return reply(response, { ok: false, reason: 'not-found' });
+        const { island, credit } = found;
+        const player = playerOf(request);
+        const at = nightAt(day, request);
+        void Promise.all([
+          playerState(store, player, day, island),
+          skyCount(store, day),
+        ]).then(([me, count]) => {
+          const body: IslandResponse = {
+            ok: true,
+            island: toPublicIsland(island, credit),
+            me,
+            rankedOpen:
+              me.loggedIn &&
+              me.result === null &&
+              at.night === 'tonight' &&
+              rankedOpen(day, nowFor(island, request), days(), undefined),
+            skyCount: count,
+            ...at,
+            sharedUrl: null,
+            ...(asked.get('styles') === '1' ? { stylePreview: true } : {}),
+            ...(asked.get('trailer') === '1'
+              ? { trailer: { solution: island.solution } }
+              : {}),
+          };
+          reply(response, body);
+        });
       });
-      // A stand-in sky for looking at the rendering locally: made-up test names, never shipped.
-      // Made-up test names. Day 6 is a quiet night (4 lanterns) so that last night's can be
-      // seen behind it; every other night has 140.
       server.middlewares.use('/api/sky', (request, response) => {
-        const day = Number(
-          new URL(request.url ?? '', 'http://localhost').searchParams.get(
-            'day'
-          ) ?? '1'
-        );
-        const styles = [
-          'plain',
-          'plain',
-          'paper',
-          'star',
-          'koi',
-          'comet',
-        ] as const;
-        // The hero island (days 900 and up, for scripts/hero.mjs) has an empty sky.
-        const count = isCommunity(day)
-          ? 3
-          : day >= 900
-            ? 0
-            : day === 6
-              ? 4
-              : 140;
-        const body: SkyResponse = {
-          ok: true,
-          day,
-          count,
-          lanterns: Array.from({ length: count }, (_, i) => ({
-            u: `test_${day}_${i}`,
-            s: styles[i % styles.length] ?? 'plain',
-            a: '',
-          })),
-        };
-        response.setHeader('content-type', 'application/json');
-        response.end(JSON.stringify(body));
+        const day = askedDay(request);
+        void readSky(store, day).then((sky) => {
+          const body: SkyResponse = { ok: true, day, ...sky };
+          reply(response, body);
+        });
       });
       // The Island Builder, with the real check and test proof on an in-memory store. The local
       // player is signed in as "you". ?signedout=1 on the page is not modelled here.
@@ -637,6 +597,7 @@ function localApi(): Plugin {
               label === 'tricky' || label === 'fiendish' ? label : 'gentle',
             inventory: builderChecked.inventory,
             creatorPieces: builderChecked.tested,
+            maker: playerOf(request)?.username ?? 'you',
           });
           const answer = {
             ok: true,
@@ -651,24 +612,36 @@ function localApi(): Plugin {
           setTimeout(() => send(response, answer), 700);
         });
       });
-      server.middlewares.use('/api/builder/mine', (_request, response) =>
-        send(response, {
-          ok: true,
-          loggedIn: true,
-          islands: localIslands
-            .map((island) => ({
+      // Your islands: the maker's own, with real plays and par hits from the store.
+      server.middlewares.use('/api/builder/mine', (request, response) => {
+        const maker = playerOf(request)?.username ?? null;
+        const mine = localIslands.filter((island) => island.maker === maker);
+        void Promise.all(
+          mine.map(async (island) => {
+            const number = COMMUNITY.numberBase + island.index;
+            const [plays, stats] = await Promise.all([
+              skyCount(store, number),
+              store.hGetAll(KEYS.stats(number)),
+            ]);
+            return {
               name: island.draft.name,
               biome: island.draft.biome,
               rows: island.draft.rows,
               created: island.created,
-              plays: island.index === 1 ? 12 : 0,
-              parHits: island.index === 1 ? 5 : 0,
+              plays,
+              parHits: Math.min(plays, Number(stats['parHits'] ?? 0) || 0),
               active: true,
-              url: `http://localhost:5199/game.html?day=${COMMUNITY.numberBase + island.index}`,
-            }))
-            .reverse(),
-        })
-      );
+              url: `http://localhost:5199/game.html?day=${number}`,
+            };
+          })
+        ).then((islands) =>
+          send(response, {
+            ok: true,
+            loggedIn: maker !== null,
+            islands: islands.reverse(),
+          })
+        );
+      });
       server.middlewares.use(
         '/api/builder/tutorial-done',
         (_request, response) => {
@@ -676,81 +649,56 @@ function localApi(): Plugin {
           send(response, { ok: true });
         }
       );
-      server.middlewares.use('/api/start', (_request, response) =>
-        response.end('{"ok":true}')
-      );
-      server.middlewares.use('/api/rule-seen', (_request, response) =>
-        response.end('{"ok":true}')
-      );
-      server.middlewares.use('/api/tutorial-done', (_request, response) =>
-        response.end('{"ok":true}')
-      );
-      server.middlewares.use('/api/lock-in', (request, response) => {
-        let text = '';
-        request.on('data', (chunk: Buffer) => {
-          text += chunk.toString();
+      server.middlewares.use('/api/start', (request, response) => {
+        void readBody(request).then(async (fields) => {
+          const island = islandAt(Number(fields['day']))?.island;
+          if (island !== undefined)
+            await recordStart(
+              store,
+              playerOf(request),
+              island.day,
+              nowFor(island, request)
+            );
+          reply(response, { ok: true });
         });
-        request.on('end', () => {
-          let body: LockInResponse = { ok: false, reason: 'bad-request' };
-          try {
-            const parsed: unknown = JSON.parse(text);
-            const fields: Record<string, unknown> =
-              typeof parsed === 'object' && parsed !== null
-                ? { ...parsed }
-                : {};
-            const island = islandAt(Number(fields['day']))?.island;
-            if (island === undefined) {
-              body = { ok: false, reason: 'not-found' };
-            } else {
-              const score = scoreSubmission(
-                puzzleOfDaily(island),
-                fields['placements']
-              );
-              if (!score.ok) body = { ok: false, reason: score.problem };
-              else if (!score.solved)
-                body = { ok: false, reason: 'not-solved' };
-              else if (fields['ranked'] === true && !solved.has(island.day)) {
-                const result: LockInResult = {
-                  day: island.day,
-                  pieces: score.pieces,
-                  par: island.par,
-                  medal: medalFor(score.pieces, island.par),
-                  elapsedMs: 83_000,
-                  ranked: true,
-                  streak: 4,
-                  style: 'paper',
-                  percentile: 80,
-                  rank: 3,
-                  // Day 6 is the quiet night: its four made-up lanterns, and this one.
-                  skyCount: island.day === 6 ? 5 : 141,
-                };
-                solved.set(island.day, {
-                  result,
-                  placements: score.placements,
-                });
-                body = { ok: true, ...result };
-              } else {
-                body = {
-                  ok: true,
-                  day: island.day,
-                  pieces: score.pieces,
-                  par: island.par,
-                  medal: medalFor(score.pieces, island.par),
-                  elapsedMs: 0,
-                  ranked: false,
-                  streak: 0,
-                  style: 'plain',
-                  percentile: 0,
-                  rank: 0,
-                  skyCount: 140,
-                };
-              }
-            }
-          } catch {
-            body = { ok: false, reason: 'bad-request' };
-          }
-          response.setHeader('content-type', 'application/json');
-          response.end(JSON.stringify(body));
+      });
+      server.middlewares.use('/api/rule-seen', (request, response) => {
+        void readBody(request).then(async (fields) => {
+          const rule = fields['rule'];
+          if (rule === 'sky' || isRuleKind(rule))
+            await markRuleSeen(store, playerOf(request), rule);
+          reply(response, { ok: true });
+        });
+      });
+      server.middlewares.use('/api/tutorial-done', (request, response) => {
+        void markTutorialDone(store, playerOf(request)).then(() =>
+          reply(response, { ok: true })
+        );
+      });
+      // The real Lock in: the server re-traces the pieces, times it from /api/start, ranks it.
+      server.middlewares.use('/api/lock-in', (request, response) => {
+        void readBody(request).then(async (fields) => {
+          const island = islandAt(Number(fields['day']))?.island;
+          if (island === undefined)
+            return reply(response, { ok: false, reason: 'not-found' });
+          const outcome = await lockIn(
+            store,
+            playerOf(request),
+            {
+              island,
+              placements: fields['placements'],
+              snoovatar: fields['snoovatar'],
+              wantsRanked: fields['ranked'] !== false,
+              postDay: island.day,
+              lastDay: days(),
+              nowMs: nowFor(island, request),
+            },
+            { onRanked: async () => undefined }
+          );
+          const body: LockInResponse = outcome.ok
+            ? { ok: true, ...outcome.result }
+            : { ok: false, reason: outcome.reason };
+          reply(response, body);
         });
       });
     },

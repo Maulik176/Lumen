@@ -13,6 +13,10 @@
     "../vite.debug.config.ts",
     "../src/server/core/check.ts",
     "../src/server/core/content.ts",
+    "../src/server/core/crowd.ts",
+    "../src/server/core/game.ts",
+    "../src/server/core/memory-store.ts",
+    "../src/server/core/store.ts",
     "../content/puzzles.json"
   ],
   "exclude": [],

@@ -1,5 +1,5 @@
 #!/bin/bash
-# The one way to put a build in front of players once Lumen has launched (docs/LAUNCH.md,
+# The one way to put a build on r/lumen_game_dev, before launch and after (docs/LAUNCH.md,
 # "Release routine"). It refuses uncommitted work and a running playtest watcher, runs every
 # check, asks before uploading, uploads once through `devvit playtest` (which installs the build
 # on r/lumen_game_dev), stops the watcher so later saves never go live, and tags the commit.
@@ -26,7 +26,8 @@ fi
 
 commit=$(git rev-parse --short HEAD)
 echo "Checking $commit before release..."
-npm test && npm run test:types && npm run lint && npm run build || {
+# Tests (with the everyone-accounted-for suite), types, lint, build and the four-seat pass.
+bash scripts/checks.sh || {
   echo "Checks failed: nothing was uploaded."
   exit 1
 }

@@ -8,6 +8,7 @@
     "bench": "vitest run --config vitest.bench.config.ts",
     "build": "vite build && tsx scripts/build-check.ts",
     "check:build": "tsx scripts/build-check.ts",
+    "checks": "bash scripts/checks.sh",
     "debug": "vite --config vite.debug.config.ts",
     "dev": "tsx scripts/live-guard.ts && devvit playtest",
     "gen": "tsx scripts/gen.ts",
@@ -17,6 +18,7 @@
     "prettier": "prettier --write .",
     "release": "bash scripts/release.sh",
     "report": "tsx scripts/report.ts",
+    "seats": "node scripts/seats.mjs",
     "test": "vitest run",
     "test:types": "tsc --build",
     "test:watch": "vitest"
