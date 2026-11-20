@@ -5,37 +5,42 @@ Vite). It is an entry for Reddit's Game of the Day hackathon; submission closes 
 
 ## Where things stand (update at the end of every milestone)
 
-**Start here: Thu Nov 19, 2026, evening (Opus). Island Builder phase 2 is being built** from
-`PHASE2_PLAN.md` (approved Nov 19 with all six section-0 recommendations). Timeline: P2 by Nov 21,
-P3 by Nov 23 (first Sunday pick Sat Nov 28), P4 polish Nov 26–27, atmosphere pass and trailer
-ending after launch (Nov 24–26). One commit per numbered item; push after the phase; **upload
-only when Maulik says.**
-- **P2 built (Nov 20), committed and pushed, NOT uploaded** (Maulik uploads on his word). Report,
-  judge pass and what is left: end of `PHASE2_PLAN.md`. Phone checks C1–C12:
-  `docs/TESTS-TO-RUN.md` 1d. Community islands: numbers from `COMMUNITY.numberBase`
-  (`shared/community.ts`), `lookUpIsland` in every route, `cm:*` keys, `groups:{n}` for
-  identical boards, triggers `onPostDelete`/`onModAction`. Local: publish in `builder.html`,
-  then `game.html?day=1000001` and `preview.html?day=1000001` (`&user=name` as another player;
-  editing `config.ts` restarts the stand-in and forgets local islands). 431 tests.
-  **Next:** Maulik's phone test of C1–C12, then Phase 3 (Sunday pick) by Nov 23, then the
-  Phase 4 queue at the end of `BUILDER_PLAN.md` (real card pictures, approved Nov 20).
-  v0.0.1.86 uploaded (adds the media permission and "Dev: test picture upload").
-- **The brief, word for word:** `docs/PHASE2_BRIEF.md`. First write `PHASE2_PLAN.md` (no code),
-  then stop for Maulik's OK. Phase 1 is approved and phone-tested; read `BUILDER_PLAN.md` (plan,
-  decisions in section 0, P1 report, the Nov 19 phone run and its fixes at the end).
-- **Last uploaded:** v0.0.1.80 (Nov 19): P1, the phone-run fixes, the check doubled to
-  `COMMUNITY.solveNodes` 800,000 (400,000 took 1.12 s on Reddit's server), and the checking sweep
-  ("Checking your island…", light across the board, `BUILDER_VIEW.checkSweepMs`/`checkMinMs`).
-  Last commit 49b988a, pushed. 395 tests.
-- **Waiting on Maulik's phone:** `docs/TESTS-TO-RUN.md` 1c rows B7–B9 (the Nov 19 fixes) and the
-  sweep; also B11, H1, H4, H5, G2, G3, H2, H3, H6 from the A1–H6 list.
+**Start here: Fri Nov 20, 2026 (Opus). Island Builder phase 2 is built, uploaded and
+phone-tested; Phase 3 (the Sunday pick) is next.** Timeline (Maulik, Nov 19): P3 by Nov 23 (first
+Sunday pick Sat Nov 28), launch Tue Nov 24, P4 polish Nov 26–27, atmosphere pass and trailer
+ending after launch (Nov 24–26). Each phase starts with a plan for Maulik's OK, one commit per
+numbered item, push after the phase; **upload only when Maulik says.**
+- **Last uploaded:** v0.0.1.90 (Nov 20), commit 7417aff, pushed; GitHub `main` matches. 438
+  tests. Playtest watcher stopped.
+- **Phase 2 (built Nov 20):** publish flow, community island posts, Your islands, the switch, dev
+  tools. Plan, report, judge pass: `PHASE2_PLAN.md` (brief: `docs/PHASE2_BRIEF.md`). Community
+  islands use numbers from `COMMUNITY.numberBase` (`shared/community.ts`), `lookUpIsland` in every
+  route, `cm:*` keys, `groups:{n}` for identical boards, triggers `onPostDelete`/`onModAction`.
+  Local: publish in `builder.html`, then `game.html?day=1000001` and `preview.html?day=1000001`
+  (`&user=name` as another player; editing `config.ts` restarts the stand-in and forgets local
+  islands). Headless renders: `scripts/shoot.mjs` `withPage` (the preview pane is often hidden,
+  which throttles animations).
+- **Maulik's Nov 20 phone run** (his recordings in ~/Downloads: `c1 to c12 test.mp4`,
+  `lamp visibility.mp4`; transcribe locally with faster-whisper in the scratchpad venv): C1–C3,
+  C5, C7–C10 passed; C4/C6 wait for a friend; C11 skipped (Builder stays on). Fixed after it:
+  taps inside rocks/water no longer snap (`RULES.tapSnapInside`), ghost hand only in the tutorial,
+  Builder lines show par and label, a real publish celebration (`BUILDER_VIEW.celebrate*`), the
+  player listed once in See others' islands, the "You" label no longer slides when scrolled,
+  pointer cursor on buttons, and quiet skies (`SKY.quietUpTo`/`busyFrom`/`quiet*`: other players'
+  lanterns hover in clear view, twice as large). **Waiting on his phone:** re-checks C13–C20 in
+  `docs/TESTS-TO-RUN.md` 1d, plus C4/C6 with a friend, and older 1c rows.
+- **Phase 4 queue (end of `BUILDER_PLAN.md`):** (1) real pictures for community cards, approved
+  after Phase 3: 3D snapshot at Publish, uploaded with `media.upload` (tested Nov 20: data URL
+  works, 960 ms, 21 KB JPEG on i.redd.it, PLATFORM.md); card shows stock art first and swaps in;
+  remove "Dev: test picture upload" when it lands. (2) Daily cards: pre-render all 90 islands
+  unsolved.
 - **Phone tests by Claude:** iPhone Mirroring through computer use (needs full-screen control;
   `open_application("iPhone Mirroring")` brings it to the front before clicking). Type one
-  character at a time: fast typing through the mirror garbles letters. Server timings:
-  `npx devvit logs lumen_game_dev lumen-game` (look for `Builder check:`).
-- **Captures are submission material:** after every phone run, copy the computer-use captures
-  (the session's `tool-results/` folder) into `captures/<date>-iphone/` (gitignored: the repo is
-  public) and index the useful ones in `docs/CAPTURES.md`, which maps them to `docs/SUBMISSION.md`.
+  character at a time: fast typing through the mirror garbles letters. Server logs:
+  `npx devvit logs lumen_game_dev lumen-game` (`Builder check:`, `Builder publish:`).
+- **Captures are submission material:** copy captures into `captures/<date>-…/` (gitignored: the
+  repo is public) and index them in `docs/CAPTURES.md`, which maps them to `docs/SUBMISSION.md`.
+  Maulik's own phone recordings are the best video source.
 - **Upload:** before launch `bash .tmp/upload.sh` (then `pgrep -fl dev-build` and kill anything
   left); after launch only `npm run release` (`docs/LAUNCH.md` section 3). Never
   `devvit publish`. Push to GitHub after every phase without asking.
