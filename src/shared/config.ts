@@ -1284,6 +1284,21 @@ export const SKY = {
    * busy night never smothers the player's own lantern. With fewer, every one is always in view.
    */
   comfortable: 28,
+  /**
+   * A quiet night (Nov 20: a friend's lantern was a speck at the top edge of Reddit's phone-sized
+   * window, or behind the result card, and faded out where its climb wraps round). With up to
+   * quietUpTo lanterns, each one hovers instead of climbing: it drifts slowly up and down between
+   * the line of sight and quietBandAbove of the half-height above it (clear of the result card and
+   * the window's title bar), within quietFill of the half-width (narrow enough for the wide
+   * layout, which shifts the picture left of the result card), never fades, and is drawn
+   * quietSize times larger. From busyFrom lanterns, the climbing sky as before; between, a blend.
+   */
+  quietUpTo: 6,
+  busyFrom: 16,
+  quietBandBelow: 0,
+  quietBandAbove: 0.75,
+  quietFill: 0.55,
+  quietSize: 2,
   /** A new arrival starts this far (0..1) into its climb, so it rises into view. */
   arrivalClimb: 0.04,
   /** They drift upward this fast, in tiles per second, and wrap around at the top. */

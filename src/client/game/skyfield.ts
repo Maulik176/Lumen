@@ -26,6 +26,8 @@ import {
   arrivalPhase,
   crowdScale,
   nameHash,
+  quietness,
+  skySize,
   skyLook,
   skySpot,
   type SkyLook,
@@ -73,21 +75,33 @@ const VERTEX = /* glsl */ `
   uniform float uAbove;
   uniform float uSway;
   uniform float uCrowd;
+  uniform float uQuiet;
+  uniform float uQuietBelow;
+  uniform float uQuietAbove;
+  uniform float uQuietFill;
   varying float vAlpha;
   varying float vCell;
   void main() {
     // position: x = side (-1..1), y = phase (0..1), z = -depth.
     float span = uHigh - uLow;
     float rate = uSpeed * (0.6 + aSeed * 0.8) / span;
-    float t = fract(position.y + uTime * rate);
+    // The same formulas as skySpot and skyFade in shared/skyspot.ts: on a quiet night the
+    // climb becomes a slow hover up and down in clear view, and nothing fades.
+    float wrap = fract(position.y + uTime * rate);
+    float hover = 0.5 - 0.5 * cos(6.2831853 * wrap);
+    float t = mix(wrap, hover, uQuiet);
+    float below = mix(uBelow, uQuietBelow, uQuiet);
+    float above = mix(uAbove, uQuietAbove, uQuiet);
+    float fill = mix(uFill, uQuietFill, uQuiet);
     float depth = -position.z;
     float reach = depth + uCamBack;
-    float x = position.x * uHalfH * uFill * reach + sin(uTime * 0.25 + aSeed * 40.0) * uSway;
+    float x = position.x * uHalfH * fill * reach + sin(uTime * 0.25 + aSeed * 40.0) * uSway;
     float yPlay = uLow + t * span;
-    float yAloft = uAimY - uDropTan * depth + (t * (uBelow + uAbove) - uBelow) * uHalfV * uFill * reach * uCrowd;
+    float yAloft = uAimY - uDropTan * depth + (t * (below + above) - below) * uHalfV * fill * reach * uCrowd;
     vec3 p = vec3(x, mix(yPlay, yAloft, uAloft), position.z);
     // Fade in at the bottom and out at the top, so wrapping round is never seen.
-    float edge = smoothstep(0.0, 0.08, t) * smoothstep(1.0, 0.9, t);
+    float edge = smoothstep(0.0, 0.08, wrap) * smoothstep(1.0, 0.9, wrap);
+    edge = 1.0 - (1.0 - edge) * (1.0 - uQuiet);
     // A lantern that has just arrived is larger for a few seconds.
     float fresh = 1.0 + 0.8 * exp(-max(0.0, uTime - aBorn) * 0.6);
     vAlpha = edge * mix(uDay, 1.0, uNight) * mix(1.0, uFaint, aFaint);
@@ -295,6 +309,10 @@ export function createSkyField(
     uAbove: { value: SKY.bandAbove },
     uSway: { value: SKY.sway },
     uCrowd: { value: 1 },
+    uQuiet: { value: 1 },
+    uQuietBelow: { value: SKY.quietBandBelow },
+    uQuietAbove: { value: SKY.quietBandAbove },
+    uQuietFill: { value: SKY.quietFill },
     uGrid: { value: new Vector2(COLUMNS, ROWS) },
   };
   const material = keeper.keep(
@@ -417,10 +435,11 @@ export function createSkyField(
       uniforms.uHalfV.value = now.halfV;
       uniforms.uHalfH.value = now.halfH;
       uniforms.uCrowd.value = crowdScale(now.count);
+      uniforms.uQuiet.value = quietness(now.count);
       nowSeconds = timeMs / 1000;
       uniforms.uTime.value = calm ? nowSeconds * 0.35 : nowSeconds;
       uniforms.uNight.value = night;
-      uniforms.uSize.value = SKY.pointSize * pixelRatio;
+      uniforms.uSize.value = SKY.pointSize * pixelRatio * skySize(now.count);
       // Newly painted cells reach the graphics card once per frame at most.
       if (sheetStale) {
         sheetStale = false;

@@ -5,7 +5,9 @@ import {
   arrivalPhase,
   climbAt,
   othersInSky,
+  skyFade,
   skyLook,
+  skySize,
   skySpot,
   type SkyView,
 } from './skyspot';
@@ -67,6 +69,40 @@ describe('every lantern can be seen', () => {
       SKY.arrivalClimb,
       5
     );
+  });
+});
+
+describe('a quiet night: everyone who lit it is plain to see (Nov 20)', () => {
+  // Maulik's desktop test: a friend's lantern was a speck at the very top of Reddit's phone-sized
+  // window, or behind the result card, and faded away as its slow climb wrapped round.
+  const modal: SkyView = { ...phone, halfH: tanHalf * (375 / 596), count: 2 };
+  const wide: SkyView = { ...phone, halfH: tanHalf * (1100 / 700), count: 2 };
+
+  it('each lantern hovers between the line of sight and the upper sky, clear of every edge', () => {
+    for (const view of [modal, wide, phone])
+      for (let i = 0; i < 300; i++) {
+        const look = skyLook(`player_${i}`);
+        for (let second = 0; second < 900; second += 37) {
+          const spot = skySpot(look, second, view);
+          const reach = -spot.z + view.camBack;
+          const up =
+            (spot.y - (view.aimY - view.dropTan * -spot.z)) /
+            (view.halfV * reach);
+          expect(up).toBeGreaterThanOrEqual(-0.001);
+          expect(up).toBeLessThanOrEqual(0.6);
+          expect(Math.abs(spot.x) / (view.halfH * reach)).toBeLessThanOrEqual(
+            0.8
+          );
+        }
+      }
+  });
+
+  it('never fades out, and is drawn larger than on a busy night', () => {
+    const look = skyLook('mohak2605');
+    for (let second = 0; second < 900; second += 5)
+      expect(skyFade(look, second, 2)).toBe(1);
+    expect(skySize(2)).toBeGreaterThanOrEqual(1.8);
+    expect(skySize(300)).toBe(1);
   });
 });
 

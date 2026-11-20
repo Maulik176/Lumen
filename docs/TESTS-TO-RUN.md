@@ -87,6 +87,7 @@ first Phase 4 item (`BUILDER_PLAN.md`, Phase 4 queue).
 | C17 | "You" label | After Lock in, scroll up and down over the sky: "You" stays just above your lantern |
 | C18 | See others' islands | You appear once, as "Your island", not again as u/name |
 | C19 | Desktop cursor | Buttons show the hand cursor |
+| C20 | Other players' lanterns on a quiet night (Nov 20 "lamp visibility") | With a friend's Lock in on the same island, after yours: their lantern is clearly visible (about half the size of yours) in Mobile, Desktop and Fullscreen on desktop Reddit and on the phone, drifting slowly, never hidden behind the card or the title bar |
 
 ## 2. Fixed in code, never confirmed on a phone
 

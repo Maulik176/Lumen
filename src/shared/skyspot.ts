@@ -32,6 +32,35 @@ export function crowdScale(count: number): number {
   return Math.max(1, count / SKY.comfortable);
 }
 
+/**
+ * 1 on a quiet night (each lantern hovers in clear view, larger), 0 on a busy one (they climb
+ * through a tall band and wrap round), a blend between SKY.quietUpTo and SKY.busyFrom.
+ */
+export function quietness(count: number): number {
+  const share = (SKY.busyFrom - count) / (SKY.busyFrom - SKY.quietUpTo);
+  return Math.min(1, Math.max(0, share));
+}
+
+/** How much larger than usual the other players' lanterns are drawn tonight. */
+export function skySize(count: number): number {
+  return 1 + (SKY.quietSize - 1) * quietness(count);
+}
+
+function smoothstep(from: number, to: number, value: number): number {
+  const x = Math.min(1, Math.max(0, (value - from) / (to - from)));
+  return x * x * (3 - 2 * x);
+}
+
+/**
+ * How visible a lantern is: on a busy night it fades in at the bottom of its climb and out at
+ * the top, so wrapping round is never seen; on a quiet night it never fades.
+ */
+export function skyFade(look: SkyLook, seconds: number, count: number): number {
+  const wrap = climbAt(look, seconds);
+  const edge = smoothstep(0, 0.08, wrap) * smoothstep(1, 0.9, wrap);
+  return 1 - (1 - edge) * (1 - quietness(count));
+}
+
 /** A repeatable number in 0..1 from a name. */
 export function nameHash(name: string, salt: number): number {
   let h = 2166136261 ^ salt;
@@ -83,18 +112,24 @@ export function skySpot(
   seconds: number,
   view: SkyView
 ): { x: number; y: number; z: number } {
-  const t = climbAt(look, seconds);
+  // On a quiet night the climb becomes a slow hover up and down, so nothing wraps round.
+  const quiet = quietness(view.count);
+  const wrap = climbAt(look, seconds);
+  const hover = 0.5 - 0.5 * Math.cos(2 * Math.PI * wrap);
+  const t = wrap + (hover - wrap) * quiet;
+  const below = SKY.bandBelow + (SKY.quietBandBelow - SKY.bandBelow) * quiet;
+  const above = SKY.bandAbove + (SKY.quietBandAbove - SKY.bandAbove) * quiet;
+  const fill = SKY.viewFill + (SKY.quietFill - SKY.viewFill) * quiet;
   const reach = look.depth + view.camBack;
   const sway = Math.sin(seconds * 0.25 + look.seed * 40) * SKY.sway;
-  const x = look.side * view.halfH * SKY.viewFill * reach + sway;
+  const x = look.side * view.halfH * fill * reach + sway;
   const play = SKY.heightLow + t * (SKY.heightHigh - SKY.heightLow);
-  const band = SKY.bandBelow + SKY.bandAbove;
   const aloft =
     view.aimY -
     view.dropTan * look.depth +
-    (t * band - SKY.bandBelow) *
+    (t * (below + above) - below) *
       view.halfV *
-      SKY.viewFill *
+      fill *
       reach *
       crowdScale(view.count);
   return {
