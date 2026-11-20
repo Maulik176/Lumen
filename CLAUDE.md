@@ -5,8 +5,8 @@ Vite). It is an entry for Reddit's Game of the Day hackathon; submission closes 
 
 ## Where things stand (update at the end of every milestone)
 
-**Start here: Fri Nov 20, 2026 (Opus). The "everyone accounted for" fix is built and pushed,
-waiting for upload and Maulik's phone check from his account and u/mohak2605's (R1–R4 in
+**Start here: Fri Nov 20, 2026 (Opus). The "everyone accounted for" fix is uploaded
+(v0.0.1.92), waiting for Maulik's phone check from his account and u/mohak2605's (R1–R4 in
 `docs/TESTS-TO-RUN.md`). Phase 3 is approved (`PHASE3_PLAN.md`, with Maulik's E5 change) and
 starts only after that check passes.** Timeline (Maulik, Nov 19): P3 by Nov 23 (first Sunday
 pick Sat Nov 28), launch Tue Nov 24, P4 polish Nov 26–27, atmosphere pass and trailer ending
@@ -20,8 +20,8 @@ below before any change.
   shows only other boards, every count is read fresh, kept lists moved to `others:v2:{day}`.
   The new suite also found: a dev reset kept the par hit (fixed), and the card's rank was the
   rank at Lock in (now the board's). List logic lives in `src/shared/others.ts`.
-- **Last uploaded:** v0.0.1.90 (Nov 20), commit 7417aff. Since then (pushed, not uploaded):
-  the fix above, the local stand-in running real game code, `npm run checks`. 448 tests.
+- **Last uploaded:** v0.0.1.92 (Nov 20), commit f40fa04, tag `release-v0.0.1.92`, through
+  `npm run release` (checks passed: 448 tests, four seats). GitHub `main` matches.
 - **Phase 2 (built Nov 20):** publish flow, community island posts, Your islands, the switch, dev
   tools. Plan, report, judge pass: `PHASE2_PLAN.md` (brief: `docs/PHASE2_BRIEF.md`). Community
   islands use numbers from `COMMUNITY.numberBase` (`shared/community.ts`), `lookUpIsland` in every
