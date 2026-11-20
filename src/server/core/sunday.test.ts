@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { flairFor } from '../../shared/streak';
 import { readCommunity, setIslandActive, setIslandExcluded } from './community';
 import { islandForDay } from './content';
+import { devToolsRefusal } from './devtools';
+import { communityShelf, refreshVotes } from './shelf';
 import { fakeReddit, maker, publishFrom } from './islands-for-tests';
 import { memoryStore } from './memory-store';
 import { KEYS } from './store';
@@ -535,5 +537,42 @@ describe('the dev tools (r/lumen_game_dev, before launch)', () => {
     );
     expect(await store.get(KEYS.pinned(SUNDAY_6))).toBeUndefined();
     expect(await store.get(KEYS.pinnedLast)).toBeUndefined();
+  });
+});
+
+describe('behind the switches (PHASE3_PLAN.md item 7)', () => {
+  it('community off: no pick, no scores, no Community view, no pick served, nothing written', async () => {
+    const store = memoryStore();
+    const { reddit, scores, comments, flairs } = fakeReddit();
+    const one = await publishFrom(store, 6, maker('ana'), MIDWEEK);
+    scores.set(one.postId, 9);
+    const off = { ...options, enabled: false };
+    expect(await ensurePick(store, reddit, pickTime(SUNDAY_6), off)).toBeNull();
+    expect(await refreshVotes(store, reddit, MIDWEEK, false)).toBe(0);
+    expect(await communityShelf(store, MIDWEEK, 0, false)).toEqual({
+      ok: false,
+      reason: 'resting',
+    });
+    const choice = await chooseWinner(
+      store,
+      reddit,
+      SUNDAY_6,
+      pickWindow(SUNDAY_6),
+      off
+    );
+    expect(choice.winner).toBeNull();
+    expect(choice.reasons).toBe('community off');
+    expect(await readPick(store, SUNDAY_6)).toBeNull();
+    expect(comments.size).toBe(0);
+    expect(flairs).toEqual([]);
+    expect((await islandOfDay(store, SUNDAY_6, false))?.island).toEqual(
+      islandForDay(SUNDAY_6)
+    );
+  });
+
+  it('launched: the dev pick and preview refuse; the mod tools have no such gate', () => {
+    expect(devToolsRefusal('lumen_game_dev', true)).not.toBeNull();
+    expect(devToolsRefusal('lumen_game_dev', false)).toBeNull();
+    expect(devToolsRefusal('somewhere_else', false)).not.toBeNull();
   });
 });
