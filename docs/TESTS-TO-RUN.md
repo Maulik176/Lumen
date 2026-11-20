@@ -104,6 +104,29 @@ version are worked out again on first open (`others:v2`), so the existing post s
 **Nov 20, on v0.0.1.92:** R1 and R2 passed (Maulik and u/mohak2605 on Blossom Island #3). R3 and
 R4 wait for the Nov 21 daily post.
 
+## 1f. Phase 3: the Sunday pick (built Nov 21, `PHASE3_PLAN.md`)
+
+Set up with a second and third account (and the dev clock); D1 **must pass before launch on
+Nov 24**: it decides whether `PINS.enabled` stays on. D11 and D12 are the real first pick.
+
+| # | Check |
+| --- | --- |
+| D1 | **Before launch.** Pin How to play by hand. "Dev: set today" to the next day, "Post today's Lumen": the new post is pinned on top, the previous daily unpinned, How to play still pinned. If How to play was unpinned, set `PINS.top` false and try again; if pins misbehave either way, `PINS.enabled` false |
+| D2 | Mod menu on an island post: "Lumen: exclude from Sunday pick" ("Excluded from the Sunday pick."), then "Lumen: include in Sunday pick again" ("In the running again."); on a daily post: "This is not a community island." |
+| D3 | Three islands from three accounts, different upvotes; "Dev: who would win Sunday now" names the one with the most votes (par 3 to 5 only) |
+| D4 | "Dev: set today" to Saturday (day 5), "Dev: run Sunday pick now": the comment "Chosen as Sunday's island… Well built, u/name." on the winning post (the maker gets a notification), their flair gains "Islandwright" |
+| D5 | "Dev: set today" to Sunday (day 6), "Post today's Lumen": title "Lumen #6 · Name · Sunday · Island by u/name", feed card kicker "Lumen #6 · Island by u/name" with the snoovatar, the maker's world, pinned |
+| D6 | A second account plays it ranked: top bar "Name · by u/name", result card "Island by u/name, chosen by the community", streak and medal as usual, flair updates. The maker plays too: "Your island", "Chosen by the community for Sunday", "Your own island: not ranked", "Your streak goes on", not on the board; "Maker's board" first in See others' islands |
+| D7 | The results comment names the island and maker, with a link to the original post |
+| D8 | Archipelago (from Monday's post): Nights shows "by u/name" under Sunday; Community shows the pick card, This week and Earlier; tapping a row opens its post |
+| D9 | Remove the winner as a mod before Sunday's post: the pick runs again ("Dev: who would win" shows the next one) and the old comment is gone; after Sunday's post nothing changes |
+| D10 | No island with 2 votes: the pick says generated ("Dev: run Sunday pick now"); Sunday is the generated island |
+| D11 | **Real run:** Sat Nov 28 20:00 UTC (Sun 01:30 IST): the pick happens by itself (`npx devvit logs lumen_game_dev lumen-game`: "Sunday pick for day 6") and the comment appears |
+| D12 | **Real rollover:** Sun Nov 29 00:00 UTC (05:30 IST): Lumen #6 is the pick, pinned, credited |
+
+Before launch: "Dev: clean up this subreddit" also clears test picks; afterwards open day 6
+with "Dev: set today" and check it is the generated island again ("Two Suns").
+
 ## 2. Fixed in code, never confirmed on a phone
 
 | # | Test | How |

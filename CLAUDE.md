@@ -5,14 +5,21 @@ Vite). It is an entry for Reddit's Game of the Day hackathon; submission closes 
 
 ## Where things stand (update at the end of every milestone)
 
-**Start here: Fri Nov 20, 2026 (Opus). The "everyone accounted for" fix is uploaded
-(v0.0.1.92); R1 and R2 passed on Maulik's phone from both accounts, R3 and R4 run on the Nov 21
-daily post (`docs/TESTS-TO-RUN.md` 1e). Phase 3 is approved (`PHASE3_PLAN.md`, with Maulik's E5 change) and
-starts only after that check passes.** Timeline (Maulik, Nov 19): P3 by Nov 23 (first Sunday
-pick Sat Nov 28), launch Tue Nov 24, P4 polish Nov 26–27, atmosphere pass and trailer ending
-after launch (Nov 24–26). Each phase starts with a plan for Maulik's OK, one commit per
-numbered item, push after the phase; **upload only when Maulik says.** Read "Quality rules"
-below before any change.
+**Start here: Sat Nov 21, 2026 (Opus). Phase 3 (the Sunday pick) is built and pushed, not
+uploaded: report and phone checks in `PHASE3_PLAN.md` ("P3 report") and `docs/TESTS-TO-RUN.md`
+1f (D1, the pins, must pass before launch).** The "everyone accounted for" fix is live
+(v0.0.1.92): R1 and R2 passed on Maulik's phone, R3 and R4 run on the Nov 21 daily post (1e).
+Timeline (Maulik, Nov 19): launch Tue Nov 24, first Sunday pick Sat Nov 28 20:00 UTC, P4 polish
+Nov 26–27, atmosphere pass and trailer ending after launch (Nov 24–26). Each phase starts with
+a plan for Maulik's OK, one commit per numbered item, push after the phase; **upload only when
+Maulik says.** Read "Quality rules" below before any change.
+- **Phase 3 in one breath:** `server/core/sunday.ts` (pick, freeze in `sun:{day}`, withdrawal,
+  effects), `sunday-store.ts` (reading a pick; `islandOfDay` serves it to every route),
+  `shelf.ts` (the map's Community view, scores in `cm:votes:{sunday}`), `pins.ts`,
+  `pick-reddit.ts` (the real Reddit calls). Locally: `npm run sunday-pass` sets up a week on
+  the stand-in and checks every Sunday screen from four seats; `/api/dev/island`, `/dev/score`,
+  `/dev/pick`, `/dev/log` drive it by hand. A video storyboard and shot list is in
+  `docs/VIDEO.md` (another session wrote it Nov 21).
 - **Nov 20 evening, the missing stranger:** on Blossom Island #3 Maulik (first on the board)
   could not see u/VisibleSalamander536, who placed his exact board. Phase 2's grouping of
   identical boards collided with the list's "don't show me twice" filter; daily posts too. Now
@@ -21,7 +28,8 @@ below before any change.
   The new suite also found: a dev reset kept the par hit (fixed), and the card's rank was the
   rank at Lock in (now the board's). List logic lives in `src/shared/others.ts`.
 - **Last uploaded:** v0.0.1.92 (Nov 20), commit f40fa04, tag `release-v0.0.1.92`, through
-  `npm run release` (checks passed: 448 tests, four seats). GitHub `main` matches.
+  `npm run release` (checks passed: 448 tests, four seats). Since then on `main`, not uploaded:
+  all of Phase 3 (488 tests); `npm run checks` now also runs the Sunday pass.
 - **Phase 2 (built Nov 20):** publish flow, community island posts, Your islands, the switch, dev
   tools. Plan, report, judge pass: `PHASE2_PLAN.md` (brief: `docs/PHASE2_BRIEF.md`). Community
   islands use numbers from `COMMUNITY.numberBase` (`shared/community.ts`), `lookUpIsland` in every

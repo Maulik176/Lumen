@@ -348,3 +348,64 @@ player plays Sunday ranked, flair text checked, the Archipelago's two views. Scr
    If it slips, the pick must land before Nov 28 20:00 UTC; the Archipelago section can follow.
 8. **Flair overwrites:** the app writes the whole flair text, so a player's own flair in
    r/lumen_game_dev is replaced at each Lock in, as today.
+
+---
+
+## P3 report (Nov 21)
+
+**Built, one commit per item:** (1) the Sunday pick: the week before Saturday 20:00 UTC, live
+islands with at least 2 votes and par 3 to 5, ranked by score then par hits, plays, the
+earliest; the leaders re-checked with today's engine (at most 3, difficulty at least 55); the
+winner frozen whole into `sun:{day}`; cron, half-hourly catch-up and Sunday's post creation as
+the last chance; a moderator's removal before Sunday's post withdraws and re-runs the pick, a
+deletion keeps it; the comment on the winning post; Sunday's post titled and carded with the
+credit (c9586de). (2) Credit everywhere and the maker's own Sunday (E5: kept, not ranked,
+streak continues; "Maker's board") (551e108). (3) Islandwright flair (c5ad653). (4) Today's
+post pinned, yesterday's unpinned, How to play untouched (2c8a39e). (5) The Archipelago's
+Community view and maker badges, `/api/community`, scores refreshed half-hourly (7c74485).
+(6) Mod exclude and include, dev pick and preview, clean-up and reset (bd33bc7). (7) Both
+switches (e1dff9d). Also: the local stand-in now runs the Builder, the pick and the Community
+view on the real server code (38f8ec0), and the judge pass below (50558f4). 488 tests.
+
+**Rule 3 (data that changes meaning), every reader found and changed:** the island behind a
+daily number (now Sunday's pick for a picked Sunday: the lookup every route uses, the post's
+title and data, the results comment, past islands, the feed card's world); "a maker's row
+means a community island" (the crowd line and the row's name now go by the island's number);
+a kept-but-unranked result (the maker's: reset no longer takes back counts it never added,
+their own row counts them); deleted vs removed posts (`postActivity` says which).
+
+**How it was tested:** Vitest: `sunday.test.ts` (window edges, ranking and tie-breaks,
+minimum score, band, re-check and its limit, exclusion, removed and deleted posts, double
+fire, skipped tick and catch-up, last chance, frozen copy over all 90 days, withdrawal and its
+flair, fallback, dev pick and preview, clean-up, both switches), `shelf.test.ts` (every live
+island listed exactly once over every page, never a removed or excluded one), `pins.test.ts`,
+the maker's Sunday in `game.test.ts`, and a Sunday-with-maker night in the
+everyone-accounted-for suite. Key tests were checked to fail with the lock, the freeze, the
+week window, or the maker's path removed. Locally (`npm run sunday-pass`, now in `npm run
+checks`): three makers publish, votes differ, the pick runs, a crowd plays Sunday with the
+maker among them, and the feed card, result cards, See others' islands and both map views are
+opened from four seats at 430x701, 360x460 and 1100x700 and checked from the screen
+(captures: `captures/2026-11-21-phase3-judge/`).
+
+**Judge pass, fixed:** the maker's card credited them to themselves ("Chosen by the community
+for Sunday" now); "1 nights"; the picked island's own row on the map said "Be the first to
+light it" ("Chosen for Sunday, Nov 29" now); a date broke between month and day at 360 px.
+**Left:** the same island appears twice on the map's Community view (the pick card for Sunday,
+and its own post under Earlier, each with its own count); on desktop another lantern can sit
+partly behind your own, and "You" sat slightly right of the lantern in headless shots (to
+check on the phone).
+
+**Not tested on Reddit (all of it):** phone checks D1-D12 in `docs/TESTS-TO-RUN.md` 1f. The
+unknowns that matter most: how Reddit's two pin slots behave (D1, before launch), whether a
+playtest app reads live post scores (D3), the comment's username mention notifying the maker,
+`onModAction` telling removal from deletion, and the real cron on Sat Nov 28.
+
+**Risks before Nov 24 and Nov 28:**
+1. Pinning runs on every daily post from launch day: D1 must pass first, or `PINS.enabled`
+   goes false (one config change).
+2. A test pick left in Redis would become the real Sunday: launch-day clean-up clears it
+   (LAUNCH.md says to check day 6 afterwards).
+3. The first pick needs islands published Nov 24-28 with at least 2 votes: line up friends.
+4. Reddit fuzzes small scores; ties fall to par hits, plays and the earliest.
+5. The Saturday pick reads every island's post (at most 200) and re-checks up to 3 (about 7 s
+   at worst on Reddit's server), well inside 30 s.
