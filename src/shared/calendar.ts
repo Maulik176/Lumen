@@ -53,6 +53,27 @@ export function dayStartMs(day: number): number {
   return dayOneMs() + (day - 1) * MS_PER_DAY;
 }
 
+const MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+] as const;
+
+/** "Nov 29": a day number's date, short, for lines such as "Chosen for Sunday, Nov 29". */
+export function monthDay(day: number): string {
+  const date = new Date(dayStartMs(day));
+  return `${MONTHS[date.getUTCMonth()] ?? ''} ${date.getUTCDate()}`;
+}
+
 /** The day number that a moment in time (milliseconds since the epoch, UTC) falls on. */
 export function dayAt(epochMs: number): number {
   return Math.floor((epochMs - dayOneMs()) / MS_PER_DAY) + 1;

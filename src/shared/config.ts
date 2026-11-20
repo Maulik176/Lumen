@@ -209,6 +209,11 @@ export const COPY = {
   sundayMakerStreak: 'Your streak goes on \u00b7 {streak} nights',
   /** On the picked island's own post (feed card) and in Your islands. */
   sundayChosen: 'Chosen for Sunday, {date}',
+  /** Sunday's feed card kicker and top bar, when a player's island was picked. */
+  sundayKicker: 'Lumen #{day} \u00b7 Island by u/{maker}',
+  sundayTitleName: '{name} \u00b7 by u/{maker}',
+  /** The maker's own result card on their Sunday (E5): no medal, their island. */
+  sundayMakerTitle: 'Your island',
   /**
    * The app's comment on the winning post (E11). Naming the maker makes Reddit notify them.
    * Emoji allowed: it is a Reddit comment. {sub} is the subreddit.

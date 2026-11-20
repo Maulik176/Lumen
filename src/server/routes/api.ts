@@ -6,6 +6,8 @@ import {
   readPostData,
   toCommunityPostData,
   toPublicIsland,
+  toSundayPostData,
+  type CommunityCredit,
   type IslandResponse,
   type BoardResponse,
   type CardResponse,
@@ -110,6 +112,14 @@ function islandFor(day: number): Promise<IslandLookup> {
   }));
 }
 
+/** A daily Sunday picked from the community: its maker's credit (without their user id). */
+function sundayCredit(found: IslandLookup): CommunityCredit | undefined {
+  const winner = found.ok ? found.pick?.winner : undefined;
+  if (winner === undefined || winner === null) return undefined;
+  const { maker, makerAvatar, label } = winner.credit;
+  return { maker, makerAvatar, label };
+}
+
 async function body(request: {
   json: () => Promise<unknown>;
 }): Promise<Record<string, unknown>> {
@@ -170,7 +180,8 @@ api.get('/island', async (c) => {
     ok: true,
     island: toPublicIsland(
       island,
-      record === null ? undefined : creditOf(record)
+      record === null ? undefined : creditOf(record),
+      sundayCredit(found)
     ),
     me,
     rankedOpen: open && me.loggedIn,
@@ -207,6 +218,7 @@ api.post('/lock-in', async (c) => {
   if (!found.ok)
     return c.json<LockInResponse>({ ok: false, reason: 'not-found' }, 404);
   const { island } = found;
+  const makerId = found.pick?.winner?.credit.makerId;
   const outcome = await lockIn(
     store,
     await whoIsAsking(),
@@ -218,6 +230,8 @@ api.post('/lock-in', async (c) => {
       postDay: postDay(),
       lastDay: lastDay(),
       nowMs: nowMs(),
+      // The maker of a Sunday pick: kept, not ranked, streak continued (E5).
+      ...(makerId === undefined ? {} : { makerId }),
     },
     effects
   );
@@ -292,7 +306,8 @@ api.get('/others', async (c) => {
     island,
     nowMs(),
     lastDay(),
-    record === null ? null : creatorRow(record)
+    // The maker's own test, pinned first: a community island's, or a Sunday pick's (E5).
+    record === null ? (found.pick?.winner?.creator ?? null) : creatorRow(record)
   );
   if (!others.ok)
     return c.json<OthersResponse>({ ok: false, reason: 'locked' }, 403);
@@ -373,9 +388,15 @@ api.get('/card', async (c) => {
     ok: true,
     ...(await nightOf(day)),
     post:
-      record === null
-        ? toPostData(island)
-        : toCommunityPostData(island, creditOf(record)),
+      record !== null
+        ? toCommunityPostData(island, creditOf(record))
+        : found.pick?.winner
+          ? toSundayPostData(island, found.pick.winner.credit)
+          : toPostData(island),
+    // An island picked for a Sunday says so on its own card.
+    ...(record !== null && record.sunday > 0
+      ? { chosenFor: record.sunday }
+      : {}),
     skyCount: count,
     nextInMs:
       currentDay(now, lastDay()) === day

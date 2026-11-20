@@ -61,9 +61,10 @@ describe("See others' islands, as the viewer sees it", () => {
     ]);
   });
 
-  it('lists the maker’s test and the par answer apart from the players', () => {
+  it('lists the maker’s test and the par answer apart from the players (a past picked Sunday)', () => {
     const shown = othersRows(
       others({
+        day: 6,
         creator: row('maker', null),
         me: row('ana', 2),
         parSolution: [],
@@ -72,7 +73,7 @@ describe("See others' islands, as the viewer sees it", () => {
       4
     );
     expect(shown.map((entry) => [entry.name, entry.players])).toEqual([
-      [COPY.creatorBoard, 0],
+      [COPY.makerBoard, 0],
       ['Your island', 1],
       [COPY.othersPar, 0],
       ['u/ben', 3],
@@ -93,5 +94,23 @@ describe("See others' islands, as the viewer sees it", () => {
 
   it('never says more than everyone hit par', () => {
     expect(crowdLine(others({ solves: 6, parHits: 9 }), true)).toContain('100');
+  });
+});
+
+describe('a Sunday picked from the community (Phase 3)', () => {
+  it('is a daily island with a night, and its maker\'s test reads "Maker\'s board"', () => {
+    const sunday = others({
+      day: 6,
+      creator: row('maker', null),
+      me: row('ana', 1),
+      solves: 8,
+      parHits: 4,
+    });
+    expect(crowdLine(sunday, true)).toBe('50% hit par tonight');
+    expect(othersRows(sunday, 4)[0]?.name).toBe(COPY.makerBoard);
+    // On a community island the same row stays "Creator's board".
+    const island = others({ ...sunday, day: 1_000_001 });
+    expect(othersRows(island, 4)[0]?.name).toBe(COPY.creatorBoard);
+    expect(crowdLine(island, true)).toBe('50% hit par');
   });
 });

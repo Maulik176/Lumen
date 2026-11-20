@@ -36,7 +36,7 @@ import {
   type Lesson,
   type LessonAction,
 } from '../../shared/builder';
-import type { Biome } from '../../shared/calendar';
+import { monthDay, type Biome } from '../../shared/calendar';
 import {
   BIOMES,
   BIOME_LOOK,
@@ -404,6 +404,15 @@ export async function openBuilder(
             : `${when} \u00b7 ${fill(COPY.builderYoursRow, { plays, par: entry.parHits })}`
       )
     );
+    // Picked for a Sunday: said under the rest (Phase 3).
+    if (entry.chosenFor !== undefined)
+      words.append(
+        element(
+          'span',
+          'bd-yours-detail bd-yours-chosen',
+          fill(COPY.sundayChosen, { date: monthDay(entry.chosenFor) })
+        )
+      );
     row.append(picture, words);
     return row;
   };

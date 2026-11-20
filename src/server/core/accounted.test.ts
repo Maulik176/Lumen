@@ -42,7 +42,14 @@ function daily(day: number): DailyIsland {
   return found;
 }
 
-type Seat = { name: string; player: Player; ranked: boolean; maker: boolean };
+type Seat = {
+  name: string;
+  player: Player;
+  ranked: boolean;
+  /** The server kept their Lock in (ranked, or the maker's own on a picked Sunday). */
+  kept: boolean;
+  maker: boolean;
+};
 
 /** Every seat at the night: each player who came, someone signed out, and the maker if any. */
 function seats(players: CrowdPlayer[], maker: string | null): Seat[] {
@@ -50,14 +57,22 @@ function seats(players: CrowdPlayer[], maker: string | null): Seat[] {
     name: p.username,
     player: { userId: p.userId, username: p.username },
     ranked: p.ranked,
+    kept: p.kept,
     maker: p.username === maker,
   }));
-  list.push({ name: 'signed out', player: null, ranked: false, maker: false });
+  list.push({
+    name: 'signed out',
+    player: null,
+    ranked: false,
+    kept: false,
+    maker: false,
+  });
   if (maker !== null && !players.some((p) => p.username === maker))
     list.push({
       name: maker,
       player: { userId: `t2_${maker}`, username: maker },
       ranked: false,
+      kept: false,
       maker: true,
     });
   return list;
@@ -73,6 +88,11 @@ async function checkNight(input: {
   maker: string | null;
   /** Read the lists the next day, when the night is over (daily islands only). */
   later: boolean;
+  /**
+   * A daily Sunday picked from the community whose maker (one of the crowd) plays it too: kept,
+   * not ranked, streak continued (PHASE3_PLAN.md E5).
+   */
+  sundayMaker?: boolean;
 }): Promise<void> {
   const { island } = input;
   const store = memoryStore();
@@ -82,6 +102,9 @@ async function checkNight(input: {
     resets: input.resets,
     tooFast: input.tooFast,
     lastDay: lastDay(),
+    ...(input.sundayMaker === true && input.maker !== null
+      ? { maker: input.maker }
+      : {}),
   });
   const nowMs = night.nowMs + (input.later ? DAY : 0);
   const ranked = night.players.filter((p) => p.ranked);
@@ -117,9 +140,14 @@ async function checkNight(input: {
     expect(past?.solves, input.seed).toBe(ranked.length);
   }
 
+  const keptBoard = new Map(
+    night.players
+      .filter((p) => p.kept)
+      .map((p) => [p.username, boardKey(p.board)])
+  );
   for (const seat of seats(night.players, input.maker)) {
     const me = seat.player;
-    const myBoard = seat.ranked ? boardOf.get(seat.name) : undefined;
+    const myBoard = seat.kept ? keptBoard.get(seat.name) : undefined;
     const sameAsMine = ranked.filter(
       (p) => boardOf.get(p.username) === myBoard
     );
@@ -149,6 +177,17 @@ async function checkNight(input: {
     );
     const myBoardRow = onBoard.find((row) => row.username === seat.name);
 
+    // The maker's own Sunday: kept, never ranked, no place, but the streak goes on (E5).
+    if (seat.kept && !seat.ranked) {
+      const state = await playerState(store, me, island.day);
+      expect(state.result, where(seat)).toMatchObject({
+        ranked: false,
+        maker: true,
+        rank: 0,
+      });
+      expect(state.streak, where(seat)).toBeGreaterThanOrEqual(1);
+      expect(names, where(seat)).not.toContain(seat.name);
+    }
     // The player's own result says the same place as the board.
     if (seat.ranked) {
       const state = await playerState(store, me, island.day);
@@ -193,12 +232,14 @@ async function checkNight(input: {
     // No board twice; the viewer's own board only on their own row.
     expect(new Set(shown).size, where(seat)).toBe(shown.length);
     const own = rows.find((row) => row.mine);
-    expect(own !== undefined, where(seat)).toBe(seat.ranked);
+    expect(own !== undefined, where(seat)).toBe(seat.kept);
+    // The maker's own row counts the maker, who is on no board.
+    const extra = own !== undefined && !seat.ranked ? 1 : 0;
     if (own !== undefined && myBoard !== undefined) {
       expect(boardKey(own.placements ?? []), where(seat)).toBe(myBoard);
-      expect(own.players, where(seat)).toBe(sameAsMine.length);
+      expect(own.players, where(seat)).toBe(sameAsMine.length + extra);
       const named = /same as u\/(\S+)/.exec(own.detail)?.[1];
-      if (sameAsMine.length > 1) {
+      if (sameAsMine.length + extra > 1) {
         expect(own.detail, where(seat)).toContain('same as');
         if (named !== undefined) {
           expect(named, where(seat)).not.toBe(seat.name);
@@ -210,20 +251,21 @@ async function checkNight(input: {
     const room = OTHERS.top + (own === undefined ? 0 : 1);
     const counted = players.reduce((sum, row) => sum + row.players, 0);
     if (distinct <= room) {
-      expect(counted, where(seat)).toBe(ranked.length);
+      expect(counted, where(seat)).toBe(ranked.length + extra);
       for (const player of ranked)
         expect(
           shown.includes(boardOf.get(player.username) ?? ''),
           `${where(seat)}: ${player.username} missing`
         ).toBe(true);
-    } else expect(counted, where(seat)).toBeLessThanOrEqual(ranked.length);
+    } else
+      expect(counted, where(seat)).toBeLessThanOrEqual(ranked.length + extra);
 
     // The empty line only when nobody else is on the list at all.
     const others2 = players.filter((row) => !row.mine);
     const empty = emptyLine({ ...others, day: island.day });
     if (others2.length > 0 || others.parSolution !== null)
       expect(empty, where(seat)).toBeNull();
-    else if (ranked.length > (seat.ranked ? 1 : 0))
+    else if (ranked.length + extra > (seat.kept ? 1 : 0))
       expect(empty, where(seat)).toContain('just as you');
     else expect(empty, where(seat)).toContain('No other');
   }
@@ -278,6 +320,18 @@ describe('everyone accounted for, on every list and count, from every seat', () 
       maker: null,
       later: false,
     });
+  });
+
+  it('on a Sunday picked from the community, its maker playing it too (E5)', async () => {
+    for (const night of nights.slice(0, 12))
+      await checkNight({
+        ...night,
+        players: Math.max(2, night.players),
+        island: daily(6),
+        maker: 'p0',
+        sundayMaker: true,
+        later: false,
+      });
   });
 
   it("Maulik's Nov 20 night: he is first, a stranger has his board, the maker plays too", async () => {

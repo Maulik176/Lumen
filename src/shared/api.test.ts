@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { cleanPicture, readPostData } from './api';
+import { cleanPicture, readPostData, toSundayPostData } from './api';
+import type { PlayableIsland } from './daily';
 
 const daily = {
   day: 3,
@@ -41,5 +42,35 @@ describe("a post's data", () => {
     expect(cleanPicture('http://i.redd.it/x.png')).toBe('');
     expect(cleanPicture('https://i.redd.it.evil.com/x.png')).toBe('');
     expect(cleanPicture('data:image/png;base64,AAAA')).toBe('');
+  });
+});
+
+describe('a Sunday picked from the community (Phase 3)', () => {
+  it("is a daily post with its maker's world and credit, read back as such, under 1 KB", () => {
+    const island: PlayableIsland = {
+      day: 6,
+      date: '2026-11-29',
+      weekday: 'sunday',
+      biome: 'blossom',
+      name: 'Ember Bend',
+      rows: ['>...', '....', '...W', '....'],
+      inventory: { mirrors: 2, prisms: 0 },
+      sourceColours: ['white'],
+      par: 2,
+      solution: [],
+    };
+    const data = toSundayPostData(island, {
+      maker: 'mohak2605',
+      makerAvatar: 'https://i.redd.it/snoovatar/avatars/abc.png',
+      label: 'tricky',
+    });
+    expect(data).toMatchObject({
+      kind: 'sunday',
+      day: island.day,
+      biome: 'blossom',
+      maker: 'mohak2605',
+    });
+    expect(readPostData(JSON.parse(JSON.stringify(data)))).toEqual(data);
+    expect(JSON.stringify(data).length).toBeLessThan(1024);
   });
 });

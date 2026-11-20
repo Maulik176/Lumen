@@ -4,6 +4,7 @@
  * run through exactly what the phone shows in one test (tests/accounted, src/server/core).
  */
 import type { BoardRow, OtherIsland, OthersResponse } from './api';
+import { isCommunity } from './community';
 import { COPY, OTHERS } from './config';
 import type { Placement } from './types';
 
@@ -24,8 +25,9 @@ export function dayDetail(entry: BoardRow): string {
 
 /** The one line: how many hit par, or something gentler while there are only a few. */
 export function crowdLine(others: Others, tonight: boolean): string {
-  // A community island (it has a Creator's board) has no nights to speak of.
-  const island = others.creator !== null;
+  // A community island has no nights to speak of. (A Sunday picked from the community has a
+  // maker's row too, but it is a daily island with a night.)
+  const island = isCommunity(others.day);
   if (others.solves < OTHERS.fewSolves)
     return island
       ? COPY.crowdFewIsland
@@ -113,7 +115,11 @@ export function othersRows(others: Others, par: number): Shown[] {
   const creator = others.creator;
   if (creator !== null)
     rows.push({
-      ...shownOf(creator, COPY.creatorBoard, false),
+      ...shownOf(
+        creator,
+        isCommunity(others.day) ? COPY.creatorBoard : COPY.makerBoard,
+        false
+      ),
       detail: `u/${creator.username} \u00b7 ${dayDetail(creator)}`,
       players: 0,
     });

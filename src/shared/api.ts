@@ -83,6 +83,8 @@ export type CardOpen = {
   streak: number;
   /** The player's ranked result here, if they have locked in. */
   result: CardResult | null;
+  /** A community island picked for a Sunday: that Sunday's day number (Phase 3). */
+  chosenFor?: number;
 };
 
 export type CardResult = {
@@ -533,6 +535,8 @@ export type YourIsland = {
   parHits: number;
   active: boolean;
   url: string;
+  /** Picked for a Sunday: that Sunday's day number (Phase 3). */
+  chosenFor?: number;
 };
 
 export type BuilderMineResponse = {

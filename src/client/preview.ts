@@ -14,7 +14,12 @@ import {
   type Night,
   type PostData,
 } from '../shared/api';
-import { biomeOfDay, weekdayLabel, type Biome } from '../shared/calendar';
+import {
+  biomeOfDay,
+  monthDay,
+  weekdayLabel,
+  type Biome,
+} from '../shared/calendar';
 import { CARD, COPY, UI } from '../shared/config';
 import { recallSolved, rememberSolved } from './card-cache';
 import { drawIslandOutline } from './outline';
@@ -89,6 +94,8 @@ function ownPost(): PostData | null {
 let post: PostData | null = ownPost();
 let solved: CardResult | null = post === null ? null : recallSolved(post.day);
 let skyCount: number | null = null;
+/** A community island picked for a Sunday: that Sunday (from /api/card). */
+let chosenFor: number | null = null;
 /** The player's current streak (0 when signed out or none). */
 let streak = 0;
 /** When the next island arrives, on this page's own clock. */
@@ -110,7 +117,11 @@ let heroSet = false;
 let refused: string | null = null;
 
 /** A community island's maker, as the kicker shows them: snoovatar (or initial) and name. */
-function makerKicker(maker: string, avatar: string): Node[] {
+function makerKicker(
+  maker: string,
+  avatar: string,
+  words: string = COPY.communityKicker.replace('{maker}', maker)
+): Node[] {
   const face = document.createElement(avatar === '' ? 'span' : 'img');
   face.className = 'kicker-face';
   if (face instanceof HTMLImageElement) {
@@ -118,10 +129,7 @@ function makerKicker(maker: string, avatar: string): Node[] {
     face.decoding = 'async';
     face.src = avatar;
   } else face.textContent = maker.slice(0, 1).toUpperCase();
-  return [
-    face,
-    document.createTextNode(COPY.communityKicker.replace('{maker}', maker)),
-  ];
+  return [face, document.createTextNode(words)];
 }
 
 function paint(): void {
@@ -134,6 +142,17 @@ function paint(): void {
     byId('kicker').replaceChildren(
       ...makerKicker(community.maker ?? '', community.makerAvatar ?? '')
     );
+  // A Sunday picked from the community: still Lumen #N, credited to its maker.
+  else if (post.kind === 'sunday' && post.maker !== undefined)
+    byId('kicker').replaceChildren(
+      ...makerKicker(
+        post.maker,
+        post.makerAvatar ?? '',
+        COPY.sundayKicker
+          .replace('{day}', String(post.day))
+          .replace('{maker}', post.maker)
+      )
+    );
   else
     byId('kicker').textContent = COPY.cardKicker
       .replace('{day}', String(post.day))
@@ -144,7 +163,8 @@ function paint(): void {
     heroSet = true;
     const hero = byId('hero');
     if (hero instanceof HTMLImageElement) {
-      const stock = HERO[community?.biome ?? biomeOfDay(post.day)];
+      // The island's own world: a community island's, or a picked Sunday's maker's.
+      const stock = HERO[post.biome ?? biomeOfDay(post.day)];
       hero.addEventListener('load', () => hero.classList.add('shown'));
       // The island's own picture when the post has one; the world's stock picture otherwise,
       // and whenever the picture cannot be loaded.
@@ -297,20 +317,21 @@ function paintCommunity(post: PostData): void {
       parts.push(text('span', '\u00b7'), text('b', `#${solved.rank}`));
     line.replaceChildren(...parts);
   }
+  const lit =
+    skyCount === null
+      ? ''
+      : skyCount === 0
+        ? COPY.communityLitNone
+        : skyCount === 1
+          ? COPY.communityLitOne
+          : COPY.communityLit.replace('{count}', skyCount.toLocaleString('en'));
+  // Picked for a Sunday: the card says so first.
+  const chosen =
+    chosenFor === null
+      ? ''
+      : COPY.sundayChosen.replace('{date}', monthDay(chosenFor));
   crowd.replaceChildren(
-    text(
-      'span',
-      skyCount === null
-        ? ''
-        : skyCount === 0
-          ? COPY.communityLitNone
-          : skyCount === 1
-            ? COPY.communityLitOne
-            : COPY.communityLit.replace(
-                '{count}',
-                skyCount.toLocaleString('en')
-              )
-    )
+    text('span', [chosen, lit].filter((part) => part !== '').join(' \u00b7 '))
   );
 }
 
@@ -335,6 +356,7 @@ async function refresh(): Promise<void> {
     post = post ?? body.post;
     if (post.rows === undefined) post = { ...post, rows: body.post.rows ?? [] };
     skyCount = body.skyCount;
+    chosenFor = body.chosenFor ?? null;
     streak = body.streak;
     night = body.night;
     tonightPost = body.tonightPost;

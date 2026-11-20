@@ -131,13 +131,16 @@ function readResult(text: string | undefined): LockInResult | null {
       return null;
     if (typeof elapsedMs !== 'number' || typeof streak !== 'number')
       return null;
+    // The maker's own Sunday (PHASE3_PLAN.md E5) is stored, but it was never ranked.
+    const maker = r['maker'] === true;
     return {
+      ...(maker ? { maker: true } : {}),
       day,
       pieces,
       par,
       medal,
       elapsedMs,
-      ranked: true,
+      ranked: !maker,
       streak,
       style: styleFor(streak),
       percentile: typeof percentile === 'number' ? percentile : 0,
@@ -338,6 +341,11 @@ export type LockInInput = {
   postDay: number | undefined;
   lastDay: number;
   nowMs: number;
+  /**
+   * On a Sunday picked from the community: its maker's user id. Their own Lock in is not ranked
+   * (they know the answer) but keeps their streak (PHASE3_PLAN.md E5).
+   */
+  makerId?: string;
 };
 
 /**
@@ -389,7 +397,8 @@ export async function lockIn(
         );
 
   const userKey = KEYS.user(player.userId);
-  const before = readStreak(await store.hGetAll(userKey));
+  const userFields = await store.hGetAll(userKey);
+  const before = readStreak(userFields);
   if (!rankedOpen(island.day, nowMs, input.lastDay, startedMs))
     return unranked(elapsedMs, before.streak);
 
@@ -406,6 +415,44 @@ export async function lockIn(
     return earlier === null
       ? unranked(elapsedMs, before.streak)
       : { ok: true, result: { ...earlier, ranked: false } };
+  }
+
+  // The maker of a Sunday pick knows its answer: their Lock in is kept (they see their island
+  // lit when they come back) but not ranked: no board, sky, medal, par count or flair. It does
+  // keep their streak going: building the winning island must never break one (E5).
+  if (input.makerId !== undefined && input.makerId === player.userId) {
+    const after = advanceStreak(before, island.day);
+    const result: LockInResult = {
+      maker: true,
+      day: island.day,
+      pieces: score.pieces,
+      par: island.par,
+      medal,
+      elapsedMs,
+      ranked: false,
+      streak: after.streak,
+      style: styleFor(after.streak),
+      percentile: 0,
+      rank: 0,
+      skyCount: 0,
+    };
+    await Promise.all([
+      store.set(
+        KEYS.submission(island.day, player.userId),
+        JSON.stringify({ placements: score.placements, result }),
+        KEEP.submissionSeconds
+      ),
+      store.hSet(userKey, {
+        streak: String(after.streak),
+        lastDay: String(after.lastDay),
+        graceWeek: String(after.graceWeek),
+        best: String(after.best),
+        style: styleFor(after.streak),
+        username: player.username,
+      }),
+      store.del(KEYS.progress(island.day, player.userId)),
+    ]);
+    return { ok: true, result };
   }
 
   // A community island is outside the daily run: no streak, flair, medal count or all-time
@@ -519,9 +566,10 @@ export async function resetPlayer(
 ): Promise<void> {
   if (player === null) return;
   const stored = await store.get(KEYS.submission(day, player.userId));
-  const had = stored !== undefined;
+  // Only a ranked result was counted (the maker's own Sunday is kept but never ranked, E5).
+  const had = readResult(stored)?.ranked === true;
   // Their board leaves the count of players who placed it.
-  const placed = stored === undefined ? null : placementsIn(stored);
+  const placed = stored === undefined || !had ? null : placementsIn(stored);
   if (placed !== null) {
     const key = boardOf(placed);
     const left = await store.hIncrBy(KEYS.groups(day), key, -1);
@@ -919,7 +967,14 @@ export async function readOthers(
         ...row,
         same: groupCount(counts[index]),
       })),
-      mine: myKey === null ? 1 : groupCount(counts[keys.length]),
+      // The viewer's group counts the viewer. A ranked viewer is in the board's counts already;
+      // the maker of a Sunday pick (kept, never ranked, E5) is not, so they are added.
+      mine:
+        myKey === null
+          ? 1
+          : result?.ranked === false
+            ? (Number(counts[keys.length] ?? 0) || 0) + 1
+            : groupCount(counts[keys.length]),
     };
   };
   const keptTop = readOthersTop(island, kept);

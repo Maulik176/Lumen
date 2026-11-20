@@ -835,3 +835,63 @@ describe('a community island', () => {
     });
   });
 });
+
+describe('the maker on their own Sunday (PHASE3_PLAN.md E5)', () => {
+  // Day 6 is Sunday Nov 29; Ana made the island picked for it.
+  const SUNDAY = DAY_ONE + 5 * 24 * HOUR;
+  const play = (nowMs: number): LockInInput => ({
+    island: island(6),
+    placements: island(6).solution,
+    snoovatar: undefined,
+    wantsRanked: true,
+    postDay: 6,
+    lastDay: lastDay(),
+    nowMs,
+    makerId: 't2_ana',
+  });
+
+  it('is kept and keeps the streak going, but is not ranked: no board, sky, medal or count', async () => {
+    const { store, effects, ranked } = setup();
+    // Ana lit Saturday's island at par, so her streak is 1 going into Sunday.
+    await store.hSet(KEYS.user('t2_ana'), {
+      streak: '1',
+      lastDay: '5',
+      graceWeek: '-1',
+      best: '1',
+    });
+    await recordStart(store, ana, 6, SUNDAY + HOUR);
+    const outcome = await lockIn(store, ana, play(SUNDAY + 2 * HOUR), effects);
+    expect(outcome).toMatchObject({
+      ok: true,
+      result: { ranked: false, maker: true, streak: 2, rank: 0 },
+    });
+    expect(ranked).toEqual([]);
+    expect(await store.zCard(KEYS.leaderboard(6))).toBe(0);
+    expect((await readSky(store, 6)).lanterns).toEqual([]);
+    expect(await store.hGetAll(KEYS.stats(6))).not.toHaveProperty('solves');
+    expect(await store.zCard(KEYS.allTime)).toBe(0);
+    // Coming back shows it, and a second Lock in changes nothing.
+    const state = await playerState(store, ana, 6);
+    expect(state.result).toMatchObject({ ranked: false, maker: true });
+    expect(state.streak).toBe(2);
+    const again = await lockIn(store, ana, play(SUNDAY + 3 * HOUR), effects);
+    expect(again).toMatchObject({ ok: true, result: { ranked: false } });
+    expect((await playerState(store, ana, 6)).streak).toBe(2);
+  });
+
+  it('everyone else plays Sunday ranked as usual, and a dev reset of the maker leaves the counts alone', async () => {
+    const { store, effects, ranked } = setup();
+    await recordStart(store, ben, 6, SUNDAY + HOUR);
+    await lockIn(store, ben, play(SUNDAY + 2 * HOUR), effects);
+    await recordStart(store, ana, 6, SUNDAY + HOUR);
+    await lockIn(store, ana, play(SUNDAY + 2 * HOUR), effects);
+    expect(ranked).toEqual(['ben']);
+    expect(await store.zCard(KEYS.leaderboard(6))).toBe(1);
+    await resetPlayer(store, ana, 6);
+    expect(await store.hGetAll(KEYS.stats(6))).toMatchObject({
+      solves: '1',
+      parHits: '1',
+    });
+    expect(await store.zCard(KEYS.leaderboard(6))).toBe(1);
+  });
+});

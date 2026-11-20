@@ -769,6 +769,7 @@ export async function listMine(
       parHits: Math.min(plays, Number(stats['parHits'] ?? 0) || 0),
       active: record.active,
       url: record.url,
+      ...(record.sunday > 0 ? { chosenFor: record.sunday } : {}),
     });
   }
   return islands;

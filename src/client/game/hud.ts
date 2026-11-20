@@ -229,7 +229,13 @@ export function createHud(
       note ??
         (island.community !== undefined
           ? fill(COPY.communityBy, { maker: island.community.maker })
-          : island.name)
+          : island.madeBy !== undefined
+            ? // A Sunday picked from the community names its maker (Phase 3).
+              fill(COPY.sundayTitleName, {
+                name: island.name,
+                maker: island.madeBy.maker,
+              })
+            : island.name)
     )
   );
   const inventory = element('div', 'inventory');
@@ -312,6 +318,14 @@ export function createHud(
   const result = element('section', 'panel result');
   const resultMedal = element('h2', 'result-medal');
   const resultLine = element('p', 'result-line');
+  // A Sunday picked from the community credits its maker under the result (Phase 3).
+  const resultCredit = element(
+    'p',
+    'result-credit',
+    island.madeBy === undefined
+      ? ''
+      : fill(COPY.sundayCredit, { maker: island.madeBy.maker })
+  );
   const resultTime = element('button', 'result-time');
   resultTime.type = 'button';
   resultTime.disabled = true;
@@ -360,6 +374,7 @@ export function createHud(
   result.append(
     resultMedal,
     resultLine,
+    resultCredit,
     resultTime,
     resultStreak,
     resultButtons,
@@ -474,11 +489,20 @@ export function createHud(
     },
 
     showResult(outcome) {
-      resultMedal.replaceChildren(
-        medalEmblem(outcome.medal),
-        document.createTextNode(MEDAL_NAME[outcome.medal])
-      );
-      resultMedal.dataset['medal'] = outcome.medal;
+      // The maker lighting their own Sunday: no medal, not ranked, the streak goes on (E5).
+      const maker = outcome.maker === true;
+      if (maker) {
+        resultMedal.replaceChildren(
+          document.createTextNode(COPY.sundayMakerTitle)
+        );
+        resultMedal.dataset['medal'] = 'maker';
+      } else {
+        resultMedal.replaceChildren(
+          medalEmblem(outcome.medal),
+          document.createTextNode(MEDAL_NAME[outcome.medal])
+        );
+        resultMedal.dataset['medal'] = outcome.medal;
+      }
       resultLine.textContent =
         outcome.pieces <= outcome.par
           ? fill(COPY.resultPar, { pieces: outcome.pieces })
@@ -487,25 +511,29 @@ export function createHud(
               par: outcome.par,
             });
       resultTime.disabled = !outcome.ranked || actions.board === undefined;
-      resultTime.textContent = !outcome.ranked
-        ? COPY.unranked
-        : outcome.rank > 0
-          ? fill(community ? COPY.communityRank : COPY.rankLine, {
-              time: formatTime(outcome.elapsedMs),
-              rank: outcome.rank,
-            })
-          : formatTime(outcome.elapsedMs);
+      resultTime.textContent = maker
+        ? COPY.sundayMakerTime
+        : !outcome.ranked
+          ? COPY.unranked
+          : outcome.rank > 0
+            ? fill(community ? COPY.communityRank : COPY.rankLine, {
+                time: formatTime(outcome.elapsedMs),
+                rank: outcome.rank,
+              })
+            : formatTime(outcome.elapsedMs);
       // A ranked result is final; anything else can be played again.
       // Tonight's islands open after a ranked solve; an earlier night's are open after any solve.
-      const shown = community
-        ? outcome.ranked
-          ? [othersButton, shareButton, lumenButton, buildButton]
-          : [againButton, lumenButton]
-        : outcome.ranked
-          ? [othersButton, shareButton, exploreButton, buildButton]
-          : backButton !== null
-            ? [othersButton, againButton, backButton]
-            : [tonightButton, againButton, exploreButton];
+      const shown = maker
+        ? [othersButton, exploreButton, buildButton]
+        : community
+          ? outcome.ranked
+            ? [othersButton, shareButton, lumenButton, buildButton]
+            : [againButton, lumenButton]
+          : outcome.ranked
+            ? [othersButton, shareButton, exploreButton, buildButton]
+            : backButton !== null
+              ? [othersButton, againButton, backButton]
+              : [tonightButton, againButton, exploreButton];
       const buttons = shown.filter(
         (node): node is HTMLButtonElement => node !== null
       );
@@ -521,8 +549,9 @@ export function createHud(
         )
       );
       // Streaks belong to the daily islands only.
-      resultStreak.textContent =
-        !outcome.ranked || community
+      resultStreak.textContent = maker
+        ? fill(COPY.sundayMakerStreak, { streak: outcome.streak })
+        : !outcome.ranked || community
           ? ''
           : outcome.streak <= 1
             ? COPY.streakOne

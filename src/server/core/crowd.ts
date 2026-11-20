@@ -25,6 +25,11 @@ export type CrowdPlayer = {
   board: Placement[];
   /** A ranked Lock in (not a practice solve). */
   ranked: boolean;
+  /**
+   * The server kept their Lock in: every ranked one, and the maker's own on a Sunday picked from
+   * the community (kept, never ranked, PHASE3_PLAN.md E5).
+   */
+  kept: boolean;
 };
 
 export type CrowdNight = {
@@ -46,6 +51,11 @@ export type CrowdOptions = {
   resets?: number;
   /** Prefix for made-up usernames (default "p"). */
   prefix?: string;
+  /**
+   * A Sunday picked from the community: the username (one of the crowd, e.g. "p0") of its maker,
+   * whose own Lock in is kept but not ranked.
+   */
+  maker?: string;
   /** The number the post is for (default the island's own). */
   lastDay: number;
 };
@@ -131,10 +141,13 @@ export async function seedCrowd(
         island,
         placements: player.board,
         snoovatar: undefined,
-        wantsRanked: player.ranked,
+        wantsRanked: player.kept,
         postDay: island.day,
         lastDay: options.lastDay,
         nowMs,
+        ...(options.maker === undefined
+          ? {}
+          : { makerId: `t2_${options.maker}` }),
       },
       quiet
     );
@@ -144,11 +157,14 @@ export async function seedCrowd(
       rng.chance(parShare) || boards.length === 1
         ? island.solution
         : (boards[1 + rng.int(boards.length - 1)] ?? island.solution);
+    const maker = options.maker === `${prefix}${i}`;
+    const ranked = !maker && !rng.chance(practiceShare);
     const player: CrowdPlayer = {
       userId: `t2_${prefix}${i}`,
       username: `${prefix}${i}`,
       board,
-      ranked: !rng.chance(practiceShare),
+      ranked,
+      kept: ranked || maker,
     };
     players.push(player);
     const fast = options.tooFast === true && i === 1;
