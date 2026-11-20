@@ -84,6 +84,34 @@
         "location": "subreddit",
         "forUserType": "moderator",
         "endpoint": "/internal/menu/test-picture"
+      },
+      {
+        "label": "Lumen: exclude from Sunday pick",
+        "description": "Keep this community island out of the Sunday pick",
+        "location": "post",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/exclude-island"
+      },
+      {
+        "label": "Lumen: include in Sunday pick again",
+        "description": "Let this community island back into the Sunday pick",
+        "location": "post",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/include-island"
+      },
+      {
+        "label": "Dev: run Sunday pick now",
+        "description": "Playtest subreddit only: pick the next Sunday's island now, from every island so far",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/dev-pick"
+      },
+      {
+        "label": "Dev: who would win Sunday now",
+        "description": "Playtest subreddit only: says which island would be picked, without picking",
+        "location": "subreddit",
+        "forUserType": "moderator",
+        "endpoint": "/internal/menu/dev-pick-preview"
       }
     ]
   },

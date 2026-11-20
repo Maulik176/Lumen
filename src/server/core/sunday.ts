@@ -530,3 +530,39 @@ export async function ensurePick(
   if (day === null) return null;
   return runPick(store, reddit, day, nowMs, options);
 }
+
+/** What the dev preview says: who would win now, or why nothing would. One short line. */
+export function previewLine(choice: Choice): string {
+  if (choice.winner === null)
+    return choice.reasons === ''
+      ? COPY.sundayPreviewNone
+      : `${COPY.sundayPreviewNone} (${choice.reasons})`;
+  const { record, score } = choice.winner;
+  return COPY.sundayPreview
+    .replace('{name}', record.name)
+    .replace('{maker}', record.maker)
+    .replace('{score}', String(score))
+    .replace('{par}', String(record.par))
+    .replace('{others}', String(choice.ranked.length));
+}
+
+/**
+ * "Dev: clean up this subreddit": every Sunday's pick, lock and scores, and every pin record.
+ * Without it, a pick made while testing would become the real Sunday after launch.
+ */
+export async function cleanUpSundays(
+  store: Store,
+  lastDay: number
+): Promise<void> {
+  const keys: string[] = [KEYS.pinnedLast];
+  for (let day = 1; day <= lastDay + 7; day++) {
+    keys.push(KEYS.pinned(day));
+    if (!isSunday(day)) continue;
+    keys.push(
+      KEYS.sundayPick(day),
+      KEYS.sundayLock(day),
+      KEYS.sundayVotes(day)
+    );
+  }
+  await Promise.all(keys.map((key) => store.del(key)));
+}

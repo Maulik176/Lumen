@@ -224,6 +224,15 @@ export const COPY = {
   /** The results comment on a picked Sunday: the credit and the original island. */
   sundayResults: 'Island by u/{maker}, chosen by the community: {url}',
   sundayResultsGone: 'Island by u/{maker}, chosen by the community.',
+  /** Moderators: the post menu's two items, and the dev tools' answers (toasts). */
+  sundayExcluded: 'Excluded from the Sunday pick.',
+  sundayExcludedRepicked: 'Excluded. It was the pick: the pick ran again.',
+  sundayIncluded: 'In the running again.',
+  sundayNotIsland: 'This is not a community island.',
+  sundayPreview: '{name} by u/{maker}, score {score}, par {par}. {others} more in the running.',
+  sundayPreviewNone: 'No island would win: the generated Sunday stays',
+  sundayFrozen: "Sunday's post exists: its island stays as it is.",
+  sundayBusy: 'Another pick is running. Try again in a minute.',
   /** A row that stands for several players with exactly the same board. */
   samePlayers: '{count} players',
   /** The results comment on a community post. Emoji allowed: it is a Reddit comment. */

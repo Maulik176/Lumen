@@ -928,3 +928,18 @@ describe('Islandwright flair (PHASE3_PLAN.md E7)', () => {
     );
   });
 });
+
+describe('a developer reset and the Sunday title', () => {
+  it('takes back Islandwright and the flair medal with the rest of the player', async () => {
+    const { store } = setup();
+    await store.hSet(KEYS.user('t2_ana'), {
+      islandwright: '1',
+      lastMedal: 'glow',
+    });
+    await resetPlayer(store, ana, 1);
+    expect(await store.hGetAll(KEYS.user('t2_ana'))).toMatchObject({
+      islandwright: '0',
+      lastMedal: '',
+    });
+  });
+});

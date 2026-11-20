@@ -614,6 +614,9 @@ export async function resetPlayer(
       ...Object.fromEntries(RULE_KINDS.map((kind) => [`rule:${kind}`, '0'])),
       'rule:sky': '0',
       builderTutorial: '0',
+      // The Sunday title and the flair's medal go too (Phase 3).
+      islandwright: '0',
+      lastMedal: '',
       streak: String(NEW_STREAK.streak),
       lastDay: String(NEW_STREAK.lastDay),
       graceWeek: String(NEW_STREAK.graceWeek),

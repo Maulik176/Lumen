@@ -6,6 +6,9 @@ import { fakeReddit, maker, publishFrom } from './islands-for-tests';
 import { memoryStore } from './memory-store';
 import { KEYS } from './store';
 import {
+  chooseWinner,
+  cleanUpSundays,
+  previewLine,
   dueSunday,
   ensurePick,
   islandOfDay,
@@ -483,5 +486,54 @@ describe('Islandwright flair', () => {
     expect(flairFor(null, 0, true)).toBe('Islandwright');
     expect(flairFor('Glow', 2, false)).toBe('Glow 🔥2');
     expect(flairFor(null, 0, false)).toBe('');
+  });
+});
+
+describe('the dev tools (r/lumen_game_dev, before launch)', () => {
+  it('the preview names who would win without writing anything', async () => {
+    const store = memoryStore();
+    const { reddit, scores, comments } = fakeReddit();
+    const one = await publishFrom(store, 6, maker('ana'), MIDWEEK);
+    const two = await publishFrom(store, 2, maker('ben'), MIDWEEK);
+    scores.set(one.postId, 7).set(two.postId, 3);
+    const choice = await chooseWinner(
+      store,
+      reddit,
+      SUNDAY_6,
+      { from: 0, to: MIDWEEK + 1 },
+      options
+    );
+    expect(previewLine(choice)).toBe(
+      'Isle 6 by u/ana, score 7, par 4. 1 more in the running.'
+    );
+    expect(await readPick(store, SUNDAY_6)).toBeNull();
+    expect(comments.size).toBe(0);
+    const none = await chooseWinner(
+      memoryStore(),
+      reddit,
+      SUNDAY_6,
+      { from: 0, to: MIDWEEK },
+      options
+    );
+    expect(previewLine(none)).toBe(
+      'No island would win: the generated Sunday stays'
+    );
+  });
+
+  it('clean-up removes every Sunday pick and pin record, so a test pick never becomes the real Sunday', async () => {
+    const store = memoryStore();
+    const { reddit, scores } = fakeReddit();
+    const one = await publishFrom(store, 6, maker('ana'), MIDWEEK);
+    scores.set(one.postId, 7);
+    await runPick(store, reddit, SUNDAY_6, MIDWEEK, { ...options, dev: true });
+    await store.set(KEYS.pinned(SUNDAY_6), '1');
+    await store.set(KEYS.pinnedLast, 't3_x');
+    await cleanUpSundays(store, 90);
+    expect(await readPick(store, SUNDAY_6)).toBeNull();
+    expect((await islandOfDay(store, SUNDAY_6))?.island).toEqual(
+      islandForDay(SUNDAY_6)
+    );
+    expect(await store.get(KEYS.pinned(SUNDAY_6))).toBeUndefined();
+    expect(await store.get(KEYS.pinnedLast)).toBeUndefined();
   });
 });

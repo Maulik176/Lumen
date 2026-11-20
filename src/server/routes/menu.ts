@@ -5,13 +5,27 @@ import { context, media, reddit } from '@devvit/web/server';
 import { toPostData } from '../../shared/api';
 import { TEST_PICTURE } from '../core/test-picture';
 import { islandForDay } from '../core/content';
-import { DEV, LAUNCH, TRAILER } from '../../shared/config';
+import { COPY, DEV, LAUNCH, TRAILER } from '../../shared/config';
 import { currentDay, resetPlayer, sharedCommentOf } from '../core/game';
 import { KEYS, redisStore } from '../core/store';
 import { lastDay } from '../core/content';
 import { ensureDailyPost } from '../core/post';
 import { devToolsRefusal } from '../core/devtools';
-import { cleanUpCommunity, resetCommunityPlayer } from '../core/community';
+import {
+  cleanUpCommunity,
+  islandOfPost,
+  resetCommunityPlayer,
+  setIslandExcluded,
+} from '../core/community';
+import { pickOptions, pickReddit } from '../core/pick-reddit';
+import {
+  chooseWinner,
+  cleanUpSundays,
+  devSunday,
+  previewLine,
+  runPick,
+  withdrawIfPicked,
+} from '../core/sunday';
 
 export const menu = new Hono();
 
@@ -205,6 +219,9 @@ menu.post('/clean-up', async (c) => {
       ]);
     }
     await redisStore.del(KEYS.allTime);
+    // Sunday picks made while testing, their scores and the pin records: without this a test
+    // pick would become the real Sunday after launch.
+    await cleanUpSundays(redisStore, lastDay());
     // Community islands: players' posts are removed as a moderator (the app may delete only
     // its own), and every island's keys go.
     const islands = await cleanUpCommunity(
@@ -295,5 +312,113 @@ menu.post('/test-picture', async (c) => {
       { showToast: `Upload failed: ${String(error).slice(0, 90)}` },
       200
     );
+  }
+});
+
+/**
+ * Moderators, on any post (stays after launch): keep a community island out of the Sunday pick.
+ * If it is the pick for a Sunday whose post does not exist yet, the pick runs again without it.
+ */
+menu.post('/exclude-island', async (c) => {
+  try {
+    const index =
+      context.postId === undefined
+        ? null
+        : await islandOfPost(redisStore, context.postId);
+    if (index === null)
+      return c.json<UiResponse>({ showToast: COPY.sundayNotIsland }, 200);
+    const by = (await reddit.getCurrentUsername()) ?? 'a moderator';
+    await setIslandExcluded(redisStore, index, by);
+    const report = await withdrawIfPicked(
+      redisStore,
+      pickReddit(),
+      index,
+      nowMs(),
+      pickOptions()
+    );
+    return c.json<UiResponse>(
+      {
+        showToast:
+          report === null ? COPY.sundayExcluded : COPY.sundayExcludedRepicked,
+      },
+      200
+    );
+  } catch (error) {
+    console.error(`Exclude failed: ${String(error)}`);
+    return c.json<UiResponse>({ showToast: 'Could not exclude it' }, 200);
+  }
+});
+
+/** Moderators, on any post: let an excluded community island back into the Sunday pick. */
+menu.post('/include-island', async (c) => {
+  try {
+    const index =
+      context.postId === undefined
+        ? null
+        : await islandOfPost(redisStore, context.postId);
+    if (index === null)
+      return c.json<UiResponse>({ showToast: COPY.sundayNotIsland }, 200);
+    await setIslandExcluded(redisStore, index, '');
+    return c.json<UiResponse>({ showToast: COPY.sundayIncluded }, 200);
+  } catch (error) {
+    console.error(`Include failed: ${String(error)}`);
+    return c.json<UiResponse>({ showToast: 'Could not include it' }, 200);
+  }
+});
+
+/**
+ * Playtest subreddit only, before launch: run the Sunday pick now for the next Sunday (on the
+ * dev clock), with every island so far in the running. Replaces an earlier pick unless that
+ * Sunday's post exists. The full reasoning goes to the server log.
+ */
+menu.post('/dev-pick', async (c) => {
+  const refused = devToolsRefusal(context.subredditName);
+  if (refused !== null) return c.json<UiResponse>({ showToast: refused }, 200);
+  try {
+    const now = nowMs();
+    const report = await runPick(
+      redisStore,
+      pickReddit(),
+      devSunday(now),
+      now,
+      {
+        ...pickOptions(),
+        dev: true,
+        force: true,
+      }
+    );
+    const toast =
+      report.outcome === 'frozen'
+        ? COPY.sundayFrozen
+        : report.outcome === 'busy'
+          ? COPY.sundayBusy
+          : report.line.replace(/ \(.*$/, '');
+    return c.json<UiResponse>({ showToast: toast }, 200);
+  } catch (error) {
+    console.error(`Dev pick failed: ${String(error)}`);
+    return c.json<UiResponse>({ showToast: 'The pick failed' }, 200);
+  }
+});
+
+/** Playtest subreddit only, before launch: who would win the next Sunday now. Writes nothing. */
+menu.post('/dev-pick-preview', async (c) => {
+  const refused = devToolsRefusal(context.subredditName);
+  if (refused !== null) return c.json<UiResponse>({ showToast: refused }, 200);
+  try {
+    const now = nowMs();
+    const day = devSunday(now);
+    const choice = await chooseWinner(
+      redisStore,
+      pickReddit(),
+      day,
+      { from: 0, to: now + 1 },
+      pickOptions()
+    );
+    const line = previewLine(choice);
+    console.log(`Sunday pick preview for day ${day}: ${line}`);
+    return c.json<UiResponse>({ showToast: line }, 200);
+  } catch (error) {
+    console.error(`Dev pick preview failed: ${String(error)}`);
+    return c.json<UiResponse>({ showToast: 'The preview failed' }, 200);
   }
 });
