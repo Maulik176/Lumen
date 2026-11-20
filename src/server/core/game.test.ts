@@ -895,3 +895,36 @@ describe('the maker on their own Sunday (PHASE3_PLAN.md E5)', () => {
     expect(await store.zCard(KEYS.leaderboard(6))).toBe(1);
   });
 });
+
+describe('Islandwright flair (PHASE3_PLAN.md E7)', () => {
+  it('a ranked daily Lock in keeps the medal for the flair, and says when the player is an Islandwright', async () => {
+    const store = memoryStore();
+    const events: { name: string; islandwright: boolean }[] = [];
+    const effects: Effects = {
+      onRanked: async ({ player, islandwright }) => {
+        events.push({ name: player.username, islandwright });
+      },
+    };
+    const play = (nowMs: number): LockInInput => ({
+      island: island(1),
+      placements: island(1).solution,
+      snoovatar: undefined,
+      wantsRanked: true,
+      postDay: 1,
+      lastDay: lastDay(),
+      nowMs,
+    });
+    await store.hSet(KEYS.user('t2_ana'), { islandwright: '1' });
+    for (const player of [ana, ben]) {
+      await recordStart(store, player, 1, DAY_ONE);
+      await lockIn(store, player, play(DAY_ONE + HOUR), effects);
+    }
+    expect(events).toEqual([
+      { name: 'ana', islandwright: true },
+      { name: 'ben', islandwright: false },
+    ]);
+    expect((await store.hGetAll(KEYS.user('t2_ben')))['lastMedal']).toBe(
+      'lamplighter'
+    );
+  });
+});

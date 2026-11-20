@@ -22,7 +22,7 @@ import {
 import { COPY, DEV, PAST } from '../../shared/config';
 import type { DailyIsland } from '../../shared/daily';
 import { isRuleKind } from '../../shared/rules';
-import { flairText } from '../../shared/streak';
+import { flairFor } from '../../shared/streak';
 import { isCommunity, skyChannel } from '../../shared/community';
 import { islandForDay, lastDay } from '../core/content';
 import {
@@ -129,7 +129,7 @@ async function body(request: {
 
 /** After a ranked solve: flair and the sky broadcast. Both are decoration and may fail quietly. */
 const effects: Effects = {
-  async onRanked({ player, result, lantern }) {
+  async onRanked({ player, result, lantern, islandwright }) {
     await Promise.allSettled([
       realtime.send(skyChannel(result.day), lantern),
       // Flair tells the daily story (medal and streak); community islands leave it alone.
@@ -138,7 +138,11 @@ const effects: Effects = {
         : reddit.setUserFlair({
             subredditName: context.subredditName,
             username: player.username,
-            text: flairText(MEDAL_NAME[result.medal], result.streak),
+            text: flairFor(
+              MEDAL_NAME[result.medal],
+              result.streak,
+              islandwright
+            ),
           }),
       context.postId === undefined
         ? Promise.resolve()

@@ -57,6 +57,8 @@ export type Effects = {
     player: { userId: string; username: string };
     result: LockInResult;
     lantern: SkyLantern;
+    /** The player made a Sunday pick: their flair keeps "Islandwright" (E7). */
+    islandwright: boolean;
   }) => Promise<void>;
 };
 
@@ -517,6 +519,8 @@ export async function lockIn(
             best: String(after.best),
             style,
             username: player.username,
+            // The flair's medal, so a Sunday pick can write the maker's full flair (E7).
+            lastMedal: medal,
           }
     ),
     store.zAdd(KEYS.sky(island.day), JSON.stringify(lantern), nowMs),
@@ -551,7 +555,14 @@ export async function lockIn(
     );
   if (kept === 1) await store.expire(KEYS.sky(island.day), KEEP.skySeconds);
 
-  await effects.onRanked({ player, result, lantern }).catch(() => undefined);
+  await effects
+    .onRanked({
+      player,
+      result,
+      lantern,
+      islandwright: Number(userFields['islandwright'] ?? 0) > 0,
+    })
+    .catch(() => undefined);
   return { ok: true, result };
 }
 
