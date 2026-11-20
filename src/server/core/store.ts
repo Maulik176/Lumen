@@ -145,4 +145,12 @@ export const KEYS = {
   publishLock: (hash: string) => `cm:lock:${hash}`,
   /** Hash: board key -> how many ranked players placed exactly that board on an island. */
   groups: (day: number) => `groups:${day}`,
+  /** Hash: Sunday's pick (PHASE3_PLAN.md): the frozen island, its credit, and its effects. */
+  sundayPick: (day: number) => `sun:${day}`,
+  /** Counter: one pick for a Sunday at a time. */
+  sundayLock: (day: number) => `sun:lock:${day}`,
+  /** Sorted set: the week's community islands (k) by their last known post score. */
+  sundayVotes: (day: number) => `cm:votes:${day}`,
+  /** Set once a day's post has been pinned, so a failed pin is tried again. */
+  pinned: (day: number) => `pin:${day}`,
 } as const;

@@ -3,7 +3,8 @@
  * forgiven; a forgiven day keeps the streak alive but adds nothing to it.
  */
 import { weekOfDay } from './calendar';
-import { STREAK, type LanternStyle } from './config';
+import { COPY, STREAK, type LanternStyle } from './config';
+import type { Medal } from './types';
 
 export type StreakState = {
   /** Current streak in days. 0 before the first ranked solve. */
@@ -55,4 +56,30 @@ export function flairText(medalName: string, streak: number): string {
   return STREAK.flair
     .replace('{medal}', medalName)
     .replace('{streak}', String(streak));
+}
+
+/** A medal's name as players read it (flair, result card). */
+export function medalName(medal: Medal): string {
+  return medal === 'lamplighter'
+    ? COPY.medalLamplighter
+    : medal === 'glow'
+      ? COPY.medalGlow
+      : COPY.medalSpark;
+}
+
+/**
+ * The whole flair: medal and streak, then "Islandwright" for the maker of a Sunday pick, which is
+ * kept for good (PHASE3_PLAN.md E7). A maker with no daily medal yet reads "Islandwright". Empty
+ * when there is nothing to show.
+ */
+export function flairFor(
+  medal: string | null,
+  streak: number,
+  islandwright: boolean
+): string {
+  const base = medal === null ? '' : flairText(medal, streak);
+  if (!islandwright) return base;
+  return base === ''
+    ? STREAK.islandwright
+    : STREAK.flairIslandwright.replace('{flair}', base);
 }

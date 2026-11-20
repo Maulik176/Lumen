@@ -37,8 +37,8 @@ import { trace } from '../../shared/trace';
 import type { Inventory, Placement } from '../../shared/types';
 import { validatePlacements } from '../../shared/validate';
 import { checkIsland, type CheckOutcome } from './check';
-import { islandForDay } from './content';
 import { resetPlayer, type Player } from './game';
+import { islandOfDay, type SundayPick } from './sunday-store';
 import { KEYS, type Store } from './store';
 
 export { checkKey } from '../../shared/builder';
@@ -292,6 +292,10 @@ export type CommunityRecord = {
   solution: Placement[];
   /** The maker's own test solve: "Creator's board", never ranked. */
   creator: { placements: Placement[]; pieces: number; ms: number };
+  /** The moderator who kept it out of the Sunday pick, or '' (Phase 3). */
+  excluded: string;
+  /** The Sunday (day number) it was picked for, or 0. */
+  sunday: number;
 };
 
 /** What publishing needs from Reddit; the route passes the real calls, tests pass fakes. */
@@ -396,6 +400,8 @@ function readRecord(
     postedAs: fields['postedAs'] === 'app' ? 'app' : 'user',
     solution,
     creator,
+    excluded: fields['excluded'] ?? '',
+    sunday: Number(fields['sunday'] ?? 0) || 0,
   };
 }
 
@@ -418,6 +424,8 @@ function writeRecord(record: CommunityRecord): Record<string, string> {
     postedAs: record.postedAs,
     solution: JSON.stringify(record.solution),
     creator: JSON.stringify(record.creator),
+    excluded: record.excluded,
+    sunday: String(record.sunday),
   };
 }
 
@@ -476,12 +484,20 @@ export function creatorRow(record: CommunityRecord): OtherIsland {
 }
 
 export type IslandLookup =
-  | { ok: true; island: PlayableIsland; record: CommunityRecord | null }
+  | {
+      ok: true;
+      island: PlayableIsland;
+      /** A community island's record (its own post). */
+      record: CommunityRecord | null;
+      /** A daily Sunday picked from the community: its frozen copy and credit (Phase 3). */
+      pick: SundayPick | null;
+    }
   | { ok: false; reason: 'not-found' | 'taken-down' | 'resting' };
 
 /**
- * The island behind a number: a daily day from the content file, or a community island from
- * Redis. A community island is served only while the community side is on and its post stands.
+ * The island behind a number: a daily day from the content file (or Sunday's pick, frozen in
+ * Redis), or a community island from Redis. A community island is served only while the
+ * community side is on and its post stands.
  */
 export async function lookUpIsland(
   store: Store,
@@ -489,16 +505,28 @@ export async function lookUpIsland(
   enabled: boolean = COMMUNITY.enabled
 ): Promise<IslandLookup> {
   if (!isCommunity(number)) {
-    const island = islandForDay(number);
-    return island === undefined
+    const found = await islandOfDay(store, number, enabled);
+    return found === undefined
       ? { ok: false, reason: 'not-found' }
-      : { ok: true, island, record: null };
+      : { ok: true, island: found.island, record: null, pick: found.pick };
   }
   if (!enabled) return { ok: false, reason: 'resting' };
   const record = await readCommunity(store, communityIndex(number));
   if (record === null) return { ok: false, reason: 'not-found' };
   if (!record.active) return { ok: false, reason: 'taken-down' };
-  return { ok: true, island: toPlayable(record), record };
+  return { ok: true, island: toPlayable(record), record, pick: null };
+}
+
+/** The community island behind a post, or null when the post is not one. */
+export async function islandOfPost(
+  store: Store,
+  postId: string
+): Promise<number | null> {
+  const fields = await store.hMGet(KEYS.communityPosts, [
+    postId.startsWith('t3_') ? postId : `t3_${postId}`,
+  ]);
+  const index = Number(fields[0]);
+  return Number.isInteger(index) && index >= 1 ? index : null;
 }
 
 /** A post was deleted or removed (active false), or approved again (true). */
@@ -507,11 +535,19 @@ export async function setIslandActive(
   postId: string,
   active: boolean
 ): Promise<boolean> {
-  const fields = await store.hMGet(KEYS.communityPosts, [postId]);
-  const index = Number(fields[0]);
-  if (!Number.isInteger(index) || index < 1) return false;
+  const index = await islandOfPost(store, postId);
+  if (index === null) return false;
   await store.hSet(KEYS.community(index), { active: active ? '1' : '0' });
   return true;
+}
+
+/** A moderator keeps an island out of the Sunday pick (by name), or lets it back in (''). */
+export async function setIslandExcluded(
+  store: Store,
+  index: number,
+  by: string
+): Promise<void> {
+  await store.hSet(KEYS.community(index), { excluded: by });
 }
 
 const TOKEN = /^[A-Za-z0-9]{8,64}$/;
@@ -621,6 +657,8 @@ export async function publishIsland(
     postedAs: 'user',
     solution: fresh.solution,
     creator: checked.test,
+    excluded: '',
+    sunday: 0,
   };
   const island = toPlayable(record);
   const post = {
@@ -736,20 +774,25 @@ export async function listMine(
   return islands;
 }
 
+/** What happened to a post: its author (or the app) deleted it, a moderator removed it (or
+ * marked it as spam), or a moderator approved it again. */
+export type PostChange = 'deleted' | 'removed' | 'approved';
+
 /**
  * What a trigger says about a post: deleted, removed or marked as spam (the island goes down),
- * or approved again (it comes back). Null for anything else.
+ * or approved again (it comes back). Null for anything else. A Sunday pick treats a removal
+ * and a deletion differently (PHASE3_PLAN.md E6), so it says which.
  */
 export function postActivity(
   payload: unknown
-): { postId: string; active: boolean } | null {
+): { postId: string; active: boolean; change: PostChange } | null {
   if (typeof payload !== 'object' || payload === null) return null;
   const fields: Record<string, unknown> = { ...payload };
   const withPrefix = (id: string): string =>
     id.startsWith('t3_') ? id : `t3_${id}`;
   const { postId, action, targetPost } = fields;
   if (typeof postId === 'string' && postId !== '')
-    return { postId: withPrefix(postId), active: false };
+    return { postId: withPrefix(postId), active: false, change: 'deleted' };
   if (typeof action !== 'string') return null;
   const active =
     action === 'approvelink'
@@ -762,7 +805,11 @@ export function postActivity(
   const target: Record<string, unknown> = { ...targetPost };
   const id = target['id'];
   return typeof id === 'string' && id !== ''
-    ? { postId: withPrefix(id), active }
+    ? {
+        postId: withPrefix(id),
+        active,
+        change: active ? 'approved' : 'removed',
+      }
     : null;
 }
 

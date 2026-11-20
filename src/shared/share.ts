@@ -97,3 +97,10 @@ export function communityResultsText(
     .replace('{solves}', solves.toLocaleString('en'))
     .replace('{par}', par);
 }
+
+/** The results comment's credit on a Sunday picked from the community; the link while it stands. */
+export function sundayCreditLine(maker: string, url: string): string {
+  return (url === '' ? COPY.sundayResultsGone : COPY.sundayResults)
+    .replace('{maker}', maker)
+    .replace('{url}', url);
+}

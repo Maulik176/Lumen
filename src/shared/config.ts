@@ -198,6 +198,27 @@ export const COPY = {
   communityResting: 'This island is resting.',
   /** "See others' islands" on a community island: the maker's own test, pinned first. */
   creatorBoard: "Creator's board",
+  /** The same on a Sunday picked from the community (E5). */
+  makerBoard: "Maker's board",
+  /** Sunday's post title when a player's island was picked. */
+  sundayTitle: 'Lumen #{day} \u00b7 {name} \u00b7 Sunday \u00b7 Island by u/{maker}',
+  /** Under the medal on Sunday's result card, and in the results comment. */
+  sundayCredit: 'Island by u/{maker}, chosen by the community',
+  /** The maker playing their own Sunday: not ranked, the streak goes on (E5). */
+  sundayMakerTime: 'Your own island: not ranked',
+  sundayMakerStreak: 'Your streak goes on \u00b7 {streak} nights',
+  /** On the picked island's own post (feed card) and in Your islands. */
+  sundayChosen: 'Chosen for Sunday, {date}',
+  /**
+   * The app's comment on the winning post (E11). Naming the maker makes Reddit notify them.
+   * Emoji allowed: it is a Reddit comment. {sub} is the subreddit.
+   */
+  sundayComment: "Chosen as Sunday's island for r/{sub} \u2728 Well built, u/{maker}.",
+  sundayCommentLinked:
+    "Chosen as Sunday's island for r/{sub} \u2728 Well built, u/{maker}. Play it: {url}",
+  /** The results comment on a picked Sunday: the credit and the original island. */
+  sundayResults: 'Island by u/{maker}, chosen by the community: {url}',
+  sundayResultsGone: 'Island by u/{maker}, chosen by the community.',
   /** A row that stands for several players with exactly the same board. */
   samePlayers: '{count} players',
   /** The results comment on a community post. Emoji allowed: it is a Reddit comment. */
@@ -893,6 +914,48 @@ export const COMMUNITY = {
   ],
 } as const;
 
+/**
+ * The Sunday pick (PHASE3_PLAN.md): every Saturday the best community island of the week becomes
+ * Sunday's ranked island, credited to its maker. Decisions E1-E11 in the plan, Maulik Nov 20.
+ */
+export const SUNDAY = {
+  /** The pick runs on Saturday at this hour, UTC (the cron in devvit.json says the same). */
+  pickHourUtc: 20,
+  /** Islands published in this many days before the pick are in the running (E1). */
+  windowDays: 7,
+  /** The lowest post score that can win: the author's vote and one more (E2). */
+  minScore: 2,
+  /** A player's island fits Sunday with par in this band (Sunday's own, E3)... */
+  par: [3, 5],
+  /** ...and at least this difficulty score (generated Sundays score 60-82; E3). */
+  minDifficulty: 55,
+  /** Islands read, newest first, when gathering candidates and refreshing scores. */
+  scanMax: 200,
+  /** Leaders re-checked with today's engine per run, at most (about 2.3 s each on Reddit). */
+  recheckMax: 3,
+  /** One pick at a time; a run that died is retried by the next task after this. */
+  lockSeconds: 300,
+  /** This week's scores, kept for the Archipelago's Community view. */
+  votesSeconds: 21 * 86_400,
+  /** Community view: this week's top islands, then older ones this many at a time. */
+  weekShown: 10,
+  olderPage: 20,
+  /** Sundays looked back over for the latest pick (90 days of islands). */
+  lookBackSundays: 14,
+} as const;
+
+/**
+ * Pinning the daily post (E8): today's post is pinned and yesterday's unpinned; How to play keeps
+ * the other pin. `top` pins into slot 1; false takes the free slot Reddit gives (phone check D1
+ * decides which keeps How to play pinned). `enabled` false turns it all off.
+ */
+export const PINS = {
+  enabled: true,
+  top: true,
+  /** How long the record that today's post was pinned is kept. */
+  keepSeconds: 2 * 86_400,
+} as const;
+
 /** The Builder's flat board and its timings. */
 export const BUILDER_VIEW = {
   /** Gap between the board and the screen's edge, in CSS pixels (4 keeps 8x8 tiles at 44 px on a 360 px phone). */
@@ -1261,6 +1324,12 @@ export const STREAK = {
   ],
   /** User flair in the game's subreddit: "{medal} 🔥{streak}". Emoji is allowed in flair only. */
   flair: '{medal} 🔥{streak}',
+  /**
+   * The maker of a Sunday pick keeps "Islandwright" in their flair for good (E7): after the
+   * medal and streak, or on its own before their first daily medal.
+   */
+  flairIslandwright: '{flair} \u00b7 Islandwright',
+  islandwright: 'Islandwright',
 } as const;
 
 export type LanternStyle = (typeof STREAK.styles)[number]['style'];

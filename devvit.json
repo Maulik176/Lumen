@@ -123,6 +123,10 @@
       "daily-catch-up": {
         "endpoint": "/internal/scheduler/daily-catch-up",
         "cron": "7,37 * * * *"
+      },
+      "sunday-pick": {
+        "endpoint": "/internal/scheduler/sunday-pick",
+        "cron": "0 20 * * 6"
       }
     }
   }

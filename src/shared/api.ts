@@ -31,6 +31,8 @@ export type PublicIsland = {
   par: number;
   /** Present on a community island (a number from COMMUNITY.numberBase up). */
   community?: CommunityCredit;
+  /** A daily Sunday picked from the community: who made it (Phase 3). Daily in every other way. */
+  madeBy?: CommunityCredit;
 };
 
 /** The small payload attached to each daily post, so the feed card paints without a request. */
@@ -45,8 +47,10 @@ export type PostData = {
   /**
    * A community island's post: the card paints its world, maker and label from here without a
    * request. The server reads only `day` (the island's number) and loads the rest from Redis.
+   * 'sunday': a daily Sunday whose island was picked from the community (Phase 3): a daily post
+   * in every way, with the maker's world and credit for its card.
    */
-  kind?: 'community';
+  kind?: 'community' | 'sunday';
   /**
    * A picture of this island for the card, uploaded to Reddit's media host (PHASE 4, being
    * tested). The stock picture of its world when absent, or if it fails to load.
@@ -284,6 +288,11 @@ export type LockInResult = {
   /** Place on tonight's board, 1 first. 0 when the solve is not ranked. */
   rank: number;
   skyCount: number;
+  /**
+   * The maker of a Sunday pick, lighting their own island: kept, not ranked, streak continued
+   * (PHASE3_PLAN.md E5).
+   */
+  maker?: true;
 };
 
 export type LockInResponse =
@@ -296,10 +305,13 @@ export type LockInResponse =
 /** Strip everything a client must not see. */
 export function toPublicIsland(
   island: PlayableIsland,
-  community?: CommunityCredit
+  community?: CommunityCredit,
+  /** A daily Sunday picked from the community: its maker. */
+  madeBy?: CommunityCredit
 ): PublicIsland {
   return {
     ...(community === undefined ? {} : { community }),
+    ...(madeBy === undefined ? {} : { madeBy }),
     day: island.day,
     date: island.date,
     weekday: island.weekday,
@@ -353,6 +365,21 @@ export function toCommunityPostData(
   };
 }
 
+/** A daily Sunday picked from the community: a daily post, with its maker's world and credit. */
+export function toSundayPostData(
+  island: PlayableIsland,
+  credit: CommunityCredit
+): PostData {
+  return {
+    ...toPostData(island),
+    kind: 'sunday',
+    biome: island.biome,
+    label: credit.label,
+    maker: credit.maker,
+    makerAvatar: credit.makerAvatar,
+  };
+}
+
 const BIOME_NAMES: readonly Biome[] = [
   'moss',
   'snow',
@@ -381,7 +408,11 @@ export function readPostData(value: unknown): PostData | null {
       picture === ''
         ? { day, name, weekday, par, lanterns, rows }
         : { day, name, weekday, par, lanterns, rows, picture };
-    if (value['kind'] !== 'community') return data;
+    const kind =
+      value['kind'] === 'community' || value['kind'] === 'sunday'
+        ? value['kind']
+        : null;
+    if (kind === null) return data;
     const biome = BIOME_NAMES.find((entry) => entry === value['biome']);
     const label = LABELS.find((entry) => entry === value['label']);
     const maker = value['maker'];
@@ -389,7 +420,7 @@ export function readPostData(value: unknown): PostData | null {
       return data;
     return {
       ...data,
-      kind: 'community',
+      kind,
       biome,
       label,
       maker,

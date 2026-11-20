@@ -48,6 +48,11 @@ export function weekdayOfDay(day: number): Weekday {
   );
 }
 
+/** The moment a day begins: 00:00 UTC, in milliseconds since the epoch. */
+export function dayStartMs(day: number): number {
+  return dayOneMs() + (day - 1) * MS_PER_DAY;
+}
+
 /** The day number that a moment in time (milliseconds since the epoch, UTC) falls on. */
 export function dayAt(epochMs: number): number {
   return Math.floor((epochMs - dayOneMs()) / MS_PER_DAY) + 1;

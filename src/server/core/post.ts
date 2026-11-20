@@ -4,31 +4,51 @@
  * for a day.
  */
 import { reddit } from '@devvit/web/server';
-import { toPostData } from '../../shared/api';
+import { toPostData, toSundayPostData } from '../../shared/api';
 import { weekdayLabel } from '../../shared/calendar';
-import { COMMENT, COPY } from '../../shared/config';
+import { COMMENT, COMMUNITY, COPY } from '../../shared/config';
 import { isCommunity, communityIndex } from '../../shared/community';
-import { communityResultsText, resultsText } from '../../shared/share';
+import {
+  communityResultsText,
+  resultsText,
+  sundayCreditLine,
+} from '../../shared/share';
+import { nowMs } from './clock';
 import { readCommunity } from './community';
-import { islandForDay } from './content';
 import { skyCount } from './game';
+import { pickOptions, pickReddit } from './pick-reddit';
 import { KEYS, redisStore as store } from './store';
+import { islandOfDay, isSunday, markPosted, runPick } from './sunday';
 
 /** Seconds a claim on "I am creating today's post" lasts before another caller may try. */
 const CLAIM_SECONDS = 120;
 
-/** Post an island with no bookkeeping. For test posts of any day. */
+/**
+ * Post an island with no bookkeeping. For test posts of any day. A Sunday picked from the
+ * community is posted as its pick: the maker's island, credited in the title and the card.
+ */
 export async function createIslandPost(day: number): Promise<string> {
-  const island = islandForDay(day);
-  if (island === undefined) throw new Error(`No island for day ${day}.`);
-  const title = COPY.postTitle
-    .replace('{day}', String(island.day))
-    .replace('{name}', island.name)
-    .replace('{weekday}', weekdayLabel(island.weekday));
+  const found = await islandOfDay(store, day);
+  if (found === undefined) throw new Error(`No island for day ${day}.`);
+  const { island, pick } = found;
+  const credit = pick?.winner?.credit;
+  const title =
+    credit === undefined
+      ? COPY.postTitle
+          .replace('{day}', String(island.day))
+          .replace('{name}', island.name)
+          .replace('{weekday}', weekdayLabel(island.weekday))
+      : COPY.sundayTitle
+          .replace('{day}', String(island.day))
+          .replace('{name}', island.name)
+          .replace('{maker}', credit.maker);
   const post = await reddit.submitCustomPost({
     title,
     entry: 'default',
-    postData: toPostData(island),
+    postData:
+      credit === undefined
+        ? toPostData(island)
+        : toSundayPostData(island, credit),
   });
   await store.set(KEYS.dayOfPost(post.id), String(day));
   await resultsComment(post.id, day).catch((error: unknown) =>
@@ -72,12 +92,22 @@ async function resultsNow(day: number): Promise<string> {
       Math.min(parHits, solves)
     );
   }
-  return resultsText(
+  const found = await islandOfDay(store, day);
+  const text = resultsText(
     day,
-    islandForDay(day)?.name ?? 'the island',
+    found?.island.name ?? 'the island',
     solves,
     Math.min(parHits, solves)
   );
+  // A Sunday picked from the community credits its maker, with the original island while its
+  // post stands.
+  const winner = found?.pick?.winner;
+  if (winner === undefined || winner === null) return text;
+  const source = await readCommunity(store, winner.index);
+  return `${text}\n\n${sundayCreditLine(
+    winner.credit.maker,
+    source !== null && source.active ? winner.url : ''
+  )}`;
 }
 
 /**
@@ -119,7 +149,25 @@ export async function ensureDailyPost(
     if (soon !== undefined) return { postId: soon, created: false };
     throw new Error(`Another task is creating day ${day}'s post.`);
   }
+  // Sunday: the last chance for its pick if every Saturday run was missed. Never holds up the
+  // post: a pick that fails leaves the generated island.
+  if (isSunday(day) && COMMUNITY.enabled)
+    await runPick(store, pickReddit(), day, nowMs(), pickOptions()).catch(
+      (error: unknown) =>
+        console.error(`Sunday pick before the post failed: ${String(error)}`)
+    );
   const postId = await createIslandPost(day);
   await store.set(KEYS.postForDay(day), postId);
+  // From now on Sunday's pick is frozen; its comment gets the post's address.
+  if (isSunday(day))
+    await markPosted(
+      store,
+      pickReddit(),
+      day,
+      `https://www.reddit.com/comments/${postId.replace(/^t3_/, '')}`,
+      (line) => console.log(line)
+    ).catch((error: unknown) =>
+      console.error(`Freezing Sunday's pick failed: ${String(error)}`)
+    );
   return { postId, created: true };
 }

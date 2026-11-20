@@ -4,8 +4,10 @@ import type { TriggerResponse } from '@devvit/web/shared';
 import { lastDay } from '../core/content';
 import { currentDay } from '../core/game';
 import { ensureDailyPost, refreshResultsComment } from '../core/post';
-import { postActivity, setIslandActive } from '../core/community';
+import { islandOfPost, postActivity, setIslandActive } from '../core/community';
+import { pickOptions, pickReddit } from '../core/pick-reddit';
 import { redisStore as store } from '../core/store';
+import { ensurePick, withdrawIfPicked } from '../core/sunday';
 
 export const triggers = new Hono();
 export const scheduler = new Hono();
@@ -41,6 +43,21 @@ async function islandActivity(payload: unknown): Promise<TriggerResponse> {
   if (change === null) return { status: 'success', message: 'Not an island' };
   try {
     const known = await setIslandActive(store, change.postId, change.active);
+    // A moderator removed the island picked for a Sunday whose post does not exist yet: the pick
+    // is withdrawn and runs again without it. A deletion keeps the pick (PHASE3_PLAN.md E6).
+    if (known && change.change === 'removed') {
+      const index = await islandOfPost(store, change.postId);
+      if (index !== null)
+        await withdrawIfPicked(
+          store,
+          pickReddit(),
+          index,
+          nowMs(),
+          pickOptions()
+        ).catch((error: unknown) =>
+          console.error(`Sunday pick withdrawal failed: ${String(error)}`)
+        );
+    }
     return {
       status: 'success',
       message: known
@@ -66,6 +83,14 @@ triggers.post('/on-mod-action', async (c) =>
   )
 );
 
+/** Saturday at the pick hour (SUNDAY.pickHourUtc): the best island of the week becomes Sunday's. */
+scheduler.post('/sunday-pick', async (c) => {
+  await ensurePick(store, pickReddit(), nowMs(), pickOptions()).catch(
+    (error: unknown) => console.error(`Sunday pick failed: ${String(error)}`)
+  );
+  return c.json({ status: 'ok' }, 200);
+});
+
 /** 00:00 UTC: the day's post. */
 scheduler.post('/daily-post', async (c) => {
   await ensureToday();
@@ -77,6 +102,12 @@ scheduler.post('/daily-post', async (c) => {
  * and the results comment is brought up to date with the latest counts.
  */
 scheduler.post('/daily-catch-up', async (c) => {
+  // A skipped Saturday tick: the pick runs here (Saturday after the pick hour, and Sunday), and
+  // an effect that failed (comment, flair) is tried again.
+  await ensurePick(store, pickReddit(), nowMs(), pickOptions()).catch(
+    (error: unknown) =>
+      console.error(`Sunday pick catch-up failed: ${String(error)}`)
+  );
   await ensureToday();
   try {
     const day = currentDay(nowMs(), lastDay());
