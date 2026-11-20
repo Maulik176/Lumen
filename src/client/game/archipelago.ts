@@ -228,9 +228,15 @@ function shelfDetail(entry: ShelfIsland): string {
             '{count}',
             entry.plays.toLocaleString('en')
           );
+  // An island picked for a Sunday says so instead of its own post's count.
   const words = COPY.shelfDetail
     .replace('{maker}', entry.maker)
-    .replace('{lit}', lit);
+    .replace(
+      '{lit}',
+      entry.chosenFor === undefined
+        ? lit
+        : COPY.sundayChosen.replace('{date}', monthDay(entry.chosenFor))
+    );
   if (entry.score === null) return words;
   const votes =
     entry.score === 1

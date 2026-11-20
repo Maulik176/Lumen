@@ -19,6 +19,7 @@
     "release": "bash scripts/release.sh",
     "report": "tsx scripts/report.ts",
     "seats": "node scripts/seats.mjs",
+    "sunday-pass": "node scripts/sunday-pass.mjs",
     "test": "vitest run",
     "test:types": "tsc --build",
     "test:watch": "vitest"

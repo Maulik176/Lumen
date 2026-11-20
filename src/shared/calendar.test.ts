@@ -3,6 +3,7 @@ import {
   biomeOfDay,
   dateOfDay,
   dayAt,
+  monthDay,
   weekdayLabel,
   weekdayOfDay,
   weekOfDay,
@@ -78,5 +79,12 @@ describe('warmUpDay', () => {
     // Day one is a Tuesday, so the first Thursday (day 3) warms up on day 1.
     expect(warmUpDay(3)).toBe(1);
     expect(warmUpDay(1)).toBeNull();
+  });
+});
+
+describe('short dates (Phase 3)', () => {
+  it('reads "Nov 29" for the first Sunday, and never breaks between month and day', () => {
+    expect(monthDay(6)).toBe('Nov\u00a029');
+    expect(monthDay(39)).toBe('Jan\u00a01');
   });
 });

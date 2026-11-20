@@ -40,6 +40,7 @@ async function shelfIsland(
     plays: await skyCount(store, number),
     score,
     url: record.url,
+    ...(record.sunday > 0 ? { chosenFor: record.sunday } : {}),
   };
 }
 

@@ -179,6 +179,8 @@ export type ShelfIsland = {
   score: number | null;
   /** Where tapping it leads: its post. */
   url: string;
+  /** Picked for a Sunday: that Sunday's day number. */
+  chosenFor?: number;
 };
 
 /** The latest Sunday picked from the community, highlighted at the top of the view. */

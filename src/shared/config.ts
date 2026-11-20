@@ -207,6 +207,9 @@ export const COPY = {
   /** The maker playing their own Sunday: not ranked, the streak goes on (E5). */
   sundayMakerTime: 'Your own island: not ranked',
   sundayMakerStreak: 'Your streak goes on \u00b7 {streak} nights',
+  sundayMakerStreakOne: 'Your streak goes on \u00b7 1 night',
+  /** The maker's own card names no one: it is theirs. */
+  sundayMakerCredit: 'Chosen by the community for Sunday',
   /** On the picked island's own post (feed card) and in Your islands. */
   sundayChosen: 'Chosen for Sunday, {date}',
   /** Sunday's feed card kicker and top bar, when a player's island was picked. */

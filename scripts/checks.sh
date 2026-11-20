@@ -6,7 +6,8 @@
 #                      crowds, every list and count from every seat
 #   2. types, lint, build
 #   3. the four-seat pass (scripts/seats.mjs) on the local stand-in, which runs the real game
-#      code: the game opened as four players in headless Chrome, lists checked from the screen.
+#      code: the game opened as four players in headless Chrome, lists checked from the screen;
+#      then the Sunday pass (scripts/sunday-pass.mjs): a week, the pick, Sunday from four seats.
 #      Starts the stand-in if it is not running. Note: it empties the stand-in's store first.
 #
 # Usage: npm run checks
@@ -31,10 +32,15 @@ fi
 
 node scripts/seats.mjs "captures/before-upload" 430x701
 status=$?
+# The Sunday pick's screens (Phase 3): a week, the pick, Sunday from four seats, the map.
+if [ $status -eq 0 ]; then
+  node scripts/sunday-pass.mjs "captures/before-upload-sunday" 430x701
+  status=$?
+fi
 [ -n "$started" ] && kill "$started" 2>/dev/null
 
 if [ $status -ne 0 ]; then
-  echo "Four-seat pass failed: a list leaves someone out or counts them twice."
+  echo "Four-seat or Sunday pass failed: a screen leaves someone out or says the wrong thing."
   exit 1
 fi
 echo "All checks passed."

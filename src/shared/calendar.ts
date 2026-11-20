@@ -68,10 +68,13 @@ const MONTHS = [
   'Dec',
 ] as const;
 
-/** "Nov 29": a day number's date, short, for lines such as "Chosen for Sunday, Nov 29". */
+/**
+ * "Nov 29": a day number's date, short, for lines such as "Chosen for Sunday, Nov 29". The two
+ * halves never part across a line.
+ */
 export function monthDay(day: number): string {
   const date = new Date(dayStartMs(day));
-  return `${MONTHS[date.getUTCMonth()] ?? ''} ${date.getUTCDate()}`;
+  return `${MONTHS[date.getUTCMonth()] ?? ''}\u00a0${date.getUTCDate()}`;
 }
 
 /** The day number that a moment in time (milliseconds since the epoch, UTC) falls on. */

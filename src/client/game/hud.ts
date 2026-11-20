@@ -496,6 +496,8 @@ export function createHud(
           document.createTextNode(COPY.sundayMakerTitle)
         );
         resultMedal.dataset['medal'] = 'maker';
+        // Their own island: the credit line names no one.
+        resultCredit.textContent = COPY.sundayMakerCredit;
       } else {
         resultMedal.replaceChildren(
           medalEmblem(outcome.medal),
@@ -550,7 +552,9 @@ export function createHud(
       );
       // Streaks belong to the daily islands only.
       resultStreak.textContent = maker
-        ? fill(COPY.sundayMakerStreak, { streak: outcome.streak })
+        ? outcome.streak === 1
+          ? COPY.sundayMakerStreakOne
+          : fill(COPY.sundayMakerStreak, { streak: outcome.streak })
         : !outcome.ranked || community
           ? ''
           : outcome.streak <= 1
