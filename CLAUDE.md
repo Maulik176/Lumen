@@ -6,8 +6,8 @@ Vite). It is an entry for Reddit's Game of the Day hackathon; submission closes 
 ## Where things stand (update at the end of every milestone)
 
 **Start here: Fri Nov 20, 2026 (Opus). The "everyone accounted for" fix is uploaded
-(v0.0.1.92), waiting for Maulik's phone check from his account and u/mohak2605's (R1–R4 in
-`docs/TESTS-TO-RUN.md`). Phase 3 is approved (`PHASE3_PLAN.md`, with Maulik's E5 change) and
+(v0.0.1.92); R1 and R2 passed on Maulik's phone from both accounts, R3 and R4 run on the Nov 21
+daily post (`docs/TESTS-TO-RUN.md` 1e). Phase 3 is approved (`PHASE3_PLAN.md`, with Maulik's E5 change) and
 starts only after that check passes.** Timeline (Maulik, Nov 19): P3 by Nov 23 (first Sunday
 pick Sat Nov 28), launch Tue Nov 24, P4 polish Nov 26–27, atmosphere pass and trailer ending
 after launch (Nov 24–26). Each phase starts with a plan for Maulik's OK, one commit per

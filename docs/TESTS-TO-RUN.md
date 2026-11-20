@@ -101,6 +101,9 @@ version are worked out again on first open (`others:v2`), so the existing post s
 | R3 | Today's daily post: both lock in with exactly the same pieces (e.g. the par answer). Each sees "same as u/the-other" on their own row, and no row of the other's | Both |
 | R4 | The feed card and result card's "#N": after someone faster locks in, it matches the board (it used to keep the place at Lock in) | Both |
 
+**Nov 20, on v0.0.1.92:** R1 and R2 passed (Maulik and u/mohak2605 on Blossom Island #3). R3 and
+R4 wait for the Nov 21 daily post.
+
 ## 2. Fixed in code, never confirmed on a phone
 
 | # | Test | How |
