@@ -381,7 +381,19 @@ export const COPY = {
   othersHint: 'Tap an island to see how it was lit.',
   /** The player's own island, first in the list. */
   othersMine: 'Your island',
+  /**
+   * After the player's own details, when others placed exactly the same board (they are folded
+   * into the player's row, never listed again): the first one by name, then how many more.
+   */
+  othersSameAs: 'same as u/{name}',
+  othersSameAsOne: 'same as u/{name} and 1 other',
+  othersSameAsMany: 'same as u/{name} and {count} others',
+  /** The same, when no name is at hand (all of them are far down a busy board). */
+  othersSameCountOne: 'same as 1 other',
+  othersSameCount: 'same as {count} others',
   othersEmpty: 'No other islands yet tonight.',
+  /** Others lit it, every one with exactly the player's board. */
+  othersAllSame: 'Everyone so far lit it just as you did.',
   /** Looking at one island: back to the list. */
   othersList: 'All islands',
   /** The par answer as a row of its own, on an earlier night's list. */
@@ -1371,7 +1383,10 @@ export const KEEP = {
 
 /** "See others' islands": the top of the night's board, each island with its pieces as placed. */
 export const OTHERS = {
-  /** Islands listed, in the board's order, besides the player's own. */
+  /**
+   * Different boards listed, in the board's order, besides the player's own. One more than
+   * this is kept, so the list stays this long once the viewer's own board is taken out.
+   */
   top: 10,
   /**
    * Identical boards are listed once, with how many players placed them; the list reads this

@@ -6,12 +6,13 @@ import {
   cleanSnoovatar,
   type AllTimeRow,
   type BoardResponse,
-  type BoardRow,
 } from '../../shared/api';
 import { isCommunity } from '../../shared/community';
 import { COPY } from '../../shared/config';
-import { formatTime } from './fit';
+import { dayDetail } from '../../shared/others';
 import { element } from './hud';
+
+export { dayDetail } from '../../shared/others';
 
 /** A repeatable hue (0 to 360) from a name, so each seal has its own colour. */
 function hueOf(name: string): number {
@@ -64,11 +65,6 @@ function row(
   return line;
 }
 
-export function dayDetail(entry: BoardRow): string {
-  return (entry.pieces === 1 ? COPY.boardRowOne : COPY.boardRow)
-    .replace('{pieces}', String(entry.pieces))
-    .replace('{time}', formatTime(entry.timeMs));
-}
 
 function allTimeDetail(entry: AllTimeRow): string {
   return (entry.medals === 1 ? COPY.allTimeRowOne : COPY.allTimeRow).replace(

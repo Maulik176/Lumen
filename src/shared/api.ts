@@ -198,8 +198,13 @@ export type BoardResponse =
  */
 export type OtherIsland = BoardRow & {
   placements: Placement[] | null;
-  /** How many ranked players placed exactly this board (1 when only this player did). */
+  /**
+   * How many ranked players placed exactly this board (1 when only this player did). On the
+   * viewer's own row it counts the viewer too: their board's whole group is folded into it.
+   */
   same?: number;
+  /** On the viewer's own row: another player who placed the same board, highest on the board. */
+  sameAs?: string;
 };
 
 /**
@@ -210,8 +215,12 @@ export type OthersResponse =
   | {
       ok: true;
       day: number;
+      /**
+       * The top of the board, one row per board. Boards the same as the viewer's are never
+       * here: they are folded into `me` (its `same` and `sameAs`).
+       */
       top: OtherIsland[];
-      /** The player's own island, whether or not it is in `top`. */
+      /** The player's own island, with everyone who placed the same board. */
       me: OtherIsland | null;
       solves: number;
       parHits: number;

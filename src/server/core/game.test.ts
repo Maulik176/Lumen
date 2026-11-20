@@ -465,18 +465,21 @@ describe("see others' islands", () => {
     await lockIn(store, ana, input(1, DAY_ONE + 2 * HOUR), effects);
     const others = await open(store, ana, DAY_ONE + 2 * HOUR);
     if (!others.ok) throw new Error('should be open');
-    // Both placed the same board: Ben, first on the board, stands for both.
-    expect(others.top.map((row) => [row.rank, row.username, row.same])).toEqual(
-      [[1, 'ben', 2]]
-    );
-    for (const row of others.top)
-      expect(row.placements).toEqual(island(1).solution);
+    // Both placed the same board: it is Ana's own, so Ben is folded into her row, by name.
+    expect(others.top).toEqual([]);
     expect(others.me).toMatchObject({
       rank: 2,
       username: 'ana',
       pieces: island(1).par,
       placements: island(1).solution,
+      same: 2,
+      sameAs: 'ben',
     });
+    // From Ben's seat, first on the board: Ana is still named (Nov 20, Maulik's report).
+    const fromBen = await open(store, ben, DAY_ONE + 2 * HOUR);
+    if (!fromBen.ok) throw new Error('should be open');
+    expect(fromBen.top).toEqual([]);
+    expect(fromBen.me).toMatchObject({ rank: 1, same: 2, sameAs: 'ana' });
     expect(others.solves).toBe(2);
     expect(others.parHits).toBe(2);
     expect(others.parSolution).toBeNull();
@@ -509,19 +512,21 @@ describe("see others' islands", () => {
     }
     const before = store.writes();
     const others = await open(store, ana);
-    expect(others.ok && others.top).toHaveLength(1);
+    expect(others.ok && others.top).toEqual([]);
+    expect(others.ok && others.me?.same).toBe(2);
     expect(store.writes()).toBe(before);
   });
 
   it('a Lock in below the top leaves the kept list alone', async () => {
     const { store, effects, input } = setup();
-    const players = Array.from({ length: OTHERS.top + 1 }, (_, i) => ({
+    // One row more than OTHERS.top is kept, so the player in place top + 2 is below it.
+    const players = Array.from({ length: OTHERS.top + 2 }, (_, i) => ({
       userId: `t2_p${i}`,
       username: `p${i}`,
     }));
     const boards = variants(1, players.length);
     for (const [i, player] of players.entries()) {
-      if (i === OTHERS.top) await store.del(KEYS.othersTop(1));
+      if (i === OTHERS.top + 1) await store.del(KEYS.othersTop(1));
       await recordStart(store, player, 1, DAY_ONE);
       await lockIn(
         store,
@@ -530,15 +535,15 @@ describe("see others' islands", () => {
         effects
       );
     }
-    // The last player came eleventh: their Lock in did not rebuild the deleted list.
+    // The last player came twelfth: their Lock in did not rebuild the deleted list.
     expect(await store.get(KEYS.othersTop(1))).toBeUndefined();
-    const others = await open(store, players[OTHERS.top] ?? null);
+    const others = await open(store, players[OTHERS.top + 1] ?? null);
     if (!others.ok) throw new Error('should be open');
     expect(others.top).toHaveLength(OTHERS.top);
-    expect(others.top.some((row) => row.username === `p${OTHERS.top}`)).toBe(
-      false
-    );
-    expect(others.me?.rank).toBe(OTHERS.top + 1);
+    expect(
+      others.top.some((row) => row.username === `p${OTHERS.top + 1}`)
+    ).toBe(false);
+    expect(others.me?.rank).toBe(OTHERS.top + 2);
   });
 
   it('names every player on the board, even one whose pieces were never stored', async () => {
@@ -546,7 +551,9 @@ describe("see others' islands", () => {
     const { store, effects, input } = setup();
     await recordStart(store, ben, 1, DAY_ONE);
     await lockIn(store, ben, input(1, DAY_ONE + HOUR), effects);
+    // Those solves came before boards and their counts were stored.
     await store.del(KEYS.boards(1));
+    await store.del(KEYS.groups(1));
     await store.del(KEYS.othersTop(1));
     await recordStart(store, ana, 1, DAY_ONE);
     await lockIn(store, ana, input(1, DAY_ONE + 2 * HOUR), effects);
@@ -554,8 +561,12 @@ describe("see others' islands", () => {
     if (!others.ok) throw new Error('should be open');
     expect(others.top.map((row) => [row.username, row.placements])).toEqual([
       ['ben', null],
-      ['ana', island(1).solution],
     ]);
+    expect(others.me).toMatchObject({
+      username: 'ana',
+      placements: island(1).solution,
+      same: 1,
+    });
   });
 
   it('rebuilds a kept list that is shorter than the board', async () => {
@@ -564,9 +575,17 @@ describe("see others' islands", () => {
     await lockIn(store, ben, input(1, DAY_ONE + HOUR), effects);
     await recordStart(store, ana, 1, DAY_ONE);
     await lockIn(store, ana, input(1, DAY_ONE + HOUR), effects);
+    const carl: Player = { userId: 't2_carl', username: 'carl' };
+    await recordStart(store, carl, 1, DAY_ONE);
+    await lockIn(
+      store,
+      carl,
+      input(1, DAY_ONE + 2 * HOUR, { placements: variants(1, 1)[0] }),
+      effects
+    );
     // A list kept empty by an older version, before anyone's pieces were stored.
     await store.set(KEYS.othersTop(1), '[]');
-    const others = await open(store, ana);
+    const others = await open(store, carl, DAY_ONE + 2 * HOUR);
     if (!others.ok) throw new Error('should be open');
     // Same board, same time: one row for both.
     expect(others.top.map((row) => [row.username, row.same])).toEqual([
@@ -591,7 +610,28 @@ describe("see others' islands", () => {
     await lockIn(store, ben, input(1, DAY_ONE + 2 * HOUR), effects);
     const others = await open(store, ben, DAY_ONE + 2 * HOUR);
     if (!others.ok) throw new Error('should be open');
-    expect(others.top.map((row) => row.username)).toEqual(['ben']);
+    // Ana is gone; Ben is alone with his own island.
+    expect(others.top).toEqual([]);
+    expect(others.me).toMatchObject({ username: 'ben', same: 1 });
+  });
+});
+
+describe('a developer reset', () => {
+  it('takes back the solve and the par hit, so the counts stay true after a replay', async () => {
+    const { store, effects, input } = setup();
+    await recordStart(store, ana, 1, DAY_ONE);
+    await lockIn(store, ana, input(1, DAY_ONE + HOUR), effects);
+    await resetPlayer(store, ana, 1);
+    expect(await store.hGetAll(KEYS.stats(1))).toMatchObject({
+      solves: '0',
+      parHits: '0',
+    });
+    await recordStart(store, ana, 1, DAY_ONE);
+    await lockIn(store, ana, input(1, DAY_ONE + 2 * HOUR), effects);
+    expect(await store.hGetAll(KEYS.stats(1))).toMatchObject({
+      solves: '1',
+      parHits: '1',
+    });
   });
 });
 
@@ -783,8 +823,15 @@ describe('a community island', () => {
     expect(await open(ana)).toMatchObject({
       ok: true,
       creator,
-      top: [{ username: 'ana', rank: 1 }],
+      top: [],
+      me: { username: 'ana', rank: 1, same: 1 },
       parSolution: null,
+    });
+    // The maker sees Ana's island; the maker's own test is never a player.
+    expect(await open(maker)).toMatchObject({
+      ok: true,
+      top: [{ username: 'ana', rank: 1 }],
+      me: null,
     });
   });
 });

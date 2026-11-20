@@ -124,8 +124,5 @@ export function easeInOut(t: number): number {
   return clamped * clamped * (3 - 2 * clamped);
 }
 
-/** Minutes and seconds, as 1:42. */
-export function formatTime(elapsedMs: number): string {
-  const seconds = Math.max(0, Math.round(elapsedMs / 1000));
-  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
-}
+/** Minutes and seconds, as 1:42 (kept with the shared board text). */
+export { formatTime } from '../../shared/others';

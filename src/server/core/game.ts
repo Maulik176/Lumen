@@ -187,6 +187,14 @@ function readPlacements(
   }
 }
 
+/**
+ * A ranked player's place as the board shows it: their position, or 0 (no place shown) for a
+ * time too fast to be believed, which the board keeps without a number.
+ */
+function placeOf(position: number, elapsedMs: number): number {
+  return elapsedMs < SCORING.minPlausibleMs ? 0 : position + 1;
+}
+
 /** What the server knows about a player for one island. */
 export async function playerState(
   store: Store,
@@ -211,22 +219,28 @@ export async function playerState(
       progress: null,
     };
   }
-  const [fields, stored, shared, left] = await Promise.all([
+  const [fields, stored, shared, left, position] = await Promise.all([
     store.hGetAll(KEYS.user(player.userId)),
     store.get(KEYS.submission(day, player.userId)),
     store.get(KEYS.shared(day, player.userId)),
     island === undefined
       ? undefined
       : store.get(KEYS.progress(day, player.userId)),
+    store.zRank(KEYS.leaderboard(day), player.username),
   ]);
   const streak = readStreak(fields);
+  const result = readResult(stored);
   return {
     loggedIn: true,
     username: player.username,
     streak: streak.streak,
     style: styleFor(streak.streak),
     tutorialDone: fields['tutorialDone'] === '1',
-    result: readResult(stored),
+    // The place is the board's now, not the one at Lock in: faster players may have come since.
+    result:
+      result === null || !result.ranked || position === undefined
+        ? result
+        : { ...result, rank: placeOf(position, result.elapsedMs) },
     placements: island === undefined ? null : readPlacements(stored, island),
     shared: shared !== undefined,
     // Older shares stored only "1"; a reply id starts t1_.
@@ -428,7 +442,7 @@ export async function lockIn(
     streak: after.streak,
     style,
     percentile,
-    rank: (rank ?? 0) + 1,
+    rank: placeOf(rank ?? 0, elapsedMs),
     // The real board's size, not the running tally (which a dev reset can disturb).
     skyCount: Math.max(solves, total),
   };
@@ -478,7 +492,7 @@ export async function lockIn(
   await Promise.all(writes);
   // A Lock in that reaches the top of the board rebuilds the cached list once, here, so opening
   // "See others' islands" is a single read.
-  if (result.rank <= OTHERS.top) await rebuildOthers(store, island);
+  if (result.rank <= OTHERS.top + 1) await rebuildOthers(store, island);
 
   // Keep only the newest lanterns; the count lives in stats.
   const kept = await store.zCard(KEYS.sky(island.day));
@@ -550,10 +564,15 @@ export async function resetPlayer(
       graceWeek: String(NEW_STREAK.graceWeek),
     }),
   ]);
-  // Take the solve back out of the tally, but never below zero (the day may have been cleared).
+  // Take the solve, and its par hit, back out of the tallies, never below zero (the day may have
+  // been cleared). Left in, a replay would count the same par hit twice.
   if (had) {
     const left = await store.hIncrBy(KEYS.stats(day), 'solves', -1);
     if (left < 0) await store.hSet(KEYS.stats(day), { solves: '0' });
+    if (readResult(stored)?.medal === 'lamplighter') {
+      const hits = await store.hIncrBy(KEYS.stats(day), 'parHits', -1);
+      if (hits < 0) await store.hSet(KEYS.stats(day), { parHits: '0' });
+    }
   }
 }
 
@@ -697,62 +716,91 @@ function readBoardPieces(
 }
 
 /**
- * Work out the top of the night's board with each player's pieces, and keep it, so the list
- * opens with one read. Called after a Lock in that reaches the top, and when the kept list is
- * missing or shorter than the board. A player whose pieces were never stored is still listed,
- * with none.
+ * One kept row of "See others' islands": one board, shown as the first player down the board
+ * who placed it, plus the next one (so a viewer who is that first player can still be told who
+ * else placed it).
+ */
+type KeptRow = OtherIsland & { next?: string };
+
+/** Which board a row stands for. Pieces never stored: a board of the player's own. */
+function keyOfRow(row: {
+  username: string;
+  placements: Placement[] | null;
+}): string {
+  return row.placements === null
+    ? `none:${row.username}`
+    : boardOf(row.placements);
+}
+
+/** A tally of players from the groups hash, read safely: at least 1, the row's own player. */
+function groupCount(value: string | null | undefined): number {
+  return Math.max(1, Number(value ?? 1) || 1);
+}
+
+/**
+ * Work out the top of the night's board, one row per board with each board's pieces, and keep
+ * it, so the list opens with one read. One row more than OTHERS.top is kept, so the list is still
+ * full once the viewer's own board is taken out. Called after a Lock in that reaches the top, and
+ * when the kept list no longer covers the board. A player whose pieces were never stored is
+ * still listed, with none.
  */
 export async function rebuildOthers(
   store: Store,
   island: PlayableIsland
-): Promise<OtherIsland[]> {
+): Promise<KeptRow[]> {
   const { top } = await readLeaderboard(store, island.day, null, OTHERS.scan);
   const pieces = await store.hMGet(
     KEYS.boards(island.day),
     top.map((row) => row.username)
   );
   // Down the board, the first player with each board stands for everyone who placed it.
-  const seen = new Set<string>();
-  const firsts: {
-    row: BoardRow;
-    placements: Placement[] | null;
-    key: string;
-  }[] = [];
+  const groups = new Map<string, KeptRow>();
   for (const [index, row] of top.entries()) {
-    if (firsts.length >= OTHERS.top) break;
     const placements = readBoardPieces(island, pieces[index]);
-    const key =
-      placements === null ? `none:${row.username}` : boardOf(placements);
-    if (seen.has(key)) continue;
-    seen.add(key);
-    firsts.push({ row, placements, key });
+    const key = keyOfRow({ username: row.username, placements });
+    const group = groups.get(key);
+    if (group !== undefined) {
+      if (group.next === undefined) group.next = row.username;
+      continue;
+    }
+    if (groups.size < OTHERS.top + 1)
+      groups.set(key, { ...row, placements, same: 1 });
   }
-  const counts = await store.hMGet(
-    KEYS.groups(island.day),
-    firsts.map((first) => first.key)
-  );
-  const islands: OtherIsland[] = firsts.map((first, index) => ({
-    ...first.row,
-    placements: first.placements,
-    same: Math.max(1, Number(counts[index] ?? 1) || 1),
-  }));
+  const kept = [...groups.values()];
+  const counts = await store.hMGet(KEYS.groups(island.day), [...groups.keys()]);
+  kept.forEach((row, index) => {
+    row.same = groupCount(counts[index]);
+  });
   await store.set(
     KEYS.othersTop(island.day),
-    JSON.stringify(islands),
+    JSON.stringify(kept),
     KEEP.submissionSeconds
   );
-  return islands;
+  return kept;
+}
+
+/** A kept row as the client sees it: without the server's own bookkeeping. */
+function shownRow(row: KeptRow): OtherIsland {
+  return {
+    rank: row.rank,
+    username: row.username,
+    snoovatar: row.snoovatar,
+    pieces: row.pieces,
+    timeMs: row.timeMs,
+    placements: row.placements,
+    same: row.same ?? 1,
+  };
 }
 
 function readOthersTop(
   island: PlayableIsland,
   text: string | undefined
-): OtherIsland[] | null {
+): KeptRow[] | null {
   if (text === undefined) return null;
   try {
     const value: unknown = JSON.parse(text);
     if (!Array.isArray(value)) return null;
-    const islands: OtherIsland[] = [];
+    const islands: KeptRow[] = [];
     for (const entry of value) {
       if (typeof entry !== 'object' || entry === null) return null;
       const fields: Record<string, unknown> = { ...entry };
@@ -772,6 +820,7 @@ function readOthersTop(
           : readBoardPieces(island, JSON.stringify(stored));
       if (stored !== null && placements === null) return null;
       const same = fields['same'];
+      const next = fields['next'];
       islands.push({
         rank,
         username,
@@ -780,6 +829,7 @@ function readOthersTop(
         timeMs,
         placements,
         same: typeof same === 'number' ? same : 1,
+        ...(typeof next === 'string' ? { next } : {}),
       });
     }
     return islands;
@@ -829,16 +879,6 @@ export async function readOthers(
     store.zCard(KEYS.leaderboard(island.day)),
   ]);
   if (!over && mine === undefined && !isMaker) return { ok: false };
-  // A kept list shorter than the board is out of date (an older version kept it, or two Lock
-  // ins crossed): work it out again.
-  const keptTop = readOthersTop(island, kept);
-  // Rows stand for every player with the same board, so a full or complete list is current.
-  const covered =
-    keptTop?.reduce((sum, row) => sum + Math.max(1, row.same ?? 1), 0) ?? 0;
-  const top =
-    keptTop !== null && (keptTop.length >= OTHERS.top || covered >= total)
-      ? keptTop
-      : await rebuildOthers(store, island);
 
   let me: OtherIsland | null = null;
   const result = readResult(mine);
@@ -862,6 +902,51 @@ export async function readOthers(
         placements,
       };
   }
+  // The viewer's board: its whole group is folded into their own row, never listed again.
+  const myKey = me === null ? null : keyOfRow(me);
+
+  // Every count is read now, not kept: a board's count grows without the list changing.
+  const counted = async (
+    rows: KeptRow[]
+  ): Promise<{ rows: KeptRow[]; mine: number }> => {
+    const keys = rows.map(keyOfRow);
+    const counts = await store.hMGet(
+      KEYS.groups(island.day),
+      myKey === null ? keys : [...keys, myKey]
+    );
+    return {
+      rows: rows.map((row, index) => ({
+        ...row,
+        same: groupCount(counts[index]),
+      })),
+      mine: myKey === null ? 1 : groupCount(counts[keys.length]),
+    };
+  };
+  const keptTop = readOthersTop(island, kept);
+  let list = keptTop === null ? null : await counted(keptTop);
+  // The kept rows cover the board when they are full, or when their players add up to everyone
+  // on it. Otherwise a board is missing (a newer Lock in, an older version kept the list, two
+  // Lock ins crossed): work it out again.
+  const covered =
+    list?.rows.reduce((sum, row) => sum + (row.same ?? 1), 0) ?? 0;
+  if (list === null || !(list.rows.length > OTHERS.top || covered >= total))
+    list = await counted(await rebuildOthers(store, island));
+
+  if (me !== null && myKey !== null) {
+    me.same = list.mine;
+    const group = list.rows.find((row) => keyOfRow(row) === myKey);
+    const other =
+      group === undefined
+        ? undefined
+        : group.username !== me.username
+          ? group.username
+          : group.next;
+    if (list.mine > 1 && other !== undefined) me.sameAs = other;
+  }
+  const top = list.rows
+    .filter((row) => keyOfRow(row) !== myKey)
+    .slice(0, OTHERS.top)
+    .map(shownRow);
   return {
     ok: true,
     top,
