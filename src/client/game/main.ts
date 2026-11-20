@@ -6,6 +6,7 @@
  */
 import {
   cleanSnoovatar,
+  type CommunityResponse,
   type IslandResponse,
   type LockInRequest,
   type LockInResponse,
@@ -1076,6 +1077,9 @@ async function start(): Promise<void> {
             layerOpen = false;
             void openBuilderLayer();
           }
+        : undefined,
+      COMMUNITY.enabled
+        ? { load: loadCommunity, open: (url) => openAddress(url) }
         : undefined
     );
   };
@@ -1124,6 +1128,26 @@ async function start(): Promise<void> {
       : { explore: () => void openMap() }),
     ...(COMMUNITY.enabled ? { build: () => void openBuilderLayer() } : {}),
   });
+}
+
+/** The Archipelago's Community view: one page (Phase 3). */
+async function loadCommunity(after: number): Promise<CommunityResponse | null> {
+  try {
+    const response = await fetch(
+      after > 0 ? `/api/community?after=${after}` : '/api/community'
+    );
+    const body: CommunityResponse = await response.json();
+    return body;
+  } catch {
+    return null;
+  }
+}
+
+/** Open a post by its address (a community island's, or a Sunday's). */
+function openAddress(url: string): void {
+  void import('@devvit/web/client')
+    .then(({ navigateTo }) => navigateTo(url))
+    .catch(() => undefined);
 }
 
 /** Open tonight's daily post, from a community island's result card. */

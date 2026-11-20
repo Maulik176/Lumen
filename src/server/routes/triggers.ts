@@ -7,6 +7,7 @@ import { ensureDailyPost, pinToday, refreshResultsComment } from '../core/post';
 import { islandOfPost, postActivity, setIslandActive } from '../core/community';
 import { pickOptions, pickReddit } from '../core/pick-reddit';
 import { redisStore as store } from '../core/store';
+import { refreshVotes } from '../core/shelf';
 import { ensurePick, withdrawIfPicked } from '../core/sunday';
 
 export const triggers = new Hono();
@@ -107,6 +108,10 @@ scheduler.post('/daily-catch-up', async (c) => {
   await ensurePick(store, pickReddit(), nowMs(), pickOptions()).catch(
     (error: unknown) =>
       console.error(`Sunday pick catch-up failed: ${String(error)}`)
+  );
+  // The scores of this week's islands, for the Archipelago's Community view.
+  await refreshVotes(store, pickReddit(), nowMs()).catch((error: unknown) =>
+    console.error(`Community scores refresh failed: ${String(error)}`)
   );
   await ensureToday();
   try {

@@ -158,7 +158,44 @@ export type PastIsland = {
   rows: string[];
   /** How many players lit it. */
   solves: number;
+  /** A Sunday picked from the community: its maker, for the map's badge (Phase 3). */
+  maker?: string;
+  makerAvatar?: string;
 };
+
+/** One community island on the Archipelago's Community view (Phase 3). */
+export type ShelfIsland = {
+  /** Its island number (a community number; a Sunday's day number for a pick). */
+  number: number;
+  name: string;
+  maker: string;
+  makerAvatar: string;
+  biome: Biome;
+  rows: string[];
+  par: number;
+  /** Ranked players who lit it. */
+  plays: number;
+  /** Its post's score when last read (null before the first read). */
+  score: number | null;
+  /** Where tapping it leads: its post. */
+  url: string;
+};
+
+/** The latest Sunday picked from the community, highlighted at the top of the view. */
+export type ShelfPick = ShelfIsland & { sunday: number };
+
+export type CommunityResponse =
+  | {
+      ok: true;
+      pick: ShelfPick | null;
+      /** This week's islands, highest score first (the ones in the running for Sunday). */
+      week: ShelfIsland[];
+      /** Earlier islands, newest first, one page. */
+      older: ShelfIsland[];
+      /** Ask again with ?after= this for the next page; null when there is none. */
+      next: number | null;
+    }
+  | { ok: false; reason: 'resting' };
 
 export type PastResponse = { ok: true; islands: PastIsland[] };
 

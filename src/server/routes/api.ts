@@ -8,6 +8,7 @@ import {
   toPublicIsland,
   toSundayPostData,
   type CommunityCredit,
+  type CommunityResponse,
   type IslandResponse,
   type BoardResponse,
   type CardResponse,
@@ -20,7 +21,7 @@ import {
   type SkyResponse,
 } from '../../shared/api';
 import { COPY, DEV, PAST } from '../../shared/config';
-import type { DailyIsland } from '../../shared/daily';
+import type { PlayableIsland } from '../../shared/daily';
 import { isRuleKind } from '../../shared/rules';
 import { flairFor } from '../../shared/streak';
 import { isCommunity, skyChannel } from '../../shared/community';
@@ -32,6 +33,8 @@ import {
   type IslandLookup,
 } from '../core/community';
 import { refreshResultsComment, resultsComment } from '../core/post';
+import { communityShelf } from '../core/shelf';
+import { islandOfDay } from '../core/sunday';
 import { isJourneyId } from './journey';
 import { commentUrl, shareText } from '../../shared/share';
 import {
@@ -271,15 +274,39 @@ api.get('/past', async (c) => {
   );
   // From a community post: the islands before tonight's, never anything still to come.
   const before = isCommunity(asked) ? currentDay(nowMs(), lastDay()) : asked;
-  const islands: DailyIsland[] = [];
+  const islands: PlayableIsland[] = [];
+  // A Sunday picked from the community is shown as it was played, with its maker's badge.
+  const makers = new Map<number, { maker: string; makerAvatar: string }>();
   for (let day = before - 1; day >= 1 && islands.length < PAST.max; day--) {
-    const island = islandForDay(day);
-    if (island !== undefined) islands.push(island);
+    const found = await islandOfDay(store, day).catch(() => undefined);
+    const island = found?.island ?? islandForDay(day);
+    if (island === undefined) continue;
+    islands.push(island);
+    const credit = found?.pick?.winner?.credit;
+    if (credit !== undefined)
+      makers.set(day, { maker: credit.maker, makerAvatar: credit.makerAvatar });
   }
-  const list = await pastIslands(store, await whoIsAsking(), islands).catch(
-    () => pastIslands(store, null, islands)
-  );
+  const list = await pastIslands(
+    store,
+    await whoIsAsking(),
+    islands,
+    makers
+  ).catch(() => pastIslands(store, null, islands, makers));
   return c.json<PastResponse>({ ok: true, islands: list });
+});
+
+/**
+ * The Archipelago's Community view: the latest Sunday pick, this week's islands by score, then
+ * older ones (?after= for the next page). 404 while the community side is switched off.
+ */
+api.get('/community', async (c) => {
+  const after = Number(c.req.query('after') ?? 0);
+  const shelf = await communityShelf(
+    store,
+    nowMs(),
+    Number.isInteger(after) && after > 0 ? after : 0
+  ).catch((): CommunityResponse => ({ ok: false, reason: 'resting' }));
+  return c.json<CommunityResponse>(shelf, shelf.ok ? 200 : 404);
 });
 
 /** Tonight's board (scope=day, the default) or the all-time board (scope=alltime). */

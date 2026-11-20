@@ -1918,6 +1918,83 @@ div.others-row {
     0 8px 24px rgba(6, 3, 18, 0.45);
 }
 
+/* The map's "Nights · Community" switch, under its bar (Phase 3, E9). */
+.map-tabs {
+  left: 50%;
+  top: calc(var(--gap) * 2 + 50px);
+  width: min(320px, calc(100% - 2 * var(--gap)));
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 3px;
+  background: var(--paper);
+}
+
+.map-tabs .board-tab {
+  min-height: var(--tap);
+}
+
+/* The night map scrolls under the bar and the switch. */
+.map.with-tabs .map-sea {
+  margin-top: calc(var(--tap) + var(--gap));
+}
+
+/* The Community view: paper rows on one sheet, between the switch and the Build button. */
+.map-shelf {
+  left: 50%;
+  top: calc(var(--gap) * 3 + 50px + var(--tap) + 6px);
+  bottom: calc(var(--gap) * 2 + env(safe-area-inset-bottom, 0px));
+  width: min(var(--wide-bar), calc(100% - 2 * var(--gap)));
+  transform: translateX(-50%);
+  padding: 6px 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.map-shelf.with-build {
+  bottom: calc(var(--tap) + var(--gap) * 4 + env(safe-area-inset-bottom, 0px));
+}
+
+.map-shelf[hidden],
+.map-scroll[hidden] {
+  display: none;
+}
+
+.map-heading {
+  margin: 12px 8px 0;
+  font-family: var(--display);
+  font-size: 17px;
+  font-weight: 400;
+}
+
+.map-hint {
+  margin: 0 8px 4px;
+  text-align: left;
+}
+
+/* The latest Sunday pick: a larger row with a soft gold edge. */
+.map-pick {
+  margin: 2px 0 6px;
+  border-radius: calc(var(--radius) - 4px);
+  box-shadow: inset 0 0 0 1.5px var(--medal-lamplighter);
+  background: color-mix(in srgb, var(--amber) 14%, transparent);
+}
+
+.map-pick-kicker {
+  color: var(--medal-lamplighter);
+  font-weight: 650;
+}
+
+.map-more {
+  display: block;
+  margin: 8px auto 4px;
+}
+
+/* A Sunday picked from the community, on the night map: its maker under the name. */
+.map-maker {
+  font-size: 12px;
+  color: var(--amber);
+}
+
 /* Room below the last island, so it can scroll clear of the Build button. */
 .map-foot {
   height: calc(var(--tap) + var(--gap) * 4 + env(safe-area-inset-bottom, 0px));

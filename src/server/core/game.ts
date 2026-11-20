@@ -28,11 +28,7 @@ import {
   SCORING,
   SKY,
 } from '../../shared/config';
-import {
-  puzzleOfDaily,
-  type DailyIsland,
-  type PlayableIsland,
-} from '../../shared/daily';
+import { puzzleOfDaily, type PlayableIsland } from '../../shared/daily';
 import {
   advanceStreak,
   NEW_STREAK,
@@ -639,7 +635,12 @@ export async function resetPlayer(
 export async function pastIslands(
   store: Store,
   player: Player,
-  islands: readonly DailyIsland[]
+  islands: readonly PlayableIsland[],
+  /** Sundays picked from the community: their makers, for the map's badge (Phase 3). */
+  makers: ReadonlyMap<
+    number,
+    { maker: string; makerAvatar: string }
+  > = new Map()
 ): Promise<PastIsland[]> {
   const medals = await Promise.all(
     islands.map(async (island) =>
@@ -662,6 +663,7 @@ export async function pastIslands(
     medal: medals[index] ?? null,
     rows: island.rows,
     solves: solves[index] ?? 0,
+    ...(makers.get(island.day) ?? {}),
   }));
 }
 

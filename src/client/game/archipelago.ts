@@ -3,13 +3,24 @@
  * brighter the more players lit it, and carries the player's medal if they lit it on its night.
  * Tapping one opens it for practice. Plain DOM and canvas 2D over the paused game: no WebGL.
  */
-import type { PastIsland } from '../../shared/api';
-import { weekdayLabel } from '../../shared/calendar';
-import { BIOME_LOOK, COPY, MAP, UI } from '../../shared/config';
+import type {
+  CommunityResponse,
+  PastIsland,
+  ShelfIsland,
+} from '../../shared/api';
+import { monthDay, weekdayLabel } from '../../shared/calendar';
+import { BIOME_LOOK, COPY, MAP, OTHERS, UI } from '../../shared/config';
 import type { Medal } from '../../shared/types';
 import { drawIslandOutline } from '../outline';
+import { portrait } from './board';
 import { element } from './hud';
 import { css, noise } from './kit';
+
+/** The Community view's data, and how to open an island's post (Phase 3, E9). */
+export type MapCommunity = {
+  load: (after: number) => Promise<CommunityResponse | null>;
+  open: (url: string) => void;
+};
 
 const MEDAL_NAME: Record<Medal, string> = {
   lamplighter: COPY.medalLamplighter,
@@ -54,7 +65,9 @@ export function openArchipelago(
   onPick: (day: number) => void,
   onClose: () => void,
   /** Opens the Island Builder; no button when absent. */
-  onBuild?: () => void
+  onBuild?: () => void,
+  /** The Community view; no "Nights · Community" switch when absent. */
+  community?: MapCommunity
 ): Archipelago {
   const layer = element('div', calm ? 'layer map calm' : 'layer map');
   const sea = element('div', 'map-sea');
@@ -144,9 +157,18 @@ export function openArchipelago(
           .replace('{day}', String(island.day))
           .replace('{weekday}', weekdayLabel(island.weekday).slice(0, 3))
           .replace('{count}', island.solves.toLocaleString('en'))
-      ),
-      medal
+      )
     );
+    // A Sunday picked from the community carries its maker (Phase 3).
+    if (island.maker !== undefined)
+      words.append(
+        element(
+          'span',
+          'map-maker',
+          COPY.mapMaker.replace('{maker}', island.maker)
+        )
+      );
+    words.append(medal);
     button.append(glow, picture, words);
     button.addEventListener('click', () => onPick(island.day));
     sea.append(button);
@@ -187,6 +209,157 @@ export function openArchipelago(
   scroll.append(sea);
   if (onBuild !== undefined) scroll.append(element('div', 'map-foot'));
   layer.append(scroll, bar);
+  if (community !== undefined) {
+    layer.classList.add('with-tabs');
+    layer.append(...communityView(scroll, community, onBuild !== undefined));
+  }
   document.body.append(layer);
   return { close: () => layer.remove() };
+}
+
+/** "12 lit it · 5 votes": a community island's line. */
+function shelfDetail(entry: ShelfIsland): string {
+  const lit =
+    entry.plays === 0
+      ? COPY.communityLitNone
+      : entry.plays === 1
+        ? COPY.communityLitOne
+        : COPY.communityLit.replace(
+            '{count}',
+            entry.plays.toLocaleString('en')
+          );
+  const words = COPY.shelfDetail
+    .replace('{maker}', entry.maker)
+    .replace('{lit}', lit);
+  if (entry.score === null) return words;
+  const votes =
+    entry.score === 1
+      ? COPY.shelfVote
+      : COPY.shelfVotes.replace('{score}', entry.score.toLocaleString('en'));
+  return `${words} \u00b7 ${votes}`;
+}
+
+/**
+ * The "Nights · Community" switch and the Community view (E9): the latest Sunday pick on a larger
+ * card, this week's islands by score, then older ones a page at a time. Tapping one opens its
+ * post. Paper rows, like See others' islands. Loaded the first time it is shown.
+ */
+function communityView(
+  nights: HTMLElement,
+  community: MapCommunity,
+  withBuild: boolean
+): HTMLElement[] {
+  const tabs = element('div', 'panel map-tabs board-tabs');
+  tabs.setAttribute('role', 'tablist');
+  const shelf = element('div', 'panel map-shelf');
+  const list = element('div', 'sheet-list');
+  shelf.append(list);
+  if (withBuild) shelf.classList.add('with-build');
+  shelf.hidden = true;
+
+  const row = (entry: ShelfIsland, kicker?: string): HTMLElement => {
+    const node = element(
+      'button',
+      kicker === undefined
+        ? 'sheet-row board-row map-row'
+        : 'sheet-row board-row map-row map-pick'
+    );
+    node.setAttribute('type', 'button');
+    const main = element('span', 'sheet-main');
+    if (kicker !== undefined)
+      main.append(element('span', 'sheet-detail map-pick-kicker', kicker));
+    main.append(
+      element('span', 'sheet-name', entry.name),
+      element('span', 'sheet-detail', shelfDetail(entry))
+    );
+    const picture = element('canvas', 'others-preview');
+    if (picture instanceof HTMLCanvasElement)
+      drawIslandOutline(picture, entry.rows, {
+        width: kicker === undefined ? OTHERS.previewWidth : MAP.pickWidthPx,
+        height: kicker === undefined ? OTHERS.previewHeight : MAP.pickHeightPx,
+        lit: entry.plays > 0,
+        land: css(BIOME_LOOK[entry.biome].groundA),
+      });
+    node.append(portrait(entry.maker, entry.makerAvatar), main, picture);
+    node.addEventListener('click', () => community.open(entry.url));
+    return node;
+  };
+
+  const more = element(
+    'button',
+    'button button-quiet map-more',
+    COPY.shelfMore
+  );
+  more.setAttribute('type', 'button');
+  let next: number | null = null;
+  const load = async (after: number): Promise<void> => {
+    more.remove();
+    const answer = await community.load(after);
+    if (answer === null || !answer.ok) {
+      if (after === 0)
+        list.replaceChildren(
+          element(
+            'p',
+            'sheet-empty',
+            answer === null ? COPY.loadFailed : COPY.communityResting
+          )
+        );
+      return;
+    }
+    if (after === 0) {
+      const top: HTMLElement[] = [];
+      if (answer.pick !== null)
+        top.push(
+          row(
+            answer.pick,
+            COPY.shelfPick.replace('{date}', monthDay(answer.pick.sunday))
+          )
+        );
+      top.push(
+        element('h3', 'map-heading', COPY.shelfWeek),
+        element('p', 'sheet-empty map-hint', COPY.shelfWeekHint)
+      );
+      if (answer.week.length === 0)
+        top.push(element('p', 'sheet-empty', COPY.shelfEmptyWeek));
+      top.push(...answer.week.map((entry) => row(entry)));
+      if (answer.older.length > 0)
+        top.push(element('h3', 'map-heading', COPY.shelfEarlier));
+      list.replaceChildren(...top);
+    }
+    list.append(...answer.older.map((entry) => row(entry)));
+    next = answer.next;
+    if (next !== null) list.append(more);
+  };
+  more.addEventListener('click', () => {
+    if (next !== null) void load(next);
+  });
+
+  let loaded = false;
+  const show = (which: 'nights' | 'community'): void => {
+    for (const tab of tabs.children)
+      tab.setAttribute(
+        'aria-selected',
+        String(tab.getAttribute('data-view') === which)
+      );
+    nights.hidden = which !== 'nights';
+    shelf.hidden = which !== 'community';
+    if (which === 'community' && !loaded) {
+      loaded = true;
+      list.replaceChildren(element('p', 'sheet-empty', '\u2026'));
+      void load(0);
+    }
+  };
+  for (const [view, label] of [
+    ['nights', COPY.mapNights],
+    ['community', COPY.mapCommunity],
+  ] as const) {
+    const tab = element('button', 'board-tab', label);
+    tab.setAttribute('type', 'button');
+    tab.setAttribute('role', 'tab');
+    tab.dataset['view'] = view;
+    tab.addEventListener('click', () => show(view));
+    tabs.append(tab);
+  }
+  show('nights');
+  return [tabs, shelf];
 }

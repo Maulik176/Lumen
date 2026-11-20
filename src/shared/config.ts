@@ -381,6 +381,20 @@ export const COPY = {
   mapHint: 'Islands glow by how many lit them',
   mapDetail: '#{day} \u00b7 {weekday} \u00b7 {count} lit',
   mapUnlit: 'Not yet lit',
+  /** The map's two views (Phase 3, E9), and a picked Sunday's maker under its name. */
+  mapNights: 'Nights',
+  mapCommunity: 'Community',
+  mapMaker: 'by u/{maker}',
+  /** The Community view: the latest Sunday pick, this week's islands, then older ones. */
+  shelfPick: "Sunday's island \u00b7 {date}",
+  shelfWeek: 'This week',
+  shelfWeekHint: 'The best-voted island becomes Sunday\u2019s',
+  shelfEarlier: 'Earlier',
+  shelfMore: 'More islands',
+  shelfEmptyWeek: 'No islands this week yet. Build one.',
+  shelfDetail: 'by u/{maker} \u00b7 {lit}',
+  shelfVotes: '{score} votes',
+  shelfVote: '1 vote',
   pastEmpty: 'Earlier islands will gather here.',
   /** Tonight's board, opened from the time and place on the result card. */
   boardTitle: "Tonight's board",
@@ -1532,6 +1546,9 @@ export const MAP = {
   /** Stars per 700 px of map height, and one slow rise and fall of an island in ms. */
   starsPerScreen: 150,
   floatMs: 6000,
+  /** The Community view (Phase 3): the Sunday pick's larger picture, beside its words. */
+  pickWidthPx: 120,
+  pickHeightPx: 76,
 } as const;
 
 /** Trailer mode: one unattended take for the demo video. Times in milliseconds. */
