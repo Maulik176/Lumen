@@ -15,42 +15,49 @@ import {
   toCommunityPostData,
   toPostData,
   toPublicIsland,
+  toSundayPostData,
+  type BoardResponse,
+  type BuilderCheckResponse,
+  type BuilderDraftResponse,
+  type BuilderMineResponse,
+  type BuilderPublishResponse,
+  type BuilderTestResponse,
+  type BuilderTestStartResponse,
   type CardResponse,
   type CommunityCredit,
-  type BoardResponse,
-  type OthersResponse,
   type IslandResponse,
   type LockInResponse,
   type OtherIsland,
+  type OthersResponse,
   type PastResponse,
   type SkyResponse,
 } from './src/shared/api';
-import type { Placement } from './src/shared/types';
-import { BIOMES, COMMUNITY } from './src/shared/config';
-import {
-  fallbackName,
-  isCommunity,
-  nameFiltered,
-} from './src/shared/community';
+import { readDraft, type IslandDraft } from './src/shared/builder';
+import { isCommunity } from './src/shared/community';
+import { BIOMES } from './src/shared/config';
 import {
   readDailyFile,
   type DailyIsland,
   type PlayableIsland,
 } from './src/shared/daily';
-import { validatePlacements } from './src/shared/validate';
-
-import { readDraft } from './src/shared/builder';
+import { isRuleKind } from './src/shared/rules';
 import { checkIsland, dailyHashes } from './src/server/core/check';
 import {
-  checkKey,
-  draftPuzzleText,
-  nameProblem,
-  type DifficultyLabel,
-  type IslandDraft,
-} from './src/shared/builder';
-import { puzzleFromText } from './src/shared/puzzle-text';
-import { isRuleKind } from './src/shared/rules';
-import { trace } from './src/shared/trace';
+  creatorRow,
+  creditOf,
+  finishTest,
+  islandStatus,
+  listMine,
+  loadDraft,
+  lookUpIsland,
+  publishIsland,
+  recordCheck,
+  saveDraft,
+  startTest,
+  takeCheckTurn,
+  type IslandLookup,
+  type Poster,
+} from './src/server/core/community';
 import { nightStart, seedCrowd } from './src/server/core/crowd';
 import {
   lockIn,
@@ -69,7 +76,9 @@ import {
   type Player,
 } from './src/server/core/game';
 import { memoryStore } from './src/server/core/memory-store';
+import { communityShelf, refreshVotes } from './src/server/core/shelf';
 import { KEYS } from './src/server/core/store';
+import { runPick, type PickReddit } from './src/server/core/sunday';
 
 /** Reads a request's JSON body, or {} when there is none. */
 function readBody(
@@ -157,57 +166,125 @@ function localApi(): Plugin {
     ((Date.now() - boot) % (20 * 3_600_000)) +
     (pageOf(request).get('night') === 'past' ? 86_400_000 : 0);
   const days = (): number => load().days.length;
-  /** Islands published locally, served as community islands (numbers from numberBase up). */
-  const localIslands: {
-    index: number;
-    draft: IslandDraft;
-    par: number;
-    label: DifficultyLabel;
-    inventory: { mirrors: number; prisms: number };
-    creatorPieces: number;
-    solution: Placement[];
-    created: number;
-    maker: string;
-  }[] = [];
-  /** A day, the hero island, or a community island published here. */
-  const islandAt = (
-    day: number
-  ):
-    | { island: PlayableIsland; credit: CommunityCredit | undefined }
-    | undefined => {
-    if (isCommunity(day)) {
-      const local = localIslands[day - COMMUNITY.numberBase - 1];
-      if (local === undefined) return undefined;
-      const { draft } = local;
-      return {
-        island: {
-          day,
-          date: '2026-11-25',
-          weekday: 'wednesday',
-          biome: draft.biome,
-          name: draft.name,
-          rows: draft.rows,
-          inventory: local.inventory,
-          sourceColours: draftPuzzleText(draft, local.inventory).sourceColours,
-          par: local.par,
-          solution: local.solution,
-        },
-        credit: { maker: local.maker, makerAvatar: '', label: local.label },
-      };
-    }
-    const island =
-      day >= 900 && day < 900 + BIOMES.length
-        ? heroIsland(day)
-        : load().days[day - 1];
-    return island === undefined ? undefined : { island, credit: undefined };
+  /** "?at=2026-11-26T12:00Z" on the page: the moment the Community view and dev tools use. */
+  const momentOf = (request: IncomingMessage): number => {
+    const at = Date.parse(pageOf(request).get('at') ?? '');
+    return Number.isFinite(at) ? at : Date.now();
   };
+
+  /** Posts made here: a local address that opens the island itself. */
+  const localPoster: Poster = {
+    async post({ postData }) {
+      return {
+        id: `t3_local${postData.day}`,
+        permalink: `http://localhost:5199/game.html?day=${postData.day}`,
+        author: 'lumen-game',
+      };
+    },
+    async results() {},
+  };
+  /** Reddit for the Sunday pick and the scores: votes set by hand, everything else logged. */
+  const votes = new Map<string, number>();
+  const redditLog: string[] = [];
+  let comments = 0;
+  const pickReddit: PickReddit = {
+    async readPost(postId) {
+      return { score: votes.get(postId) ?? 1, live: true };
+    },
+    async comment(postId, text) {
+      comments++;
+      redditLog.push(`comment on ${postId}: ${text}`);
+      return `t1_local${comments}`;
+    },
+    async editComment(id, text) {
+      redditLog.push(`edit ${id}: ${text}`);
+    },
+    async deleteComment(id) {
+      redditLog.push(`delete ${id}`);
+    },
+    async flair(username, text) {
+      redditLog.push(`flair u/${username}: ${text}`);
+    },
+    subreddit: 'lumen_game_dev',
+  };
+  const pickOptions = {
+    daily: dailyHashes(),
+    clock: () => performance.now(),
+    log: (line: string) => redditLog.push(line),
+  };
+
+  /** The island behind a number as the real server finds it (Sunday's pick, community islands), or the hand-made hero island (900 up). */
+  const islandAt = async (day: number): Promise<IslandLookup> => {
+    if (day >= 900 && day < 900 + BIOMES.length) {
+      const hero = heroIsland(day);
+      return hero === undefined
+        ? { ok: false, reason: 'not-found' }
+        : { ok: true, island: hero, record: null, pick: null };
+    }
+    return lookUpIsland(store, day);
+  };
+  type Found = Extract<IslandLookup, { ok: true }>;
+  /** A Sunday picked from the community: its maker, as the client may see it. */
+  const madeByOf = (found: Found): CommunityCredit | undefined => {
+    const winner = found.pick?.winner;
+    if (winner === undefined || winner === null) return undefined;
+    const { maker, makerAvatar, label } = winner.credit;
+    return { maker, makerAvatar, label };
+  };
+  /** The maker's own test, pinned first: a community island's, or a Sunday pick's. */
+  const creatorOf = (found: Found): OtherIsland | null =>
+    found.record !== null
+      ? creatorRow(found.record)
+      : (found.pick?.winner?.creator ?? null);
+
+  /** Publish a daily layout as a community island through the real publish flow. */
+  const publishLocal = async (
+    from: DailyIsland,
+    maker: Player,
+    name: string,
+    biome: IslandDraft['biome'],
+    nowMs: number
+  ): Promise<number | null> => {
+    if (maker === null) return null;
+    // Mirrored left to right: an island of its own, not a copy of a daily one (which the
+    // server refuses to publish or pick, as it should).
+    const swap: Record<string, string> = { '/': '\\', '\\': '/', '<': '>', '>': '<' };
+    const draft: IslandDraft = {
+      size: from.rows.length,
+      biome,
+      name,
+      spare: 1,
+      rows: from.rows.map((row) =>
+        [...row]
+          .reverse()
+          .map((tile) => swap[tile] ?? tile)
+          .join('')
+      ),
+    };
+    const never = new Set<string>();
+    const checked = checkIsland(draft, { daily: never, clock: () => 0 });
+    if (!checked.ok) return null;
+    await recordCheck(store, maker, draft, checked);
+    await startTest(store, maker, draft, nowMs - 60_000);
+    await finishTest(store, maker, draft, checked.solution, nowMs);
+    const answer = await publishIsland(
+      store,
+      maker,
+      { draft, token: `local${Date.now()}x${from.day}`, avatar: '', nowMs },
+      { poster: localPoster, daily: never, clock: () => 0 }
+    );
+    return answer.ok ? Number(answer.postId.replace('t3_local', '')) : null;
+  };
+
   return {
     name: 'lumen-local-api',
     configureServer(server) {
       const reply = (
         response: import('node:http').ServerResponse,
-        body: unknown
+        body: unknown,
+        status = 200
       ): void => {
+        response.statusCode = status;
         response.setHeader('content-type', 'application/json');
         response.end(JSON.stringify(body));
       };
@@ -217,20 +294,6 @@ function localApi(): Plugin {
             name
           ) ?? '1'
         );
-      /** On a community island made here: the maker's own test, pinned first in the list. */
-      const creatorOf = (day: number): OtherIsland | null => {
-        if (!isCommunity(day)) return null;
-        const local = localIslands[day - COMMUNITY.numberBase - 1];
-        if (local === undefined) return null;
-        return {
-          rank: null,
-          username: local.maker,
-          snoovatar: '',
-          pieces: local.creatorPieces,
-          timeMs: 52_000,
-          placements: local.solution,
-        };
-      };
       /** Where a post's night stands, as the real server says: tonight, or past with ?night=past. */
       const nightAt = (
         day: number,
@@ -242,69 +305,91 @@ function localApi(): Plugin {
               night: 'tonight',
               tonightPost: isCommunity(day) ? 't3_local' : null,
             };
+      /** One handler: errors answer 500 with the message, so a broken check is never silent. */
+      const handle = (
+        path: string,
+        run: (
+          request: IncomingMessage
+        ) => Promise<{ body: unknown; status?: number }>
+      ): void => {
+        server.middlewares.use(path, (request, response) => {
+          run(request).then(
+            ({ body, status }) => reply(response, body, status),
+            (error: unknown) =>
+              reply(response, { ok: false, error: String(error) }, 500)
+          );
+        });
+      };
 
-      server.middlewares.use('/api/card', (request, response) => {
+      handle('/api/card', async (request) => {
         const day = askedDay(request);
-        const found = islandAt(day);
-        if (found === undefined)
-          return reply(response, { ok: false, reason: 'not-found' });
-        const { island, credit } = found;
-        void Promise.all([
+        const found = await islandAt(day);
+        if (!found.ok)
+          return { body: { ok: false, reason: found.reason }, status: 404 };
+        const { island, record } = found;
+        const madeBy = madeByOf(found);
+        const [me, count] = await Promise.all([
           playerState(store, playerOf(request), day),
           skyCount(store, day),
-        ]).then(([me, count]) => {
-          const body: CardResponse = {
-            ok: true,
-            ...nightAt(day, request),
-            post:
-              credit === undefined
-                ? toPostData(island)
-                : toCommunityPostData(island, credit),
-            skyCount: count,
-            nextInMs: credit === undefined ? 5 * 3_600_000 + 12 * 60_000 : null,
-            streak: me.streak,
-            result:
-              me.result === null
-                ? null
-                : {
-                    pieces: me.result.pieces,
-                    par: me.result.par,
-                    rank: me.result.rank,
-                    streak: me.result.streak,
-                  },
-          };
-          reply(response, body);
-        });
+        ]);
+        const body: CardResponse = {
+          ok: true,
+          ...nightAt(day, request),
+          post:
+            record !== null
+              ? toCommunityPostData(island, creditOf(record))
+              : madeBy !== undefined
+                ? toSundayPostData(island, madeBy)
+                : toPostData(island),
+          skyCount: count,
+          nextInMs: record === null ? 5 * 3_600_000 + 12 * 60_000 : null,
+          streak: me.streak,
+          result:
+            me.result === null
+              ? null
+              : {
+                  pieces: me.result.pieces,
+                  par: me.result.par,
+                  rank: me.result.rank,
+                  streak: me.result.streak,
+                },
+          ...(record !== null && record.sunday > 0
+            ? { chosenFor: record.sunday }
+            : {}),
+        };
+        return { body };
       });
-      server.middlewares.use('/api/progress', (request, response) => {
-        void readBody(request).then(async (fields) => {
-          const island = islandAt(Number(fields['day']))?.island;
-          if (island !== undefined)
-            await saveProgress(
-              store,
-              playerOf(request),
-              island,
-              fields['placements']
-            );
-          reply(response, { ok: true });
-        });
+      handle('/api/progress', async (request) => {
+        const fields = await readBody(request);
+        const found = await islandAt(Number(fields['day']));
+        if (found.ok)
+          await saveProgress(
+            store,
+            playerOf(request),
+            found.island,
+            fields['placements']
+          );
+        return { body: { ok: true } };
       });
-      server.middlewares.use('/api/forget', (_request, response) => {
+      handle('/api/forget', async () => {
         store = memoryStore();
-        reply(response, { ok: true });
+        votes.clear();
+        redditLog.length = 0;
+        return { body: { ok: true } };
       });
       /**
        * A realistic crowd on one island, played through the real Lock in (src/server/core/crowd.ts):
        * fetch('/api/dev/crowd?day=1&players=8&seed=a') adds players p0, p1... (prefix= to rename
-       * them); most place the par answer. Then open the game as any of them with ?user=p0.
+       * them, maker=p0 on a picked Sunday makes p0 its maker); most place the par answer. Then
+       * open the game as any of them with ?user=p0.
        */
-      server.middlewares.use('/api/dev/crowd', (request, response) => {
+      handle('/api/dev/crowd', async (request) => {
         const asked = new URL(request.url ?? '', 'http://localhost')
           .searchParams;
-        const island = islandAt(Number(asked.get('day') ?? '1'))?.island;
-        if (island === undefined)
-          return reply(response, { ok: false, reason: 'not-found' });
-        void seedCrowd(store, island, {
+        const found = await islandAt(Number(asked.get('day') ?? '1'));
+        if (!found.ok) return { body: { ok: false, reason: found.reason } };
+        const maker = asked.get('maker');
+        const night = await seedCrowd(store, found.island, {
           players: Number(asked.get('players') ?? '8'),
           seed: asked.get('seed') ?? 'local',
           resets: Number(asked.get('resets') ?? '0'),
@@ -313,393 +398,351 @@ function localApi(): Plugin {
           parShare: Number(asked.get('par') ?? '0.6'),
           prefix: asked.get('prefix') ?? 'p',
           lastDay: days(),
-        }).then((night) =>
-          reply(response, {
+          ...(maker === null ? {} : { maker }),
+        });
+        return {
+          body: {
             ok: true,
             players: night.players.map((p) => ({
               username: p.username,
               ranked: p.ranked,
+              kept: p.kept,
               pieces: p.board.length,
             })),
-          })
-        );
+          },
+        };
       });
       /**
-       * A community island made here without the Builder, for checks that need one quickly:
-       * fetch('/api/dev/island?day=2&maker=mohak&name=Blossom%20Island%20%233') serves day 2's
-       * island as a community island by u/mohak. Answers its island number.
+       * A community island through the real publish flow, from a daily layout:
+       * fetch('/api/dev/island?day=2&maker=mohak&name=Blossom%20Island%20%233&biome=blossom
+       * &at=2026-11-25T12:00Z'). Answers its island number.
        */
-      server.middlewares.use('/api/dev/island', (request, response) => {
-        const asked = new URL(request.url ?? '', 'http://localhost').searchParams;
+      handle('/api/dev/island', async (request) => {
+        const asked = new URL(request.url ?? '', 'http://localhost')
+          .searchParams;
         const from = load().days[Number(asked.get('day') ?? '2') - 1];
-        if (from === undefined)
-          return reply(response, { ok: false, reason: 'not-found' });
-        const index = localIslands.length + 1;
-        const biome = asked.get('biome');
-        localIslands.push({
-          index,
-          created: Date.now(),
-          solution: from.solution,
-          draft: {
-            size: from.rows.length,
-            biome: BIOMES.find((b) => b === biome) ?? from.biome,
-            name: asked.get('name') ?? fallbackName(from.biome, index),
-            spare: 0,
-            rows: from.rows,
-          },
-          par: from.par,
-          label: 'gentle',
-          inventory: from.inventory,
-          creatorPieces: from.par,
-          maker: asked.get('maker') ?? 'you',
-        });
-        reply(response, { ok: true, day: COMMUNITY.numberBase + index });
+        if (from === undefined) return { body: { ok: false } };
+        const name = asked.get('maker') ?? 'you';
+        const biome =
+          BIOMES.find((b) => b === asked.get('biome')) ?? from.biome;
+        const at = Date.parse(asked.get('at') ?? '');
+        const number = await publishLocal(
+          from,
+          { userId: `t2_${name}`, username: name },
+          asked.get('name') ?? `${name}'s isle`,
+          biome,
+          Number.isFinite(at) ? at : Date.now()
+        );
+        return { body: { ok: number !== null, day: number } };
       });
-      server.middlewares.use('/api/leaderboard', (request, response) => {
+      /** Votes for a community island's post: fetch('/api/dev/score?day=1000001&score=5'). */
+      handle('/api/dev/score', async (request) => {
+        const day = askedDay(request);
+        const score = Number(
+          new URL(request.url ?? '', 'http://localhost').searchParams.get(
+            'score'
+          ) ?? '1'
+        );
+        votes.set(`t3_local${day}`, score);
+        await refreshVotes(store, pickReddit, momentOf(request));
+        return { body: { ok: true } };
+      });
+      /**
+       * The Sunday pick, as the dev menu runs it (every island so far in the running):
+       * fetch('/api/dev/pick?day=6'). Answers the pick's log line; /api/dev/log has the comment
+       * and flair it wrote.
+       */
+      handle('/api/dev/pick', async (request) => {
+        const report = await runPick(
+          store,
+          pickReddit,
+          askedDay(request),
+          momentOf(request),
+          { ...pickOptions, dev: true, force: true }
+        );
+        return {
+          body: { ok: true, outcome: report.outcome, line: report.line },
+        };
+      });
+      handle('/api/dev/log', async () => ({
+        body: { ok: true, log: redditLog },
+      }));
+      handle('/api/community', async (request) => {
+        const after = Number(
+          new URL(request.url ?? '', 'http://localhost').searchParams.get(
+            'after'
+          ) ?? 0
+        );
+        const shelf = await communityShelf(store, momentOf(request), after);
+        return { body: shelf, status: shelf.ok ? 200 : 404 };
+      });
+      handle('/api/leaderboard', async (request) => {
         const day = askedDay(request);
         const scope = new URL(
           request.url ?? '',
           'http://localhost'
         ).searchParams.get('scope');
         const username = playerOf(request)?.username ?? null;
-        void (
+        const body: BoardResponse =
           scope === 'alltime'
-            ? readAllTime(store, username).then((board): BoardResponse => ({
+            ? {
                 ok: true,
                 scope: 'alltime',
-                ...board,
-              }))
-            : readLeaderboard(store, day, username).then(
-                (board): BoardResponse => ({ ok: true, scope: 'day', ...board })
-              )
-        ).then((body) => reply(response, body));
+                ...(await readAllTime(store, username)),
+              }
+            : {
+                ok: true,
+                scope: 'day',
+                ...(await readLeaderboard(store, day, username)),
+              };
+        return { body };
       });
-      server.middlewares.use('/api/others', (request, response) => {
+      handle('/api/others', async (request) => {
         const day = askedDay(request);
-        const island = islandAt(day)?.island;
-        if (island === undefined)
-          return reply(response, { ok: false, reason: 'not-found' });
-        void readOthers(
+        const found = await islandAt(day);
+        if (!found.ok)
+          return { body: { ok: false, reason: 'not-found' }, status: 404 };
+        const others = await readOthers(
           store,
           playerOf(request),
-          island,
-          nowFor(island, request),
+          found.island,
+          nowFor(found.island, request),
           days(),
-          creatorOf(day)
-        ).then((others) => {
-          const body: OthersResponse = others.ok
-            ? { ...others, day }
-            : { ok: false, reason: 'locked' };
-          reply(response, body);
-        });
+          creatorOf(found)
+        );
+        const body: OthersResponse = others.ok
+          ? { ...others, day }
+          : { ok: false, reason: 'locked' };
+        return { body, status: others.ok ? 200 : 403 };
       });
-      server.middlewares.use('/api/past', (request, response) => {
+      handle('/api/past', async (request) => {
         const before = askedDay(request, 'before');
-        const islands = load()
-          .days.filter((island) => island.day < before)
-          .reverse();
-        void pastIslands(store, playerOf(request), islands).then((list) => {
-          const body: PastResponse = { ok: true, islands: list };
-          reply(response, body);
-        });
+        const islands: PlayableIsland[] = [];
+        const makers = new Map<
+          number,
+          { maker: string; makerAvatar: string }
+        >();
+        for (let day = before - 1; day >= 1; day--) {
+          const found = await islandAt(day);
+          if (!found.ok) continue;
+          islands.push(found.island);
+          const credit = madeByOf(found);
+          if (credit !== undefined)
+            makers.set(day, {
+              maker: credit.maker,
+              makerAvatar: credit.makerAvatar,
+            });
+        }
+        const body: PastResponse = {
+          ok: true,
+          islands: await pastIslands(store, playerOf(request), islands, makers),
+        };
+        return { body };
       });
-      server.middlewares.use('/api/island', (request, response) => {
+      handle('/api/island', async (request) => {
         const asked = new URL(request.url ?? '', 'http://localhost')
           .searchParams;
         const day = Number(asked.get('day') ?? '1');
-        // Days 900 to 904 are the hand-made hero island, one per biome (see scripts/hero.mjs).
-        const found = islandAt(day);
-        if (found === undefined)
-          return reply(response, { ok: false, reason: 'not-found' });
-        const { island, credit } = found;
+        const found = await islandAt(day);
+        if (!found.ok)
+          return { body: { ok: false, reason: found.reason }, status: 404 };
+        const { island, record } = found;
         const player = playerOf(request);
         const at = nightAt(day, request);
-        void Promise.all([
+        const [me, count] = await Promise.all([
           playerState(store, player, day, island),
           skyCount(store, day),
-        ]).then(([me, count]) => {
-          const body: IslandResponse = {
-            ok: true,
-            island: toPublicIsland(island, credit),
-            me,
-            rankedOpen:
-              me.loggedIn &&
-              me.result === null &&
-              at.night === 'tonight' &&
-              rankedOpen(day, nowFor(island, request), days(), undefined),
-            skyCount: count,
-            ...at,
-            sharedUrl: null,
-            ...(asked.get('styles') === '1' ? { stylePreview: true } : {}),
-            ...(asked.get('trailer') === '1'
-              ? { trailer: { solution: island.solution } }
-              : {}),
-          };
-          reply(response, body);
-        });
-      });
-      server.middlewares.use('/api/sky', (request, response) => {
-        const day = askedDay(request);
-        void readSky(store, day).then((sky) => {
-          const body: SkyResponse = { ok: true, day, ...sky };
-          reply(response, body);
-        });
-      });
-      // The Island Builder, with the real check and test proof on an in-memory store. The local
-      // player is signed in as "you". ?signedout=1 on the page is not modelled here.
-      // The local player is signed in. The check is the server's own; the test proof is kept here.
-      let builderDraft: unknown = null;
-      let builderTutorial = false;
-      let builderChecked: {
-        key: string;
-        par: number;
-        label: string;
-        inventory: { mirrors: number; prisms: number };
-        tested: number | null;
-      } | null = null;
-      const send = (
-        response: import('node:http').ServerResponse,
-        body: unknown
-      ): void => {
-        response.setHeader('content-type', 'application/json');
-        response.end(JSON.stringify(body));
-      };
-      server.middlewares.use('/api/builder/draft', (request, response) => {
-        if (request.method === 'PUT') {
-          void readBody(request).then((body) => {
-            const draft = readDraft(body['draft']);
-            if (draft !== null) builderDraft = draft;
-            send(response, { ok: draft !== null });
-          });
-          return;
-        }
-        const draft = readDraft(builderDraft);
-        const same =
-          draft !== null &&
-          builderChecked !== null &&
-          checkKey(draft) === builderChecked.key;
-        send(response, {
+        ]);
+        const body: IslandResponse = {
           ok: true,
-          loggedIn: true,
-          draft,
-          status: {
-            checked:
-              same && builderChecked !== null
-                ? {
-                    par: builderChecked.par,
-                    inventory: builderChecked.inventory,
-                    label: builderChecked.label,
-                  }
-                : null,
-            tested:
-              same && builderChecked?.tested != null
-                ? { pieces: builderChecked.tested }
-                : null,
-          },
-          tutorialDone: builderTutorial,
-        });
+          island: toPublicIsland(
+            island,
+            record === null ? undefined : creditOf(record),
+            madeByOf(found)
+          ),
+          me,
+          rankedOpen:
+            me.loggedIn &&
+            me.result === null &&
+            at.night === 'tonight' &&
+            rankedOpen(day, nowFor(island, request), days(), undefined),
+          skyCount: count,
+          ...at,
+          sharedUrl: null,
+          ...(asked.get('styles') === '1' ? { stylePreview: true } : {}),
+          ...(asked.get('trailer') === '1'
+            ? { trailer: { solution: island.solution } }
+            : {}),
+        };
+        return { body };
       });
-      server.middlewares.use('/api/builder/check', (request, response) => {
-        void readBody(request).then((body) => {
-          const draft = readDraft(body['draft']);
-          if (draft === null)
-            return send(response, { ok: false, problem: 'malformed' });
-          const outcome = checkIsland(draft, {
-            daily: dailyHashes(),
-            clock: () => performance.now(),
-          });
-          console.log(
-            `[builder] check ${draft.size}x${draft.size}: ${outcome.ok ? `par ${outcome.par}` : outcome.problem}, ${outcome.nodes} nodes, ${Math.round(outcome.ms)} ms`
-          );
-          if (!outcome.ok)
-            return send(response, { ok: false, problem: outcome.problem });
-          builderChecked = {
-            key: checkKey(draft),
-            par: outcome.par,
-            label: outcome.label,
-            inventory: outcome.inventory,
-            tested: null,
-          };
-          send(response, {
-            ok: true,
-            par: outcome.par,
-            inventory: outcome.inventory,
-            difficulty: outcome.difficulty,
-            label: outcome.label,
-          });
-        });
+      handle('/api/sky', async (request) => {
+        const day = askedDay(request);
+        const body: SkyResponse = {
+          ok: true,
+          day,
+          ...(await readSky(store, day)),
+        };
+        return { body };
       });
-      server.middlewares.use('/api/builder/test-start', (request, response) => {
-        void readBody(request).then((body) => {
-          const draft = readDraft(body['draft']);
-          const ok =
-            draft !== null &&
-            builderChecked !== null &&
-            checkKey(draft) === builderChecked.key;
-          if (ok && builderChecked !== null) builderChecked.tested = null;
-          send(response, ok ? { ok } : { ok, problem: 'not-checked' });
-        });
-      });
-      server.middlewares.use('/api/builder/test-solve', (request, response) => {
-        void readBody(request).then((body) => {
-          const draft = readDraft(body['draft']);
-          if (
-            draft === null ||
-            builderChecked === null ||
-            checkKey(draft) !== builderChecked.key
-          )
-            return send(response, { ok: false, problem: 'changed' });
-          const puzzle = puzzleFromText(
-            draftPuzzleText(draft, builderChecked.inventory)
-          );
-          const check = validatePlacements(puzzle, body['placements']);
-          if (!check.ok)
-            return send(response, { ok: false, problem: 'bad-pieces' });
-          if (!trace(puzzle, check.placements).solved)
-            return send(response, { ok: false, problem: 'not-lit' });
-          builderChecked.tested = check.placements.length;
-          send(response, { ok: true, pieces: check.placements.length, ms: 0 });
-        });
-      });
-      // Publishing, locally: the island joins a list served as a community island at
-      // /game.html?day=<COMMUNITY.numberBase + k>; `?user=name` plays it as someone else.
-      const tokens = new Map<string, unknown>();
-      server.middlewares.use('/api/builder/publish', (request, response) => {
-        void readBody(request).then((body) => {
-          const token = String(body['token'] ?? '');
-          const earlier = tokens.get(token);
-          if (earlier !== undefined) return send(response, earlier);
-          const draft = readDraft(body['draft']);
-          if (
-            draft === null ||
-            builderChecked === null ||
-            checkKey(draft) !== builderChecked.key
-          )
-            return send(response, { ok: false, problem: 'not-checked' });
-          if (builderChecked.tested === null)
-            return send(response, { ok: false, problem: 'not-tested' });
-          const name = draft.name.trim();
-          if (name !== '' && (nameProblem(name) !== null || nameFiltered(name)))
-            return send(response, { ok: false, problem: 'name' });
-          const index = localIslands.length + 1;
-          const label = builderChecked.label;
-          const rechecked = checkIsland(draft, {
-            daily: dailyHashes(),
-            clock: () => performance.now(),
-          });
-          localIslands.push({
-            index,
-            created: Date.now(),
-            solution: rechecked.ok ? rechecked.solution : [],
-            draft: { ...draft, name: name || fallbackName(draft.biome, index) },
-            par: builderChecked.par,
-            label:
-              label === 'tricky' || label === 'fiendish' ? label : 'gentle',
-            inventory: builderChecked.inventory,
-            creatorPieces: builderChecked.tested,
-            maker: playerOf(request)?.username ?? 'you',
-          });
-          const answer = {
-            ok: true,
-            postId: `t3_local${index}`,
-            permalink: `/r/lumen_game_dev/comments/local${index}/`,
-            url: `http://localhost:5199/game.html?day=${COMMUNITY.numberBase + index}`,
-          };
-          tokens.set(token, answer);
-          builderDraft = null;
-          builderChecked = null;
-          // A real publish takes a moment (check, post, comment): so does this one.
-          setTimeout(() => send(response, answer), 700);
-        });
-      });
-      // Your islands: the maker's own, with real plays and par hits from the store.
-      server.middlewares.use('/api/builder/mine', (request, response) => {
-        const maker = playerOf(request)?.username ?? null;
-        const mine = localIslands.filter((island) => island.maker === maker);
-        void Promise.all(
-          mine.map(async (island) => {
-            const number = COMMUNITY.numberBase + island.index;
-            const [plays, stats] = await Promise.all([
-              skyCount(store, number),
-              store.hGetAll(KEYS.stats(number)),
-            ]);
-            return {
-              name: island.draft.name,
-              biome: island.draft.biome,
-              rows: island.draft.rows,
-              created: island.created,
-              plays,
-              parHits: Math.min(plays, Number(stats['parHits'] ?? 0) || 0),
-              active: true,
-              url: `http://localhost:5199/game.html?day=${number}`,
-            };
-          })
-        ).then((islands) =>
-          send(response, {
-            ok: true,
-            loggedIn: maker !== null,
-            islands: islands.reverse(),
-          })
-        );
-      });
-      server.middlewares.use(
-        '/api/builder/tutorial-done',
-        (_request, response) => {
-          builderTutorial = true;
-          send(response, { ok: true });
+
+      // The Island Builder: the real server code on the same store (src/server/routes/builder.ts).
+      handle('/api/builder/draft', async (request) => {
+        const player = playerOf(request);
+        if (request.method === 'PUT') {
+          const draft = readDraft((await readBody(request))['draft']);
+          if (draft === null) return { body: { ok: false }, status: 400 };
+          return { body: { ok: await saveDraft(store, player, draft) } };
         }
-      );
-      server.middlewares.use('/api/start', (request, response) => {
-        void readBody(request).then(async (fields) => {
-          const island = islandAt(Number(fields['day']))?.island;
-          if (island !== undefined)
-            await recordStart(
-              store,
-              playerOf(request),
-              island.day,
-              nowFor(island, request)
-            );
-          reply(response, { ok: true });
-        });
+        const draft = await loadDraft(store, player);
+        const user =
+          player === null ? {} : await store.hGetAll(KEYS.user(player.userId));
+        const body: BuilderDraftResponse = {
+          ok: true,
+          loggedIn: player !== null,
+          draft,
+          status:
+            draft === null
+              ? { checked: null, tested: null }
+              : await islandStatus(store, player, draft),
+          tutorialDone: user['builderTutorial'] === '1',
+        };
+        return { body };
       });
-      server.middlewares.use('/api/rule-seen', (request, response) => {
-        void readBody(request).then(async (fields) => {
-          const rule = fields['rule'];
-          if (rule === 'sky' || isRuleKind(rule))
-            await markRuleSeen(store, playerOf(request), rule);
-          reply(response, { ok: true });
+      handle('/api/builder/check', async (request) => {
+        const player = playerOf(request);
+        if (player === null)
+          return { body: { ok: false, problem: 'signed-out' } };
+        const draft = readDraft((await readBody(request))['draft']);
+        if (draft === null)
+          return { body: { ok: false, problem: 'malformed' }, status: 400 };
+        if (!(await takeCheckTurn(store, player)))
+          return { body: { ok: false, problem: 'slow-down' } };
+        const outcome = checkIsland(draft, {
+          daily: dailyHashes(),
+          clock: () => performance.now(),
         });
+        if (!outcome.ok)
+          return { body: { ok: false, problem: outcome.problem } };
+        await recordCheck(store, player, draft, outcome);
+        const body: BuilderCheckResponse = {
+          ok: true,
+          par: outcome.par,
+          inventory: outcome.inventory,
+          difficulty: outcome.difficulty,
+          label: outcome.label,
+        };
+        return { body };
       });
-      server.middlewares.use('/api/tutorial-done', (request, response) => {
-        void markTutorialDone(store, playerOf(request)).then(() =>
-          reply(response, { ok: true })
+      handle('/api/builder/test-start', async (request) => {
+        const player = playerOf(request);
+        const draft = readDraft((await readBody(request))['draft']);
+        const started =
+          player === null || draft === null
+            ? 'not-checked'
+            : await startTest(store, player, draft, Date.now());
+        const body: BuilderTestStartResponse =
+          started === 'started'
+            ? { ok: true }
+            : { ok: false, problem: 'not-checked' };
+        return { body };
+      });
+      handle('/api/builder/test-solve', async (request) => {
+        const player = playerOf(request);
+        if (player === null)
+          return { body: { ok: false, problem: 'signed-out' } };
+        const fields = await readBody(request);
+        const draft = readDraft(fields['draft']);
+        if (draft === null) return { body: { ok: false, problem: 'changed' } };
+        const body: BuilderTestResponse = await finishTest(
+          store,
+          player,
+          draft,
+          fields['placements'],
+          Date.now()
         );
+        return { body };
       });
-      // The real Lock in: the server re-traces the pieces, times it from /api/start, ranks it.
-      server.middlewares.use('/api/lock-in', (request, response) => {
-        void readBody(request).then(async (fields) => {
-          const island = islandAt(Number(fields['day']))?.island;
-          if (island === undefined)
-            return reply(response, { ok: false, reason: 'not-found' });
-          const outcome = await lockIn(
+      handle('/api/builder/publish', async (request) => {
+        const fields = await readBody(request);
+        const body: BuilderPublishResponse = await publishIsland(
+          store,
+          playerOf(request),
+          {
+            draft: fields['draft'],
+            token: fields['token'],
+            avatar: '',
+            nowMs: Date.now(),
+          },
+          { poster: localPoster, daily: dailyHashes(), clock: () => 0 }
+        );
+        // A real publish takes a moment (check, post, comment): so does this one.
+        await new Promise((done) => setTimeout(done, 700));
+        return { body };
+      });
+      handle('/api/builder/mine', async (request) => {
+        const player = playerOf(request);
+        const body: BuilderMineResponse = {
+          ok: true,
+          loggedIn: player !== null,
+          islands: await listMine(store, player),
+        };
+        return { body };
+      });
+      handle('/api/builder/tutorial-done', async (request) => {
+        const player = playerOf(request);
+        if (player !== null)
+          await store.hSet(KEYS.user(player.userId), { builderTutorial: '1' });
+        return { body: { ok: true } };
+      });
+
+      handle('/api/start', async (request) => {
+        const fields = await readBody(request);
+        const found = await islandAt(Number(fields['day']));
+        if (found.ok)
+          await recordStart(
             store,
             playerOf(request),
-            {
-              island,
-              placements: fields['placements'],
-              snoovatar: fields['snoovatar'],
-              wantsRanked: fields['ranked'] !== false,
-              postDay: island.day,
-              lastDay: days(),
-              nowMs: nowFor(island, request),
-            },
-            { onRanked: async () => undefined }
+            found.island.day,
+            nowFor(found.island, request)
           );
-          const body: LockInResponse = outcome.ok
-            ? { ok: true, ...outcome.result }
-            : { ok: false, reason: outcome.reason };
-          reply(response, body);
-        });
+        return { body: { ok: true } };
+      });
+      handle('/api/rule-seen', async (request) => {
+        const rule = (await readBody(request))['rule'];
+        if (rule === 'sky' || isRuleKind(rule))
+          await markRuleSeen(store, playerOf(request), rule);
+        return { body: { ok: true } };
+      });
+      handle('/api/tutorial-done', async (request) => {
+        await markTutorialDone(store, playerOf(request));
+        return { body: { ok: true } };
+      });
+      // The real Lock in: the server re-traces the pieces, times it from /api/start, ranks it.
+      handle('/api/lock-in', async (request) => {
+        const fields = await readBody(request);
+        const found = await islandAt(Number(fields['day']));
+        if (!found.ok) return { body: { ok: false, reason: 'not-found' } };
+        const makerId = found.pick?.winner?.credit.makerId;
+        const outcome = await lockIn(
+          store,
+          playerOf(request),
+          {
+            island: found.island,
+            placements: fields['placements'],
+            snoovatar: fields['snoovatar'],
+            wantsRanked: fields['ranked'] !== false,
+            postDay: found.island.day,
+            lastDay: days(),
+            nowMs: nowFor(found.island, request),
+            ...(makerId === undefined ? {} : { makerId }),
+          },
+          { onRanked: async () => undefined }
+        );
+        const body: LockInResponse = outcome.ok
+          ? { ok: true, ...outcome.result }
+          : { ok: false, reason: outcome.reason };
+        return { body };
       });
     },
   };

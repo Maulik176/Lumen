@@ -148,7 +148,7 @@ const distinct = 1 + fromFirst.top.length;
 
 // A community island whose maker plays it too, like u/mohak2605's Blossom Island #3.
 const made = await api(
-  '/api/dev/island?day=2&maker=p0&biome=blossom&name=Blossom%20Island%20%233'
+  '/api/dev/island?day=2&maker=p0&biome=blossom&name=Blossom%20Hollow'
 );
 await api(`/api/dev/crowd?day=${made.day}&players=4&seed=blossom&practice=0`);
 const islandBoard = await api(`/api/leaderboard?day=${made.day}`);

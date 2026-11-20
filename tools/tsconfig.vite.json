@@ -3,23 +3,16 @@
   "compilerOptions": {
     "outDir": "../dist/types/tools",
     "tsBuildInfoFile": "../dist/types/tools/tsconfig.vite.tsbuildinfo",
-    "types": [
-      "node"
-    ],
+    "types": ["node"],
     "rootDir": ".."
   },
   "include": [
     "../vite.config.ts",
     "../vite.debug.config.ts",
-    "../src/server/core/check.ts",
-    "../src/server/core/content.ts",
-    "../src/server/core/crowd.ts",
-    "../src/server/core/game.ts",
-    "../src/server/core/memory-store.ts",
-    "../src/server/core/store.ts",
-    "../content/puzzles.json"
+    "../content/puzzles.json",
+    "../src/server/core/*.ts"
   ],
-  "exclude": [],
+  "exclude": ["../src/server/core/*.test.ts"],
   "references": [
     {
       "path": "./tsconfig.shared.json"
