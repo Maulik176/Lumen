@@ -969,8 +969,9 @@ async function start(): Promise<void> {
     document.documentElement.dataset['tutorial'] === '1' ||
     firstVisit;
   if (firstVisit) forget(HINTS_KEY);
-  // The ghost hand shows only in the tutorial, and on a first island whose tutorial was skipped.
-  let handOn = false;
+  // The ghost hand shows only inside the tutorial (Maulik, Nov 20): never on a real island, even
+  // after a skipped tutorial; the hint line still says what to do.
+  const handOn = false;
   const log = query.get('perf') === '1';
   // A community island is not in JOURNEY_MAP.md: playing one sends no journey events.
   const community = island.community !== undefined;
@@ -983,7 +984,6 @@ async function start(): Promise<void> {
   if (wantTutorial) {
     const ended = await runTutorial(canvas, root, shared.sound, calm);
     if (ended === 'skipped') journey.tap('tutorial_skip');
-    handOn = firstVisit && ended === 'skipped';
     store(TUTORIAL_KEY);
     tell('/api/tutorial-done', {});
   }

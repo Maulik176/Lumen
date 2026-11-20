@@ -55,11 +55,17 @@ export const SCORING = {
 
 export const RULES = {
   /**
-   * A tap that lands on a tile nothing can be done with (rock, water, a lantern, or just off the
-   * island's edge) goes to the nearest usable tile if one is within this many tiles. On a 360 px
-   * phone an 8x8 island's tiles are about 36 px wide; this makes them easier to hit.
+   * A tap just off the island's edge goes to the nearest usable tile if one is within this many
+   * tiles. On a 360 px phone an 8x8 island's tiles are about 36 px wide; this makes them easier
+   * to hit.
    */
   tapSnapTiles: 0.45,
+  /**
+   * A tap on a tile nothing can be done with (rock, water, tree, a lantern) moves to the usable
+   * tile beside it only when it lands this close to that tile's edge. Nov 20: at 0.45, a tap on
+   * a rock or water on purpose put a mirror on the next tile.
+   */
+  tapSnapInside: 0.12,
   /**
    * false (decided Nov 12, PROMPT section 7, A1): lighting every lantern locks nothing. The
    * player sees the "all lit" line and chooses Lock in or Keep refining. Lock in is the single
@@ -130,7 +136,11 @@ export const COPY = {
   builderPrisms: ' and {count} prisms',
   builderPrismsOne: ' and 1 prism',
   builderLabels: { gentle: 'Gentle', tricky: 'Tricky', fiendish: 'Fiendish' },
-  builderTested: 'Lit with {pieces} (par {par}). Ready to publish.',
+  /** After the maker's own test: {count} is the pieces they used. */
+  builderTested:
+    'Lit with {count} (par {par}) \u00b7 {label}. Ready to publish.',
+  /** The tutorial's test step, once the check has said what the island is. */
+  builderLessonTest: 'Par {par} \u00b7 {label}. Light it yourself',
   /** The main button once the maker has lit their island, while it is publishing elsewhere. */
   builderLit: 'Lit by you',
   builderTestLeft: 'Light every lantern yourself to finish the test.',
@@ -891,11 +901,19 @@ export const BUILDER_VIEW = {
   checkSweepMs: 1100,
   checkMinMs: 900,
   /**
-   * After publishing: the island's lanterns ring one after another this far apart, then the
-   * board glows for celebrateHoldMs before the new post opens.
+   * After publishing (Nov 20: the first version was too quick to feel): night falls over the
+   * board in celebrateDuskMs, the lanterns bloom one after another celebrateStepMs apart with a
+   * rising chime, motes of light drift up from each (celebrateMotes, over celebrateRiseMs) and
+   * one sky lantern lifts away, then the board holds for celebrateHoldMs before the new post
+   * opens. Reduce Motion: the same night and blooms, nothing rising.
    */
-  celebrateStepMs: 220,
-  celebrateHoldMs: 1300,
+  celebrateDuskMs: 600,
+  celebrateStepMs: 380,
+  celebrateHoldMs: 2000,
+  celebrateMotes: 12,
+  celebrateRiseMs: 2400,
+  /** A bloom's size, in tiles. */
+  celebrateBloomTiles: 2.4,
   /** The island's picture in the confirm panel, in CSS pixels. */
   confirmPictureWidth: 168,
   confirmPictureHeight: 112,

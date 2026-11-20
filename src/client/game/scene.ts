@@ -617,9 +617,11 @@ export function createIslandView(
       hit.y += 1.1;
       hit.project(camera);
       if (hit.z > 1 || Math.abs(hit.x) > 1 || Math.abs(hit.y) > 1) return null;
-      const bounds = canvas.getBoundingClientRect();
-      you.x = bounds.left + ((hit.x + 1) / 2) * bounds.width;
-      you.y = bounds.top + ((1 - hit.y) / 2) * bounds.height;
+      // In the canvas's own layout pixels. The label is fixed to the same frame as the canvas, so
+      // adding the canvas's on-screen offset counted any scroll or bounce twice (Nov 20: the
+      // "You" label slid around the lantern while the view was scrolled).
+      you.x = ((hit.x + 1) / 2) * canvas.clientWidth;
+      you.y = ((1 - hit.y) / 2) * canvas.clientHeight;
       return you;
     },
 

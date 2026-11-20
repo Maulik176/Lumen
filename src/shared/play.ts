@@ -109,8 +109,12 @@ export function snapTile(
   const hereX = Math.floor(fx);
   const hereY = Math.floor(fy);
   if (isPlaceable(puzzle, hereX, hereY)) return { x: hereX, y: hereY };
+  // On the island, a tap on a rock or water is taken at its word unless it barely grazes a
+  // usable tile; just off the island, there is nothing else it could have meant.
+  const onIsland =
+    hereX >= 0 && hereY >= 0 && hereX < puzzle.width && hereY < puzzle.height;
   let best: { x: number; y: number } | null = null;
-  let nearest: number = RULES.tapSnapTiles;
+  let nearest: number = onIsland ? RULES.tapSnapInside : RULES.tapSnapTiles;
   for (let y = hereY - 1; y <= hereY + 1; y++) {
     for (let x = hereX - 1; x <= hereX + 1; x++) {
       if (!isPlaceable(puzzle, x, y)) continue;

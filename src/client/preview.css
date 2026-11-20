@@ -224,3 +224,8 @@ body {
 .crowd b {
   color: var(--amber);
 }
+
+/* On a desktop pointer, the card's buttons say they can be pressed. */
+button:not(:disabled) {
+  cursor: pointer;
+}

@@ -327,12 +327,18 @@ describe('snapTile', () => {
   it('keeps a tap that lands on a usable tile', () => {
     expect(snapTile(puzzle, 0.5, 1.5)).toEqual({ x: 0, y: 1 });
   });
-  it('moves a tap on a rock or lantern to the nearest usable tile within reach', () => {
-    expect(snapTile(puzzle, 1.2, 1.5)).toEqual({ x: 0, y: 1 });
-    expect(snapTile(puzzle, 1.8, 1.5)).toEqual({ x: 2, y: 1 });
-    expect(snapTile(puzzle, 3.1, 0.5)).toEqual({ x: 2, y: 0 });
+  it('moves a tap that only grazes a rock or lantern onto the usable tile beside it', () => {
+    expect(snapTile(puzzle, 1.08, 1.5)).toEqual({ x: 0, y: 1 });
+    expect(snapTile(puzzle, 1.92, 1.5)).toEqual({ x: 2, y: 1 });
+    expect(snapTile(puzzle, 3.08, 0.5)).toEqual({ x: 2, y: 0 });
     expect(snapTile(puzzle, 3.5, 0.8)).toBeNull();
     expect(snapTile(puzzle, 1.5, 1.5)).toBeNull();
+  });
+  it('a tap well inside a rock or water does nothing (Nov 20, iPhone)', () => {
+    // A mirror appeared on the next tile when Maulik tapped a rock or water on purpose.
+    expect(snapTile(puzzle, 1.25, 1.5)).toBeNull();
+    expect(snapTile(puzzle, 1.75, 1.5)).toBeNull();
+    expect(snapTile(puzzle, 3.3, 1.5)).toBeNull();
   });
   it('takes a tap just off the edge, and ignores one far off', () => {
     expect(snapTile(puzzle, -0.3, 2.5)).toBeNull();

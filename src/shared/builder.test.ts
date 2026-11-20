@@ -242,10 +242,20 @@ describe('the Builder speaks in one row', () => {
       COPY.builderTestFailed,
       worst(COPY.builderChecked),
       // The maker may use every piece: 8 mirrors and 2 prisms.
-      worst(COPY.builderTested.replace('{pieces}', '10 pieces')),
+      worst(COPY.builderTested.replace('{count}', '10')),
     ];
     for (const line of lines)
       expect(line.length, line).toBeLessThanOrEqual(BUILDER_VIEW.lineChars);
+  });
+
+  it('after a check, the tutorial line says par and difficulty (Nov 20), and still fits', () => {
+    const line = worst(COPY.builderLessonTest);
+    expect(line).toContain(`Par ${COMMUNITY.maxPar}`);
+    expect(line).toContain(COPY.builderLabels.fiendish);
+    expect(line.length).toBeLessThanOrEqual(BUILDER_VIEW.lessonChars);
+    expect(worst(COPY.builderTested.replace('{count}', '4'))).toContain(
+      COPY.builderLabels.fiendish
+    );
   });
 
   it('every tutorial line fits beside Skip, and beside Next where it shows', () => {

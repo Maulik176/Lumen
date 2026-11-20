@@ -73,6 +73,21 @@ Reduce Motion highlights, sound, a second device, signed out, desktop, Android.
 | C11 | Switch off | `COMMUNITY.enabled` false, upload, reopen: no Build an island anywhere; island posts say "This island is resting." |
 | C12 | Reduce Motion | The publish celebration is one soft glow, no rings |
 
+**Nov 20 run (Maulik's C1–C12 video):** C1, C2, C3, C5, C7, C8, C9, C10 passed; C4 and C6 wait for a
+friend; C11 skipped (the Builder stays on); C12 found the celebration too faint (fixed below).
+C5 note: the card's big picture is still the world's stock art; the island's own picture is the
+first Phase 4 item (`BUILDER_PLAN.md`, Phase 4 queue).
+
+| # | Re-check after the Nov 20 fixes | How |
+| --- | --- | --- |
+| C13 | Ghost hand only in the tutorial | Dev reset, skip the tutorial: no hand on the real island |
+| C14 | Taps on rocks and water | Tap the middle of a rock or water tile: nothing is placed (a tap right on the border of a usable tile still lands there) |
+| C15 | Builder lines | After Check in the tutorial: "Par 4 · Gentle. Light it yourself"; after your test: "Lit with 4 (par 4) · Gentle. Ready to publish." |
+| C16 | Publish celebration | Reduce Motion off: night falls on the board, lanterns bloom with chimes, light rises, a small lantern lifts away, then the post opens (about 3 s). On: night and blooms only |
+| C17 | "You" label | After Lock in, scroll up and down over the sky: "You" stays just above your lantern |
+| C18 | See others' islands | You appear once, as "Your island", not again as u/name |
+| C19 | Desktop cursor | Buttons show the hand cursor |
+
 ## 2. Fixed in code, never confirmed on a phone
 
 | # | Test | How |

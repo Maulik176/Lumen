@@ -35,11 +35,20 @@ body {
   margin: 0;
   height: 100%;
   overflow: hidden;
+  /* No rubber-band scroll: the game is one fixed screen. */
+  overscroll-behavior: none;
   background: #1a1430;
   color: var(--ink);
   font: 15px/1.35 var(--text);
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* On a desktop pointer, everything that can be pressed says so. */
+button:not(:disabled),
+.sheet-row:is(button),
+[role='tab'] {
+  cursor: pointer;
 }
 
 canvas {
@@ -1508,33 +1517,123 @@ div.others-row {
   color: var(--ink-soft);
 }
 
-/* After publishing: the board glows warm once, as the island goes out into the world. */
-.bd-frame.bd-published::after {
-  opacity: 1;
-  background: radial-gradient(
-    circle at 50% 50%,
-    rgba(255, 226, 160, 0.5),
-    rgba(255, 226, 160, 0) 70%
-  );
-  animation: bd-published 1.4s ease-out both;
+/* After publishing: night falls on the board, lanterns bloom, light drifts up into the sky. */
+.bd-party {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
 }
 
-@keyframes bd-published {
-  from {
+.bd-dusk {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(18, 12, 38, 0.62);
+  opacity: 0;
+  transition: opacity 600ms ease;
+}
+
+.bd-dusk.on {
+  opacity: 1;
+}
+
+.bd-bloom {
+  position: absolute;
+  width: var(--bloom);
+  height: var(--bloom);
+  margin: calc(var(--bloom) / -2) 0 0 calc(var(--bloom) / -2);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 236, 190, 0.95) 0%,
+    rgba(255, 196, 110, 0.55) 30%,
+    rgba(255, 170, 80, 0) 70%
+  );
+  mix-blend-mode: screen;
+  opacity: 0;
+  transform: scale(0.2);
+  transition:
+    opacity 500ms ease,
+    transform 700ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.bd-bloom.on {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Motes of light rising from a lantern, like the sky after a night in the game. */
+.bd-mote {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: #fff1cc;
+  box-shadow:
+    0 0 6px 2px rgba(255, 210, 130, 0.9),
+    0 0 14px 4px rgba(255, 170, 80, 0.45);
+  opacity: 0;
+  animation: bd-mote ease-out both;
+}
+
+@keyframes bd-mote {
+  0% {
     opacity: 0;
+    transform: translate(0, 0) scale(0.6);
   }
-  35% {
+  15% {
     opacity: 1;
   }
-  to {
-    opacity: 0.6;
+  100% {
+    opacity: 0;
+    transform: translate(var(--drift), calc(var(--rise) * -1)) scale(1);
+  }
+}
+
+/* One paper lantern lifts away above the board. */
+.bd-sky-lantern {
+  position: absolute;
+  width: 16px;
+  height: 21px;
+  margin: -10px 0 0 -8px;
+  border-radius: 7px 7px 5px 5px;
+  background: linear-gradient(#ffe6b0, #f0a94a);
+  box-shadow:
+    0 0 12px 4px rgba(255, 200, 120, 0.85),
+    0 0 30px 10px rgba(255, 160, 70, 0.4);
+  animation: bd-lift ease-in both;
+}
+
+@keyframes bd-lift {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.7);
+  }
+  12% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(calc(var(--rise) * -1)) scale(0.45);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bd-frame.bd-published::after {
-    animation: none;
-    opacity: 0.7;
+  .bd-dusk {
+    transition-duration: 900ms;
+  }
+  .bd-bloom {
+    transform: none;
+    transition: opacity 900ms ease;
+  }
+  .bd-mote,
+  .bd-sky-lantern {
+    display: none;
   }
 }
 

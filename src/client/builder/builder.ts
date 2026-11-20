@@ -742,25 +742,76 @@ export async function openBuilder(
     host.open(answer.url);
   }
 
-  /** Each lantern rings in turn with a rising chime, then the board glows: the island is up. */
+  /**
+   * The island is up: night falls over the board, each lantern blooms with a rising chime, motes
+   * of light drift up and one sky lantern lifts away, as at the end of a night in the game.
+   */
   async function celebrate(draft: IslandDraft): Promise<void> {
     status = COPY.builderPublished;
     published = true;
-    frame.classList.add('bd-published');
     render();
+    const party = element('div', 'bd-party');
+    const dusk = element('div', 'bd-dusk');
+    party.append(dusk);
+    frame.append(party);
+    // Start each fade from its first style at once (reading a size flushes it), rather than on
+    // the next animation frame, which a hidden or busy page may hold back.
+    void dusk.offsetWidth;
+    dusk.classList.add('on');
+    await wait(BUILDER_VIEW.celebrateDuskMs);
+
+    const tile = canvas.clientWidth / draft.size;
     const lanterns: { x: number; y: number }[] = [];
     draft.rows.forEach((row, y) =>
-      [...row].forEach((tile, x) => {
-        if ('WRGBMCY'.includes(tile)) lanterns.push({ x, y });
+      [...row].forEach((spot, x) => {
+        if ('WRGBMCY'.includes(spot)) lanterns.push({ x, y });
       })
     );
+    const place = (node: HTMLElement, x: number, y: number): void => {
+      node.style.left = `${(x + 0.5) * tile}px`;
+      node.style.top = `${(y + 0.5) * tile}px`;
+    };
     for (const [index, spot] of lanterns.entries()) {
-      if (!host.calm) board.flash(spot.x, spot.y);
+      const bloom = element('div', 'bd-bloom');
+      place(bloom, spot.x, spot.y);
+      bloom.style.setProperty(
+        '--bloom',
+        `${tile * BUILDER_VIEW.celebrateBloomTiles}px`
+      );
+      party.append(bloom);
+      void bloom.offsetWidth;
+      bloom.classList.add('on');
       host.chime(index);
+      if (!host.calm)
+        for (let mote = 0; mote < BUILDER_VIEW.celebrateMotes; mote++) {
+          const light = element('div', 'bd-mote');
+          place(light, spot.x, spot.y);
+          light.style.setProperty(
+            '--drift',
+            `${(Math.random() - 0.5) * tile * 3}px`
+          );
+          light.style.setProperty(
+            '--rise',
+            `${canvas.clientHeight * (0.5 + Math.random() * 0.5)}px`
+          );
+          light.style.animationDelay = `${Math.round(Math.random() * BUILDER_VIEW.celebrateStepMs * 2)}ms`;
+          light.style.animationDuration = `${BUILDER_VIEW.celebrateRiseMs}ms`;
+          party.append(light);
+        }
       await wait(BUILDER_VIEW.celebrateStepMs);
     }
+    // One lantern lifts from the first lantern into the sky above the board.
+    const first = lanterns[0];
+    if (first !== undefined && !host.calm) {
+      const lift = element('div', 'bd-sky-lantern');
+      place(lift, first.x, first.y);
+      lift.style.setProperty('--rise', `${canvas.clientHeight}px`);
+      lift.style.animationDuration = `${BUILDER_VIEW.celebrateRiseMs}ms`;
+      party.append(lift);
+      host.chime(lanterns.length);
+    }
     await wait(BUILDER_VIEW.celebrateHoldMs);
-    frame.classList.remove('bd-published');
+    party.remove();
     published = false;
   }
 
@@ -840,8 +891,9 @@ export async function openBuilder(
       line = COPY.builderNameRule;
     if (line === '' && isTested && tested !== null)
       line = fill(COPY.builderTested, {
-        pieces: tested.pieces === 1 ? '1 piece' : `${tested.pieces} pieces`,
+        count: tested.pieces,
         par: checked?.par ?? tested.pieces,
+        label: COPY.builderLabels[checked?.label ?? 'gentle'],
       });
     if (line === '' && isChecked && checked !== null)
       line = fill(COPY.builderChecked, {
@@ -850,7 +902,15 @@ export async function openBuilder(
         label: COPY.builderLabels[checked.label],
       });
     const teaching = lesson !== 'done';
-    if (lesson !== 'done' && status === '') line = COPY.builderLessons[lesson];
+    if (lesson !== 'done' && status === '')
+      // Once checked, the test step also says what the check found: par and how hard.
+      line =
+        lesson === 'test' && isChecked && checked !== null
+          ? fill(COPY.builderLessonTest, {
+              par: checked.par,
+              label: COPY.builderLabels[checked.label],
+            })
+          : COPY.builderLessons[lesson];
     if (line === '') line = COPY.builderHelp;
     hintText.textContent = line;
     next.hidden = !(lesson === 'colour' || lesson === 'block');

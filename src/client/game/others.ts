@@ -94,14 +94,11 @@ export function othersRows(others: Others, par: number): Shown[] {
       placements: others.parSolution,
       mine: false,
     });
-  for (const entry of others.top)
-    rows.push(
-      shownOf(
-        entry,
-        `u/${entry.username}`,
-        own !== null && entry.username === own.username
-      )
-    );
+  for (const entry of others.top) {
+    // The player's own island is already first, as "Your island".
+    if (own !== null && entry.username === own.username) continue;
+    rows.push(shownOf(entry, `u/${entry.username}`, false));
+  }
   return rows;
 }
 
