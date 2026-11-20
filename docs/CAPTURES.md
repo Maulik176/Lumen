@@ -97,3 +97,23 @@ after the phone test (C1–C12) with real accounts.
 Bug shots (fixed before commit, kept for the record): `bug-01` the confirm panel's picture
 drawn outside the panel; `bug-02` a community card with no outline. Older top-bar order in 12
 ("by u/you" above the name) was fixed after it was taken.
+
+---
+
+## Run 3: Nov 20, 2026, local four-seat pass, real game code (not Reddit)
+
+Folder: `captures/2026-11-20-four-seats/` (24 files), from `npm run seats` after the "everyone
+accounted for" fix. The stand-in ran the real game code with a crowd of made-up players
+(`p0`…`p7`, most with the par answer), so these lists are what a real post holds. Each seat has
+`others` (See others' islands) and `board` at 430x701, 360x460 and 1100x700.
+
+| Files | What it shows | Use it for |
+|---|---|---|
+| `1-first-others-430x701` | The player first on the board: "Your island · 3 pieces · 0:22 · same as u/p7 and 5 others", then the one different board | Proof shot for the fix; write-up "everyone accounted for" |
+| `3-other-board-others-*` | A player with a different board sees the big group as one row, "7 players" | Gallery: See others' islands |
+| `4-maker-others-*` | A community island's maker who also played it: Creator's board, Your island, the rest | Builder heading |
+| `*-board-1100x700` | Desktop: the sky with everyone's lanterns beside tonight's board | Gallery: desktop layout |
+
+Seen while looking (not fixed, to check on a phone): on desktop one lantern sits partly behind
+the player's own; the "You" label sits a little right of the lantern in headless shots (Maulik's
+own phone shot shows it centred).

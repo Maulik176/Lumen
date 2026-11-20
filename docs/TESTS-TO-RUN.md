@@ -89,6 +89,18 @@ first Phase 4 item (`BUILDER_PLAN.md`, Phase 4 queue).
 | C19 | Desktop cursor | Buttons show the hand cursor |
 | C20 | Other players' lanterns on a quiet night (Nov 20 "lamp visibility") | With a friend's Lock in on the same island, after yours: their lantern is clearly visible (about half the size of yours) in Mobile, Desktop and Fullscreen on desktop Reddit and on the phone, drifting slowly, never hidden behind the card or the title bar |
 
+## 1e. Everyone accounted for (Nov 20 evening fix): from Maulik's account and u/mohak2605's
+
+The fix for the missing u/VisibleSalamander536 on Blossom Island #3. Lists kept by the old
+version are worked out again on first open (`others:v2`), so the existing post shows the fix.
+
+| # | Check | Who |
+| --- | --- | --- |
+| R1 | Blossom Island #3, See others' islands: "Your island · 4 pieces · 0:12 · same as u/VisibleSalamander536" if the stranger placed your board (otherwise their own row), then Creator's board and u/mohak2605. Count the players on the board (3): each is on the list by name, inside "same as", or inside "N players" | Maulik |
+| R2 | The same post from u/mohak2605's account: Creator's board, his own island (0:36), then the others; nobody missing, nobody twice | mohak2605 |
+| R3 | Today's daily post: both lock in with exactly the same pieces (e.g. the par answer). Each sees "same as u/the-other" on their own row, and no row of the other's | Both |
+| R4 | The feed card and result card's "#N": after someone faster locks in, it matches the board (it used to keep the place at Lock in) | Both |
+
 ## 2. Fixed in code, never confirmed on a phone
 
 | # | Test | How |

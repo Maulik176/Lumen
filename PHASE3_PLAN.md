@@ -7,7 +7,12 @@ docs/LAUNCH.md, SPEC.md "Reddit and community layer" item 7, the server code (`p
 `content.ts`, `community.ts`, `game.ts`, `routes/*`), `devvit.json`, and the installed SDK
 typings (0.15.2) for `Post.sticky`, `Post.score`, `Post.removed`, `PostDelete`.
 
-**Status: plan only. Nothing is built until Maulik says OK.** Timeline (Maulik, Nov 19): Phase 3
+**Status: approved Nov 20 (Maulik): section 0 as recommended, with E5 changed (below). Build
+starts only after the "everyone accounted for" fix passes Maulik's phone check (R1–R4 in
+`docs/TESTS-TO-RUN.md`). One commit per item, push after, no upload until Maulik says; phone
+checks D1–D12, with D1 (pins) before Nov 24.** The quality rules in CLAUDE.md apply: every new
+list and count (the Community section, the Sunday credit, flair) gets its invariant in
+`accounted.test.ts`, and the judge pass is the four-seat pass with real data. Timeline (Maulik, Nov 19): Phase 3
 by Nov 23, launch Tue Nov 24, first pick Sat Nov 28 20:00 UTC (Sun Nov 29, 01:30 IST) for
 Sunday Nov 29 = day 6. Lumen is never published: everything runs in a playtest build on
 r/lumen_game_dev. Push after the phase; upload only when Maulik says.
@@ -24,11 +29,11 @@ and Delightful UX (the maker sees their island become the day's island).
 
 | # | Question | Recommendation |
 |---|---|---|
-| E1 | **The week window.** Which islands are in the running for a Sunday? | **The 7 days before the pick:** published from the previous Saturday 20:00 UTC up to this Saturday 20:00 UTC. An island published after a pick goes into next week's. For the first pick that is Nov 21 20:00 to Nov 28 20:00, and launch-day clean-up empties everything published before Nov 24 anyway. |
+| E1 | **The week window.** Which islands are in the running for a Sunday? | **The 7 days before the pick:** published from the previous Saturday 20:00 UTC up to this Saturday 20:00 UTC. An island published after a pick goes into next week's. The Nov 24 launch-day clean-up deletes islands published before launch, so **the first real candidates are islands published Nov 24–28** (LAUNCH.md says so). |
 | E2 | **Minimum score.** Below it, the generated Sunday stays. | **2**: the author's own vote plus at least one other person's. Higher (5) is safer against a lone island winning, but the subreddit is small during judging and the first pick is the demo moment. Plan for it: ask friends to publish and upvote between Nov 24 and 28. |
 | E3 | **Which islands fit Sunday.** The brief says the Sunday par band; SPEC adds a difficulty band (generated Sundays score 60–82). | **Par 3 to 5** (Sunday's band) **and a difficulty score of at least 55** (no upper bound beyond par 5). The exact 60–82 band would turn away most player islands; the floor keeps a straight-line par-3 island from becoming everyone's Sunday. Both numbers in config. |
 | E4 | **Sunday's world.** The week's biome changes on Mondays; a picked island has the maker's own world. | **The maker's world.** A different world on Sunday is a visible signal that this one was built by a player. Day number, date and weekday stay Sunday's. |
-| E5 | **The maker playing their own Sunday.** They know the answer. | **Ranked like everyone,** with a small "Maker" tag on their row of the board, and their test solve pinned first as "Creator's board" in See others' islands (as on community posts). Honest, simple, and their streak keeps going. (Alternative: unranked for the maker, streak kept by an exception: more code, and the maker gets no lantern in the day's sky.) |
+| E5 | **The maker playing their own Sunday.** They know the answer. | **Decided by Maulik (changed): not ranked.** Their test solve is pinned first as "Maker's board" in See others' islands. If they play and Lock in, it does not appear on the leaderboard and earns no medal that day, but it **does continue their streak** (building a winning island must never break a streak). (Recommended was ranked with a "Maker" tag; not chosen.) |
 | E6 | **The winning post goes away after the pick.** The brief: Sunday still runs if it is deleted. | **Once Sunday's post exists, nothing changes Sunday.** Before that: if a **moderator removes or excludes** the winner, the pick is withdrawn and runs again without it (next best, or the generated island), and the app deletes its announcement comment. A **deletion** (by the maker, or anyone) keeps the pick, as the brief asks. Credit after a deletion: the name and snoovatar frozen at the pick stay on Sunday's card, game and results comment; only the link to the original post is dropped. |
 | E7 | **Islandwright flair format.** Today's flair is "{medal} 🔥{streak}" (e.g. "Lamplighter 🔥12"). | **"Lamplighter 🔥12 · Islandwright"**, and just **"Islandwright"** for a maker with no daily medal yet. Permanent: every later daily Lock in writes it with the title kept. Repeat wins are counted in Redis, not shown (short flair). Flair stays fallible. |
 | E8 | **Pins.** Reddit's API gives subreddit posts **two** pin slots (`sticky(1 \| 2)`, SDK typings); LAUNCH.md planned to pin How to play *and* the Feedback thread. | **Today's daily post in slot 1, How to play in slot 2.** The Feedback thread is no longer pinned; How to play links to it (LAUNCH.md section 6 updated). The app unpins only its own previous daily post, by id, so it never touches How to play. A config switch turns pinning off if the phone check (D1) shows Reddit shuffling the pins. |
@@ -68,8 +73,9 @@ score, so a player can see what is in the running.
    kicker and their snoovatar (the community card's kicker), the outline, par.
 2. In the game: the top bar reads "Lumen #6" and the island's name, with "by u/name" in the
    small line. Rules, tutorial, ranked Lock in, streak, medal, flair, sky and board are the daily
-   game's, unchanged. The result card gains one credit line, "Island by u/name, chosen by
-   r/lumen_game_dev". See others' islands pins the Creator's board first (E5).
+   game's, unchanged, except for the maker (E5): their Lock in is not ranked (no board row, no
+   medal) but continues their streak. The result card gains one credit line, "Island by u/name,
+   chosen by r/lumen_game_dev". See others' islands pins "Maker's board" first.
 3. The results comment: "Lumen #6 · Ember Bend, an island by u/name, chosen by the community"
    with a link to the original post while it stands.
 4. Today's post is pinned in slot 1 and yesterday's unpinned (every day, not just Sunday).
@@ -168,7 +174,9 @@ effects (comment, flair), refreshes `cm:votes`, retries a failed pin.
 - `/api/past`: Sundays carry `maker`, `makerAvatar`.
 - `/api/card` on a community island: `sunday` (the date it was picked for), for the "Chosen for
   Sunday" line.
-- `BoardRow` gains `maker?: true` (E5).
+- The maker's own Sunday Lock in (E5): `lockIn` treats it as unranked for the board, medals,
+  all-time and par counts, but advances the streak; the result card says why ("Your island:
+  your streak goes on"). Every count stays consistent (accounted.test.ts gets a Sunday seat).
 
 **Menus (`devvit.json`):**
 - Post menu, moderators: "Lumen: exclude from Sunday pick" → `/internal/menu/exclude-island`;
@@ -204,7 +212,8 @@ phone check D1, before launch.
   "ISLAND BY U/NAME") above "Lumen #6", the maker's world picture, the outline. Solved state as
   any day.
 - **Sunday game:** top bar "Lumen #6" / island name / "Sunday · by u/name". Result card: credit
-  line under the medal line. Board: "Maker" tag on the maker's row.
+  line under the medal line. The maker's own Lock in: no board row, no medal, "your streak
+  goes on" (E5).
 - **Community island card (the winner's own post):** one quiet line "Chosen for Sunday, Nov 29".
 - **Archipelago:** "Nights · Community" switch in the map bar (two paper tabs, 44 px). Community
   view: pick card (larger outline, a soft gold edge, "Sunday's island · Nov 29", name, maker,
@@ -261,6 +270,8 @@ phone check D1, before launch.
 - **Fallback:** no candidates, all below score, switch off; `why` recorded.
 - **Flair:** "Lamplighter 🔥12 · Islandwright", "Islandwright" with no medal, kept by the next
   daily Lock in, absent for everyone else.
+- **The maker on their own Sunday (E5):** not on the board, no medal, no par count, streak
+  continues; "Maker's board" pinned first; from every seat everyone else is still accounted for.
 - **Pins:** today pinned, yesterday unpinned, a post the app did not make never unpinned, a
   failed pin retried once, `PINS.enabled` off does nothing.
 - **Switches:** `COMMUNITY.enabled` off (no pick, `/api/community` 404, flair untouched);
@@ -275,7 +286,8 @@ phone check D1, before launch.
 1. Sunday pick: `SUNDAY` config, `server/core/sunday.ts` (window, candidates, ranking,
    re-check, freeze, withdrawal), `islandOfDay`, scheduler task, catch-up, Sunday post creation.
 2. Credit everywhere: post title and data, feed card, top bar, result card, results comment,
-   Creator's board and Maker tag, "Chosen for Sunday" on the winner's card, announcement comment.
+   Maker's board and the maker's unranked Sunday (E5), "Chosen for Sunday" on the winner's card,
+   announcement comment.
 3. Islandwright flair: `flairFor`, `lastMedal`, the pick's flair.
 4. Daily post pinning.
 5. Archipelago community section and maker badges, `/api/community`, votes refresh.
@@ -296,7 +308,7 @@ word to upload.
 | D3 | Three islands from three accounts, different upvotes; "Dev: who would win Sunday now" names the one with most votes |
 | D4 | "Dev: set today" to a Saturday, "Dev: run Sunday pick now": the announcement comment appears on the winning post and the maker is notified; their flair gains Islandwright |
 | D5 | "Dev: set today" to that Sunday, "Post today's Lumen": title, feed card kicker with the maker's snoovatar, the maker's world |
-| D6 | Play it ranked from a second account: top bar credit, result card credit line, streak and medal as usual, flair updates; the maker's own Lock in shows "Maker" on the board |
+| D6 | Play it ranked from a second account: top bar credit, result card credit line, streak and medal as usual, flair updates. The maker plays too: not on the board, no medal, streak continues, "Maker's board" first in See others' islands |
 | D7 | Results comment names the island and maker, with a link to the original post |
 | D8 | Archipelago: Community tab (pick card, this week, earlier), tap opens the post; Nights shows the maker badge on the Sunday |
 | D9 | Remove the winner as a mod before Sunday's post: the pick re-runs (preview shows the next one); after Sunday's post: nothing changes |

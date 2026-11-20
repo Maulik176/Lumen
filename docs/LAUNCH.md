@@ -42,6 +42,10 @@ at once and it is rankable straight away. It stays tonight's island until 00:00 
    every post the app made there and resets every day's board, sky, counts and stored pieces, and
    your own progress. Other testers' streaks and medals are not reset (the menu can reset only
    the moderator who taps it), so a tester's numbers may look odd at first. Cannot be undone.
+   It also takes down every community island published before launch, so **the first Sunday
+   pick (Sat Nov 28, 20:00 UTC) can only choose islands published Nov 24–28**: ask friends to
+   build, publish and upvote in those days (`PHASE3_PLAN.md`, E1 and E2). From Phase 3 it also
+   clears any Sunday pick made while testing; afterwards day 6 must be the generated island.
 2. **Real time:** "Dev: set today to day N" → **0**. The form then says "Today is day 1".
 3. **Flip the switch:** in `src/shared/config.ts` set `LAUNCH.launched` to `true`, then commit
    ("Launch: dev tools off"). From the next upload on, the dev tools that wipe data, post test
@@ -58,11 +62,12 @@ at once and it is rankable straight away. It stays tonight's island until 00:00 
    play Lumen" and "Feedback, bugs and ideas" (sections 6 and 7). The results comment pins itself.
 7. **Phone check** (section 9), then share the subreddit link.
 
-## 3. Release routine (after launch: every upload is live)
+## 3. Release routine (every upload, before launch and after; after launch every upload is live)
 
 1. **Test locally:** the change has a test (a bug fix starts with a failing one); `npm run debug`
-   and look at it at 430x701 and 360x460; `npm test`, `npm run test:types`, `npm run lint`,
-   `npm run build` (the release runs these again).
+   and look at it at 430x701, 360x460 and 1100x700 with real data (`?user=`, `/api/dev/crowd`);
+   `npm run checks`: tests (with the everyone-accounted-for suite), types, lint, build and the
+   four-seat pass (CLAUDE.md "Quality rules"). The release runs it again and stops if it fails.
 2. **Commit** (the release refuses uncommitted work, so what is live is always a commit).
 3. **Deliberate upload:** `npm run release`. It refuses if a playtest watcher is running, runs
    every check, asks you to type `upload`, uploads once through `devvit playtest`, stops the

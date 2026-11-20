@@ -5,13 +5,23 @@ Vite). It is an entry for Reddit's Game of the Day hackathon; submission closes 
 
 ## Where things stand (update at the end of every milestone)
 
-**Start here: Fri Nov 20, 2026 (Opus). Island Builder phase 2 is built, uploaded and
-phone-tested; Phase 3 (the Sunday pick) is next.** Timeline (Maulik, Nov 19): P3 by Nov 23 (first
-Sunday pick Sat Nov 28), launch Tue Nov 24, P4 polish Nov 26–27, atmosphere pass and trailer
-ending after launch (Nov 24–26). Each phase starts with a plan for Maulik's OK, one commit per
-numbered item, push after the phase; **upload only when Maulik says.**
-- **Last uploaded:** v0.0.1.90 (Nov 20), commit 7417aff, pushed; GitHub `main` matches. 438
-  tests. Playtest watcher stopped.
+**Start here: Fri Nov 20, 2026 (Opus). The "everyone accounted for" fix is built and pushed,
+waiting for upload and Maulik's phone check from his account and u/mohak2605's (R1–R4 in
+`docs/TESTS-TO-RUN.md`). Phase 3 is approved (`PHASE3_PLAN.md`, with Maulik's E5 change) and
+starts only after that check passes.** Timeline (Maulik, Nov 19): P3 by Nov 23 (first Sunday
+pick Sat Nov 28), launch Tue Nov 24, P4 polish Nov 26–27, atmosphere pass and trailer ending
+after launch (Nov 24–26). Each phase starts with a plan for Maulik's OK, one commit per
+numbered item, push after the phase; **upload only when Maulik says.** Read "Quality rules"
+below before any change.
+- **Nov 20 evening, the missing stranger:** on Blossom Island #3 Maulik (first on the board)
+  could not see u/VisibleSalamander536, who placed his exact board. Phase 2's grouping of
+  identical boards collided with the list's "don't show me twice" filter; daily posts too. Now
+  the viewer's board group folds into their own row ("same as u/name and N others"), the list
+  shows only other boards, every count is read fresh, kept lists moved to `others:v2:{day}`.
+  The new suite also found: a dev reset kept the par hit (fixed), and the card's rank was the
+  rank at Lock in (now the board's). List logic lives in `src/shared/others.ts`.
+- **Last uploaded:** v0.0.1.90 (Nov 20), commit 7417aff. Since then (pushed, not uploaded):
+  the fix above, the local stand-in running real game code, `npm run checks`. 448 tests.
 - **Phase 2 (built Nov 20):** publish flow, community island posts, Your islands, the switch, dev
   tools. Plan, report, judge pass: `PHASE2_PLAN.md` (brief: `docs/PHASE2_BRIEF.md`). Community
   islands use numbers from `COMMUNITY.numberBase` (`shared/community.ts`), `lookUpIsland` in every
@@ -41,9 +51,11 @@ numbered item, push after the phase; **upload only when Maulik says.**
 - **Captures are submission material:** copy captures into `captures/<date>-…/` (gitignored: the
   repo is public) and index them in `docs/CAPTURES.md`, which maps them to `docs/SUBMISSION.md`.
   Maulik's own phone recordings are the best video source.
-- **Upload:** before launch `bash .tmp/upload.sh` (then `pgrep -fl dev-build` and kill anything
-  left); after launch only `npm run release` (`docs/LAUNCH.md` section 3). Never
-  `devvit publish`. Push to GitHub after every phase without asking.
+- **Upload:** only `npm run release -- --yes` (after Maulik says), before launch and after
+  (`docs/LAUNCH.md` section 3). It refuses uncommitted work, runs `npm run checks` (tests with
+  the everyone-accounted-for suite, types, lint, build, the four-seat pass), uploads once, stops
+  the watcher and tags the commit. Never `devvit publish`. Push to GitHub after every phase
+  without asking.
 - **Nov 19, never publish (official page):** r/lumen_game_dev is the judging subreddit. Launch day
   steps, release routine, phone check: `docs/LAUNCH.md`. `LAUNCH.launched` in config is flipped on
   launch day. Journeys start route answers a refused start quietly; client stops sending.
@@ -296,6 +308,38 @@ How the work is laid out (so a fresh session can continue):
 - **Testing devices:** iPhone now; Android arrives before Milestone 4. Until then also test in
   desktop Chrome with 4x CPU slowdown.
 
+## Quality rules (Maulik, Nov 20, after a stranger went missing from a list)
+
+A player was invisible in "See others' islands" because two features, each tested alone with
+made-up data, disagreed about what a row meant, and the local server served a hand-made list.
+These five rules exist so that class of bug cannot reach Maulik's phone again.
+
+1. **Everyone accounted for.** Every player-facing list and count (See others' islands, the
+   boards, the sky, the counts on the card, results comment, map and Your islands) is covered by
+   `src/server/core/accounted.test.ts`: seeded random nights, every seat (each player, a
+   practice player, signed out, the maker), server output run through the same shared code the
+   phone uses (`src/shared/others.ts`). A new list or count gets its invariant there first.
+2. **Realistic data.** Tests and local checks use `src/server/core/crowd.ts`: most players
+   place the par answer (identical boards are the common case), spare-mirror boards, practice
+   solves, a too-fast time, dev resets and replays, the maker playing their own island. The
+   local stand-in (`npm run debug`) runs the real game code on an in-memory store and takes the
+   player from the page's `?user=`; `fetch('/api/dev/crowd?day=1&players=8')` seeds a crowd,
+   `fetch('/api/dev/island?day=2&maker=p0')` makes a community island. Never judge a screen
+   fed by made-up rows.
+3. **When data changes meaning, list every reader.** A plan or commit that changes what a
+   field, row or key means names every place that reads it (grep), and each gets a test with
+   the new meaning. Stored data from the old meaning is migrated or versioned (`others:v2`).
+4. **Every bug: root cause, then the class.** Failing test first; then find the same
+   assumption elsewhere and add an invariant (not one example); then prove the test fails
+   without the fix.
+5. **Four-seat judge pass.** `npm run seats` (stand-in running) opens the game as the player
+   first on the board, a later player with the same board, a player with a different board,
+   and a community island's maker who also played it, at 430x701, 360x460 and 1100x700, and
+   checks the lists from the screen; screenshots go to `captures/`. Look at them.
+
+**Before every upload `npm run checks` must pass**: `npm run release` runs it and refuses to
+upload otherwise (tests, types, lint, build, and the four-seat pass at 430x701).
+
 ## Read first
 
 - `SPEC.md` — intent. Read only the section for the task in hand.
@@ -378,7 +422,9 @@ scripts/      gen, report (run with tsx)
 | Command | Does |
 | --- | --- |
 | `npm run dev` | `devvit playtest` against r/lumen_game_dev (before launch only: it uploads every save; refuses once `LAUNCH.launched`) |
-| `npm run release` | After launch, the only upload: checks, asks, uploads once, stops the watcher, tags `release-<version>` (`docs/LAUNCH.md`) |
+| `npm run release` | The only upload, before launch and after: `npm run checks`, asks (or `-- --yes`), uploads once, stops the watcher, tags `release-<version>` (`docs/LAUNCH.md`) |
+| `npm run checks` | Everything an upload needs to pass: tests, types, lint, build, the four-seat pass (starts the stand-in if needed) |
+| `npm run seats` | The four-seat judge pass on the running stand-in; `-- <outDir> 430x701 360x460 1100x700` |
 | `npm test` | Vitest: unit tests beside the code in `src/`, fixture tests in `tests/` |
 | `npm run bench` | Solver speed report by par on open islands (not part of `npm test`) |
 | `npm run test:types` | `tsc --build` |
@@ -387,7 +433,7 @@ scripts/      gen, report (run with tsx)
 | `npm run check:build` | Check `dist/` alone: every entry page, the files it loads, the server bundle |
 | `npm run gen -- --from 1 --to 90` | regenerate `content/puzzles.json` |
 | `npm run report` | par and difficulty per weekday; `-- --show 12` prints a day; `-- --verify` re-solves and times all |
-| `npm run debug` | local server: `/debug.html` 2D viewer for every day; `/game.html?day=N` the real play screen with a local API |
+| `npm run debug` | local server: `/debug.html` 2D viewer for every day; `/game.html?day=N&user=name` the real play screen, with the real game code on an in-memory store (`/api/dev/crowd`, `/api/dev/island`, `/api/forget`) |
 
 Node 22.12 or newer. The Reddit app on a real phone is the only test that counts for feel and
 performance; a desktop browser is for layout.
