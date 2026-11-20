@@ -73,7 +73,9 @@ iPhone Mirroring's typing, not by Lumen).
 
 ## Run 2: Nov 19–20, 2026, local browser, Phase 2 build (not Reddit)
 
-Folder: `captures/2026-11-20-local-phase2/` (20 files). Taken in the app's browser pane against
+Folder: `captures/2026-11-20-local-phase2/` (21 files). Maulik's own recordings of Nov 19
+(`maulik playing the game.mov`) and Nov 20 (`c1 to c12 test.mp4`, with his spoken notes) are in
+his Downloads folder: real Reddit, real phone, the best source for the video. Taken in the app's browser pane against
 the local stand-in server (`npm run debug`), at 430x701, 360x460 and 1100x700, while building and
 judging Phase 2. **No Reddit chrome and no real players** (names like `test_1` and "u/you" are
 the stand-in's), and the pictures are half scale. Use them to plan shots; re-record on Reddit
@@ -89,6 +91,7 @@ after the phone test (C1–C12) with real accounts.
 | 15, 18 | See others' islands with "Creator's board" pinned first (desktop) | Gallery item 7, community version |
 | 16, 17 | Your islands, with plays and par hits; the empty state | Builder heading |
 | 06 | "Checking your island…" with light sweeping the board | Video: the check beat |
+| 19 | The new publish celebration (Nov 20): night over the board, the lantern blooming, motes rising, a small lantern lifting (headless Chrome, full size) | Video: the publish beat; gallery Builder item |
 | 01–05 | Nov 19 fixes: solid Island panel, one-row tutorial line, map's paper Build button | Polish proof |
 
 Bug shots (fixed before commit, kept for the record): `bug-01` the confirm panel's picture
