@@ -11,9 +11,16 @@ import { lastDay } from './content';
 import { lockIn, recordStart, skyCount } from './game';
 import { fakeReddit, maker, publishFrom } from './islands-for-tests';
 import { memoryStore } from './memory-store';
+import { seedCrowd } from './crowd';
 import { communityShelf, refreshVotes } from './shelf';
 import { KEYS, type Store } from './store';
-import { markPosted, pickTime, pickWindow, runPick } from './sunday';
+import {
+  islandOfDay,
+  markPosted,
+  pickTime,
+  pickWindow,
+  runPick,
+} from './sunday';
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
@@ -187,6 +194,40 @@ describe("the Archipelago's Community view (E9)", () => {
     // After the pick, this week's islands run for the next Sunday.
     expect(posted.ok && posted.week).toEqual([]);
     expect(pickWindow(13).from).toBe(pickTime(6));
+  });
+
+  it("the picked island is listed once, as the pick, with Sunday's players and its own post's together", async () => {
+    const store = memoryStore();
+    const { reddit, scores } = fakeReddit();
+    const picked = await publishFrom(store, 6, maker('ana'), MIDWEEK);
+    const other = await publishFrom(store, 2, maker('ben'), MIDWEEK + HOUR);
+    scores.set(picked.postId, 9).set(other.postId, 4);
+    await runPick(store, reddit, 6, pickTime(6), options);
+    // Two players lit its own post during the week; three lit it as Sunday's island.
+    const own = await lookUpIsland(store, communityNumber(picked.index));
+    if (!own.ok) throw new Error('not found');
+    await seedCrowd(store, own.island, {
+      players: 2,
+      seed: 'own',
+      practiceShare: 0,
+      prefix: 'w',
+      lastDay: lastDay(),
+    });
+    const sunday = await islandOfDay(store, 6);
+    if (sunday === undefined) throw new Error('no Sunday');
+    await seedCrowd(store, sunday.island, {
+      players: 3,
+      seed: 'sun',
+      practiceShare: 0,
+      prefix: 's',
+      lastDay: lastDay(),
+    });
+    const { first, older } = await everything(store, pickTime(6) + 30 * HOUR);
+    expect(first.pick).toMatchObject({ name: 'Isle 6', plays: 5 });
+    const rows = [...first.week, ...older].map((row) => row.number);
+    // Once: never again under This week or Earlier.
+    expect(rows).not.toContain(communityNumber(picked.index));
+    expect(rows).toEqual([communityNumber(other.index)]);
   });
 
   it('switched off it rests', async () => {

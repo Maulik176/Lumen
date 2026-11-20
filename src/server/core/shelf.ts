@@ -58,8 +58,15 @@ async function latestPick(
     if (winner === undefined || winner === null) continue;
     // Its Sunday post once it exists; until then the island's own post.
     const post = await store.get(KEYS.postForDay(day));
+    const source = communityNumber(winner.index);
+    // Everyone who lit it: as Sunday's island, and on its own post.
+    const [sunday, own] = await Promise.all([
+      skyCount(store, day),
+      skyCount(store, source),
+    ]);
     return {
       sunday: day,
+      source,
       number: day,
       name: winner.island.name,
       maker: winner.credit.maker,
@@ -67,7 +74,7 @@ async function latestPick(
       biome: winner.island.biome,
       rows: winner.island.rows,
       par: winner.island.par,
-      plays: await skyCount(store, day),
+      plays: sunday + own,
       score: winner.score,
       url:
         post === undefined
@@ -91,6 +98,11 @@ export async function communityShelf(
   if (!enabled) return { ok: false, reason: 'resting' };
   const sunday = runningFor(nowMs);
   const window = pickWindow(sunday);
+  // The latest pick is listed once, at the top: never again under This week or Earlier.
+  const pick = await latestPick(store, nowMs);
+  const shown = (record: CommunityRecord): boolean =>
+    listed(record) &&
+    (pick === null || communityNumber(record.index) !== pick.source);
 
   // This week: by the scores the half-hourly task read, best first; then any not read yet.
   const voted = await store.zRange(
@@ -113,7 +125,7 @@ export async function communityShelf(
     const record = await readCommunity(store, Number(member));
     if (record === null) continue;
     if (record.created < window.from) break;
-    if (record.created >= window.to || !listed(record)) continue;
+    if (record.created >= window.to || !shown(record)) continue;
     running.push({ record, score: scores.get(record.index) ?? null });
   }
   running.sort(
@@ -141,7 +153,7 @@ export async function communityShelf(
     for (const { member } of page) {
       position++;
       const record = await readCommunity(store, Number(member));
-      if (record === null || !listed(record) || inWeek.has(record.index))
+      if (record === null || !shown(record) || inWeek.has(record.index))
         continue;
       older.push(await shelfIsland(store, record, null));
       if (older.length >= SUNDAY.olderPage) {
@@ -158,7 +170,7 @@ export async function communityShelf(
 
   return {
     ok: true,
-    pick: await latestPick(store, nowMs),
+    pick,
     week,
     older,
     next,

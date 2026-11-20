@@ -183,8 +183,15 @@ export type ShelfIsland = {
   chosenFor?: number;
 };
 
-/** The latest Sunday picked from the community, highlighted at the top of the view. */
-export type ShelfPick = ShelfIsland & { sunday: number };
+/**
+ * The latest Sunday picked from the community, highlighted at the top of the view. The island is
+ * listed only here: its plays count Sunday's players and its own post's together.
+ */
+export type ShelfPick = ShelfIsland & {
+  sunday: number;
+  /** The island's own number (its community post), kept out of the rest of the view. */
+  source: number;
+};
 
 export type CommunityResponse =
   | {
