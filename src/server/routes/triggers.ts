@@ -3,7 +3,7 @@ import { nowMs } from '../core/clock';
 import type { TriggerResponse } from '@devvit/web/shared';
 import { lastDay } from '../core/content';
 import { currentDay } from '../core/game';
-import { ensureDailyPost, refreshResultsComment } from '../core/post';
+import { ensureDailyPost, pinToday, refreshResultsComment } from '../core/post';
 import { islandOfPost, postActivity, setIslandActive } from '../core/community';
 import { pickOptions, pickReddit } from '../core/pick-reddit';
 import { redisStore as store } from '../core/store';
@@ -112,6 +112,8 @@ scheduler.post('/daily-catch-up', async (c) => {
   try {
     const day = currentDay(nowMs(), lastDay());
     const { postId } = await ensureDailyPost(day);
+    // A pin that failed when the post was made is tried again.
+    await pinToday(day);
     if (postId.startsWith('t3_'))
       await refreshResultsComment(`t3_${postId.slice(3)}`, day, true);
   } catch (error) {

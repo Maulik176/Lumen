@@ -58,8 +58,11 @@ at once and it is rankable straight away. It stays tonight's island until 00:00 
    few hours (a 401 means the login expired).
 5. **Upload the final build:** `npm run release` (section 3). It checks everything, asks you to
    type `upload`, uploads once, stops the watcher, and tags the commit `release-v0.0.1.N`.
-6. **Lumen #1 appears** within a minute (if not, mod menu "Post today's Lumen"). Pin "How to
-   play Lumen" and "Feedback, bugs and ideas" (sections 6 and 7). The results comment pins itself.
+6. **Lumen #1 appears** within a minute (if not, mod menu "Post today's Lumen") and the app pins
+   it on top by itself; each day it pins the new post and unpins yesterday's (PHASE3_PLAN.md E8;
+   phone check D1 must pass before launch, else set `PINS.enabled` to false). Pin "How to play
+   Lumen" (section 6) by hand: Reddit gives a subreddit two pins, so the Feedback thread
+   (section 7) is not pinned; How to play links to it. The results comment pins itself.
 7. **Phone check** (section 9), then share the subreddit link.
 
 ## 3. Release routine (every upload, before launch and after; after launch every upload is live)
@@ -86,7 +89,7 @@ players may already have seen.
    your result there with the Share button; don't post today's answer anywhere else before the
    next island arrives.
 3. **One account each.** — Boards and streaks are for people, not alt accounts or scripts.
-4. **Feedback is welcome.** — Bugs, ideas and "this was too hard" go in the pinned feedback
+4. **Feedback is welcome.** — Bugs, ideas and "this was too hard" go in the feedback
    thread.
 5. **No self-promotion or spam.** — Posts and comments unrelated to Lumen will be removed.
 
@@ -132,9 +135,15 @@ Play on consecutive nights to build a streak (you get one day's grace). Streaks 
 "Explore past islands" opens a night map of every earlier island. Play any of them for practice.
 
 The week runs from a gentle Monday to a demanding Saturday. New here on a hard day? The game will offer an easier island to warm up on.
+
+**Build your own island**
+After you lock in, tap "Build an island". The game checks it can be lit and sets its par; publish it and it gets its own post. Every Saturday the best-voted island of the week becomes Sunday's island for everyone, credited to its maker.
+
+**Feedback**
+Bugs, ideas, "this was too hard": [Feedback, bugs and ideas](link to the feedback thread).
 ```
 
-## 7. Feedback thread (text post, then Pin it as the second pin)
+## 7. Feedback thread (text post, not pinned: How to play links to it)
 
 **Title:** Feedback, bugs and ideas
 

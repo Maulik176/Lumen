@@ -17,8 +17,35 @@ import { nowMs } from './clock';
 import { readCommunity } from './community';
 import { skyCount } from './game';
 import { pickOptions, pickReddit } from './pick-reddit';
+import { pinDaily, type PinReddit } from './pins';
 import { KEYS, redisStore as store } from './store';
 import { islandOfDay, isSunday, markPosted, runPick } from './sunday';
+
+/** Pinning through Reddit: today's post into the top slot (or the free one), and unpinning. */
+const pinReddit: PinReddit = {
+  async sticky(postId, top) {
+    const post = await reddit.getPostById(`t3_${postId.replace(/^t3_/, '')}`);
+    await (top ? post.sticky(1) : post.sticky());
+  },
+  async unsticky(postId) {
+    const post = await reddit.getPostById(`t3_${postId.replace(/^t3_/, '')}`);
+    await post.unsticky();
+  },
+};
+
+/**
+ * Pin a day's post if it is not pinned yet (PHASE3_PLAN.md E8). Called when the post is made and
+ * again by the half-hourly task, so a failed pin is tried again. Decoration: never throws.
+ */
+export async function pinToday(day: number): Promise<void> {
+  const outcome = await pinDaily(store, pinReddit, day, undefined, (line) =>
+    console.error(line)
+  ).catch((error: unknown) => {
+    console.error(`Pinning day ${day} failed: ${String(error)}`);
+    return 'failed';
+  });
+  if (outcome === 'pinned') console.log(`Pinned day ${day}'s post`);
+}
 
 /** Seconds a claim on "I am creating today's post" lasts before another caller may try. */
 const CLAIM_SECONDS = 120;
@@ -169,5 +196,6 @@ export async function ensureDailyPost(
     ).catch((error: unknown) =>
       console.error(`Freezing Sunday's pick failed: ${String(error)}`)
     );
+  await pinToday(day);
   return { postId, created: true };
 }

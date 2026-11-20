@@ -153,4 +153,6 @@ export const KEYS = {
   sundayVotes: (day: number) => `cm:votes:${day}`,
   /** Set once a day's post has been pinned, so a failed pin is tried again. */
   pinned: (day: number) => `pin:${day}`,
+  /** The daily post the app pinned last: the only post it ever unpins. */
+  pinnedLast: 'pin:last',
 } as const;
