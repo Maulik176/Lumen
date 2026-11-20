@@ -150,3 +150,27 @@ per second of clip at 1.5x.
 did.", on a night with more than 40 players at par (VIDEO.md, "Bug found while recording").
 `play-phone` was recorded with 42 at par and shows it; `others-phone` uses a crowd with 10% at
 par.
+
+---
+
+## Run 5: Nov 21, 2026, Phase 3 judge pass: the Sunday pick (local, not Reddit)
+
+Folder: `captures/2026-11-21-phase3-judge/` (33 PNGs: 11 screens, each at 430x701, 360x460 and
+1100x700). Made by the Phase 3 session with `npm run sunday-pass` on the stand-in: real server
+code, a made-up week with players `p0`…`p6`, and maker p0's **"Cloud Steps"** (snow, par 3)
+picked for Sunday Nov 29 (Lumen #6). Stills, no motion: in the video they carry beat 8 (and 9)
+with a slow push-in until the real Sunday is recorded on Nov 29 (`docs/VIDEO.md`, P8).
+Re-record: `LUMEN_LOCAL=http://localhost:5299 npm run sunday-pass -- <outDir> 430x701 360x460 1100x700`.
+
+| Files | What it shows | Use it for |
+|---|---|---|
+| `card-*` | Sunday's feed card: kicker "Lumen #6 · Island by u/p0", "Cloud Steps", "Lit · 3 pieces (par 3) · #1 tonight", "See tonight's sky", "6 lanterns lit tonight" | Beat 8: the community's island as everyone's Sunday |
+| `first-result-*` | The first player's result card: Lamplighter, "Island by u/p0, chosen by the community", "0:21 · #1 tonight" | Beat 8, the credit line |
+| `maker-result-*` | The maker's own card: "Your island", "Chosen by the community for Sunday", "Your own island: not ranked", "Your streak goes on · 1 night" | Beat 8 (the maker's moment); write-up: fairness |
+| `maker-others-*`, `same-board-others-*`, `other-board-others-*`, `first-others-*` | See others' islands on Sunday from four seats: "Maker's board" pinned first, the viewer's board folded in ("same as u/p1 and 2 others"), the other boards | Beat 6 or 8; proof of the four-seat rule |
+| `same-board-result-*`, `other-board-result-*` | Result cards from the other two seats | Spares |
+| `map-nights-*` | The night map: "Cloud Steps · #6 · Sun · 6 lit · by u/p0" with the player's medal | Beat 9: the maker's name stays on the map |
+| `map-community-*` | The Community view: the pick card with a gold edge ("Sunday's island · Nov 29 · Cloud Steps by u/p0 · 6 players lit it · 9 votes"), This week, Earlier | Beat 9; gallery: community islands |
+
+Made-up names (`p0`, `u/ben`, `u/ana`) appear in every shot: use them for planning and as a
+fallback only; the real Sunday on Nov 29 replaces them.
