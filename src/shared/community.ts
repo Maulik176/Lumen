@@ -93,3 +93,16 @@ export function boardKey(placements: readonly Placement[]): string {
     .sort()
     .join(';');
 }
+
+/**
+ * A short, stable name for a board (FNV-1a over its key, base 36, with the key's length), for
+ * Redis key names: one set of players per distinct board.
+ */
+export function boardId(key: string): string {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < key.length; i++) {
+    hash ^= key.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return `${hash.toString(36)}${key.length.toString(36)}`;
+}

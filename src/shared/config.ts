@@ -401,7 +401,8 @@ export const COPY = {
   shelfPick: "Sunday's island \u00b7 {date}",
   shelfWeek: 'This week',
   shelfWeekHint: 'The best-voted island becomes Sunday\u2019s',
-  shelfEarlier: 'Earlier',
+  /** Every other island, newest first (the rest of this week's too). */
+  shelfEarlier: 'More islands, newest first',
   shelfMore: 'More islands',
   shelfEmptyWeek: 'No islands this week yet. Build one.',
   shelfDetail: 'by u/{maker} \u00b7 {lit}',
@@ -960,8 +961,20 @@ export const SUNDAY = {
   par: [3, 5],
   /** ...and at least this difficulty score (generated Sundays score 60-82; E3). */
   minDifficulty: 55,
-  /** Islands read, newest first, when gathering candidates and refreshing scores. */
-  scanMax: 200,
+  /**
+   * Islands are read a page at a time back to the week's start, every one of them (Nov 21
+   * audit: a fixed "newest 200" silently left the rest of a busy week out of the running).
+   * `readMax` only guards one request; an island past it is logged, never silently dropped.
+   */
+  pageSize: 200,
+  readMax: 5000,
+  /**
+   * Scores come from the subreddit's newest posts, 100 per call, up to Reddit's listing limit;
+   * a post not found there (a removed one, a very busy week) is read on its own, at most this
+   * many per run.
+   */
+  listingMax: 1000,
+  postReadMax: 50,
   /** Leaders re-checked with today's engine per run, at most (about 2.3 s each on Reddit). */
   recheckMax: 3,
   /** One pick at a time; a run that died is retried by the next task after this. */
@@ -1488,11 +1501,6 @@ export const OTHERS = {
    * this is kept, so the list stays this long once the viewer's own board is taken out.
    */
   top: 10,
-  /**
-   * Identical boards are listed once, with how many players placed them; the list reads this
-   * many rows down the board to find `top` different ones.
-   */
-  scan: 40,
   /** Below this many solves the share at par is not shown; a gentler line is. */
   fewSolves: 5,
   /** How long the camera takes to come down to the island, or go back up, in ms. */
@@ -1507,6 +1515,17 @@ export const OTHERS = {
   previewMirror: 1.5,
   previewPrism: 0.62,
   previewGlow: 1.3,
+} as const;
+
+/**
+ * Board groups (one per distinct board placed on an island), kept at every ranked Lock in
+ * (Nov 21, the busy-night bug). No limit decides who is counted: these only size the work.
+ */
+export const GROUPS = {
+  /** Building the groups of a board played before they were kept: board rows read at a time. */
+  readChunk: 500,
+  /** Dev clean-up: distinct boards cleared per island, at most (far above any real night). */
+  clearMax: 20_000,
 } as const;
 
 /** The app's stickied results comment. */
@@ -1535,9 +1554,12 @@ export const LEADERBOARD = {
   top: 10,
 } as const;
 
-/** "Explore past islands": how many earlier islands the map shows, newest first. */
+/**
+ * "Explore past islands": how many earlier islands the map shows, newest first. All 90 (Nov 21
+ * audit: at 30, the oldest nights fell off the map after a month).
+ */
 export const PAST = {
-  max: 30,
+  max: 90,
 } as const;
 
 /** The Archipelago map. Sizes in CSS pixels. */

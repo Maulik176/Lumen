@@ -2,8 +2,9 @@
 # Every check that must pass before any upload (CLAUDE.md "Quality rules", Nov 20). Used by
 # `npm run release`, which is the only way to upload, before launch and after.
 #
-#   1. npm test        unit tests, including src/server/core/accounted.test.ts: realistic
-#                      crowds, every list and count from every seat
+#   1. npm run test:scale  the launch-scale nights (accounted-scale.test.ts: 10, 150 and 500
+#                      players, every seat) and the busy-week tests of the pick and the map
+#      npm test        every unit test, including the accounted suites
 #   2. types, lint, build
 #   3. the four-seat pass (scripts/seats.mjs) on the local stand-in, which runs the real game
 #      code: the game opened as four players in headless Chrome, lists checked from the screen;
@@ -14,6 +15,12 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
+# The launch-scale nights first (10, 150 and 500 players, every seat), by name: a release
+# never goes out without them, even if the rest of the suite were to change.
+npm run test:scale || {
+  echo "Scale checks failed: a list or count loses someone on a busy night."
+  exit 1
+}
 npm test && npm run test:types && npm run lint && npm run build || {
   echo "Checks failed: tests, types, lint or build."
   exit 1

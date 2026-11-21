@@ -188,8 +188,10 @@ function localApi(): Plugin {
   const redditLog: string[] = [];
   let comments = 0;
   const pickReddit: PickReddit = {
-    async readPost(postId) {
-      return { score: votes.get(postId) ?? 1, live: true };
+    async readPosts(postIds) {
+      return new Map(
+        postIds.map((id) => [id, { score: votes.get(id) ?? 1, live: true }])
+      );
     },
     async comment(postId, text) {
       comments++;
@@ -248,7 +250,12 @@ function localApi(): Plugin {
     if (maker === null) return null;
     // Mirrored left to right: an island of its own, not a copy of a daily one (which the
     // server refuses to publish or pick, as it should).
-    const swap: Record<string, string> = { '/': '\\', '\\': '/', '<': '>', '>': '<' };
+    const swap: Record<string, string> = {
+      '/': '\\',
+      '\\': '/',
+      '<': '>',
+      '>': '<',
+    };
     const draft: IslandDraft = {
       size: from.rows.length,
       biome,
@@ -396,6 +403,7 @@ function localApi(): Plugin {
           tooFast: asked.get('fast') === '1',
           practiceShare: Number(asked.get('practice') ?? '0.1'),
           parShare: Number(asked.get('par') ?? '0.6'),
+          boards: Number(asked.get('boards') ?? '4'),
           prefix: asked.get('prefix') ?? 'p',
           lastDay: days(),
           ...(maker === null ? {} : { maker }),

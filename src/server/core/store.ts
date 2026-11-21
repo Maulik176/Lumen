@@ -91,12 +91,6 @@ export const KEYS = {
   allTime: 'lb:alltime',
   /** Hash: username to the pieces they locked in with (ranked only), for "See others' islands". */
   boards: (day: number) => `boards:${day}`,
-  /**
-   * The top of the night's board, one row per board with its pieces and its first two players,
-   * rebuilt when a Lock in reaches it. "v2" since Nov 20: lists kept before then lack the second
-   * player, so they are never read again (they expire on their own).
-   */
-  othersTop: (day: number) => `others:v2:${day}`,
   stats: (day: number) => `stats:${day}`,
   sky: (day: number) => `sky:${day}`,
   user: (userId: string) => `user:${userId}`,
@@ -143,8 +137,15 @@ export const KEYS = {
     `cm:token:${userId}:${token}`,
   /** Counter: one publish of an island fingerprint at a time. */
   publishLock: (hash: string) => `cm:lock:${hash}`,
-  /** Hash: board key -> how many ranked players placed exactly that board on an island. */
-  groups: (day: number) => `groups:${day}`,
+  /**
+   * Sorted set: every distinct board placed on an island (by boardId), by its best player's
+   * board score. Kept at each ranked Lock in, never by scanning the board (Nov 21).
+   */
+  boardGroups: (day: number) => `bg:${day}`,
+  /** Sorted set: the ranked players who placed one board, by their board score. */
+  boardPlayers: (day: number, board: string) => `bm:${day}:${board}`,
+  /** Set once an island's board groups are complete (built from the board if they were not). */
+  boardGroupsReady: (day: number) => `bgok:${day}`,
   /** Hash: Sunday's pick (PHASE3_PLAN.md): the frozen island, its credit, and its effects. */
   sundayPick: (day: number) => `sun:${day}`,
   /** Counter: one pick for a Sunday at a time. */

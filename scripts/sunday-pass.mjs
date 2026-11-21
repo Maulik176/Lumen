@@ -176,7 +176,7 @@ for (const [width, height] of sizes) {
       expectText(
         `${tag} community`,
         await page.run(`document.querySelector('.map-shelf')?.innerText ?? ''`),
-        ["Sunday's island", 'Cloud Steps', 'by u/p0', 'Earlier']
+        ["Sunday's island", 'Cloud Steps', 'by u/p0', 'More islands, newest first']
       );
       await page.shot(join(out, `map-community-${size}.png`));
     }

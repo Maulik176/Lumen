@@ -576,3 +576,33 @@ describe('behind the switches (PHASE3_PLAN.md item 7)', () => {
     expect(devToolsRefusal('somewhere_else', false)).not.toBeNull();
   });
 });
+
+describe('a busy week (Nov 21 audit: no fixed "newest 200")', () => {
+  it('reads every island in the week, page by page, with one bulk read of scores', async () => {
+    const store = memoryStore();
+    const fake = fakeReddit();
+    const days = [2, 6, 8, 13, 17, 23, 30];
+    const made: { postId: string; index: number }[] = [];
+    for (const [i, day] of days.entries())
+      made.push(
+        await publishFrom(store, day, maker(`m${i}`), MIDWEEK - i * HOUR)
+      );
+    // The oldest island of the week has the most votes: it must still be found.
+    made.forEach((one, i) => fake.scores.set(one.postId, 2 + i));
+    const report = await runPick(
+      store,
+      fake.reddit,
+      SUNDAY_6,
+      pickTime(SUNDAY_6),
+      {
+        ...options,
+        pageSize: 2,
+      }
+    );
+    expect(report.line).toContain(`${days.length} islands considered`);
+    expect((await readPick(store, SUNDAY_6))?.winner?.index).toBe(
+      made.at(-1)?.index
+    );
+    expect(fake.reads()).toBe(1);
+  });
+});

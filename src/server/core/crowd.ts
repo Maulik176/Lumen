@@ -51,6 +51,8 @@ export type CrowdOptions = {
   resets?: number;
   /** Prefix for made-up usernames (default "p"). */
   prefix?: string;
+  /** Different boards on offer: the par answer and spare-mirror versions of it (default 4). */
+  boards?: number;
   /**
    * A Sunday picked from the community: the username (one of the crowd, e.g. "p0") of its maker,
    * whose own Lock in is kept but not ranked.
@@ -122,7 +124,7 @@ export async function seedCrowd(
   options: CrowdOptions
 ): Promise<CrowdNight> {
   const rng = createRng(options.seed);
-  const boards = crowdBoards(island, 4);
+  const boards = crowdBoards(island, options.boards ?? 4);
   const parShare = options.parShare ?? 0.6;
   const practiceShare = options.practiceShare ?? 0.1;
   const prefix = options.prefix ?? 'p';

@@ -18,9 +18,14 @@ import {
   type SkyLantern,
 } from '../../shared/api';
 import { dayAt } from '../../shared/calendar';
-import { boardKey as boardOf, isCommunity } from '../../shared/community';
+import {
+  boardId,
+  boardKey as boardOf,
+  isCommunity,
+} from '../../shared/community';
 import {
   CALENDAR,
+  GROUPS,
   KEEP,
   LEADERBOARD,
   OTHERS,
@@ -520,8 +525,8 @@ export async function lockIn(
           }
     ),
     store.zAdd(KEYS.sky(island.day), JSON.stringify(lantern), nowMs),
-    // How many players placed exactly this board: identical boards are listed once.
-    store.hIncrBy(KEYS.groups(island.day), boardOf(clean), 1),
+    // This board's group: identical boards are listed once, however many placed them.
+    joinGroup(store, island.day, boardOf(clean), player.username, boardScore),
     // The island is finished: there is no unfinished board to come back to.
     store.del(KEYS.progress(island.day, player.userId)),
   ];
@@ -532,14 +537,15 @@ export async function lockIn(
     if (!community)
       writes.push(store.zIncrBy(KEYS.allTime, player.username, 1));
   }
-  writes.push(
-    store.expire(KEYS.boards(island.day), KEEP.submissionSeconds),
-    store.expire(KEYS.groups(island.day), KEEP.submissionSeconds)
-  );
+  writes.push(store.expire(KEYS.boards(island.day), KEEP.submissionSeconds));
   await Promise.all(writes);
-  // A Lock in that reaches the top of the board rebuilds the cached list once, here, so opening
-  // "See others' islands" is a single read.
-  if (result.rank <= OTHERS.top + 1) await rebuildOthers(store, island);
+  // The first player on an empty board: its groups are complete from the start.
+  if (total === 1)
+    await store.set(
+      KEYS.boardGroupsReady(island.day),
+      '1',
+      KEEP.submissionSeconds
+    );
 
   // Keep only the newest lanterns; the count lives in stats.
   const kept = await store.zCard(KEYS.sky(island.day));
@@ -577,11 +583,8 @@ export async function resetPlayer(
   const had = readResult(stored)?.ranked === true;
   // Their board leaves the count of players who placed it.
   const placed = stored === undefined || !had ? null : placementsIn(stored);
-  if (placed !== null) {
-    const key = boardOf(placed);
-    const left = await store.hIncrBy(KEYS.groups(day), key, -1);
-    if (left < 0) await store.hSet(KEYS.groups(day), { [key]: '0' });
-  }
+  if (placed !== null)
+    await leaveGroup(store, day, boardOf(placed), player.username);
   const sky = await store.zRange(KEYS.sky(day), 0, SKY.maxLanterns - 1);
   const mine = sky.filter((entry) => {
     try {
@@ -607,7 +610,6 @@ export async function resetPlayer(
     store.del(KEYS.builderCheck(player.userId)),
     store.del(KEYS.builderTurn(player.userId)),
     store.zRem(KEYS.leaderboard(day), player.username),
-    store.del(KEYS.othersTop(day)),
     ...mine.map((entry) => store.zRem(KEYS.sky(day), entry.member)),
     store.hSet(KEYS.user(player.userId), {
       tutorialDone: '0',
@@ -779,13 +781,6 @@ function readBoardPieces(
   }
 }
 
-/**
- * One kept row of "See others' islands": one board, shown as the first player down the board
- * who placed it, plus the next one (so a viewer who is that first player can still be told who
- * else placed it).
- */
-type KeptRow = OtherIsland & { next?: string };
-
 /** Which board a row stands for. Pieces never stored: a board of the player's own. */
 function keyOfRow(row: {
   username: string;
@@ -796,110 +791,92 @@ function keyOfRow(row: {
     : boardOf(row.placements);
 }
 
-/** A tally of players from the groups hash, read safely: at least 1, the row's own player. */
-function groupCount(value: string | null | undefined): number {
-  return Math.max(1, Number(value ?? 1) || 1);
+/**
+ * Board groups (Nov 21, the busy-night bug). Every distinct board placed on an island is kept as
+ * it happens, at each ranked Lock in: `bg:{day}` lists the boards by their best player's board
+ * score, and `bm:{day}:{board}` lists each board's players by theirs. "See others' islands"
+ * reads the best boards straight from there, however many players share one board. (It used to
+ * scan the top 40 rows of the board, so a night with more than 40 players on the par answer
+ * found no other board at all.)
+ */
+async function joinGroup(
+  store: Store,
+  day: number,
+  key: string,
+  username: string,
+  score: number
+): Promise<void> {
+  const members = KEYS.boardPlayers(day, boardId(key));
+  await store.zAdd(members, username, score);
+  const best = (await store.zRange(members, 0, 0))[0];
+  if (best !== undefined)
+    await store.zAdd(KEYS.boardGroups(day), boardId(key), best.score);
+  await Promise.all([
+    store.expire(members, KEEP.submissionSeconds),
+    store.expire(KEYS.boardGroups(day), KEEP.submissionSeconds),
+  ]);
+}
+
+/** A player leaves their board's group (a dev reset); an empty group is gone. */
+async function leaveGroup(
+  store: Store,
+  day: number,
+  key: string,
+  username: string
+): Promise<void> {
+  const members = KEYS.boardPlayers(day, boardId(key));
+  await store.zRem(members, username);
+  const best = (await store.zRange(members, 0, 0))[0];
+  if (best === undefined) await store.zRem(KEYS.boardGroups(day), boardId(key));
+  else await store.zAdd(KEYS.boardGroups(day), boardId(key), best.score);
 }
 
 /**
- * Work out the top of the night's board, one row per board with each board's pieces, and keep
- * it, so the list opens with one read. One row more than OTHERS.top is kept, so the list is still
- * full once the viewer's own board is taken out. Called after a Lock in that reaches the top, and
- * when the kept list no longer covers the board. A player whose pieces were never stored is
- * still listed, with none.
+ * A board played before groups were kept (or with some missed): build them once from the whole
+ * board. Safe to run again: every write is the same.
  */
-export async function rebuildOthers(
+async function ensureGroups(
   store: Store,
   island: PlayableIsland
-): Promise<KeptRow[]> {
-  const { top } = await readLeaderboard(store, island.day, null, OTHERS.scan);
-  const pieces = await store.hMGet(
-    KEYS.boards(island.day),
-    top.map((row) => row.username)
-  );
-  // Down the board, the first player with each board stands for everyone who placed it.
-  const groups = new Map<string, KeptRow>();
-  for (const [index, row] of top.entries()) {
-    const placements = readBoardPieces(island, pieces[index]);
-    const key = keyOfRow({ username: row.username, placements });
-    const group = groups.get(key);
-    if (group !== undefined) {
-      if (group.next === undefined) group.next = row.username;
-      continue;
-    }
-    if (groups.size < OTHERS.top + 1)
-      groups.set(key, { ...row, placements, same: 1 });
+): Promise<void> {
+  const day = island.day;
+  if ((await store.get(KEYS.boardGroupsReady(day))) !== undefined) return;
+  const total = await store.zCard(KEYS.leaderboard(day));
+  const entries =
+    total > 0 ? await store.zRange(KEYS.leaderboard(day), 0, total - 1) : [];
+  for (let at = 0; at < entries.length; at += GROUPS.readChunk) {
+    const chunk = entries.slice(at, at + GROUPS.readChunk);
+    const pieces = await store.hMGet(
+      KEYS.boards(day),
+      chunk.map((entry) => entry.member)
+    );
+    for (const [index, entry] of chunk.entries())
+      await joinGroup(
+        store,
+        day,
+        keyOfRow({
+          username: entry.member,
+          placements: readBoardPieces(island, pieces[index]),
+        }),
+        entry.member,
+        entry.score
+      );
   }
-  const kept = [...groups.values()];
-  const counts = await store.hMGet(KEYS.groups(island.day), [...groups.keys()]);
-  kept.forEach((row, index) => {
-    row.same = groupCount(counts[index]);
-  });
-  await store.set(
-    KEYS.othersTop(island.day),
-    JSON.stringify(kept),
-    KEEP.submissionSeconds
-  );
-  return kept;
+  await store.set(KEYS.boardGroupsReady(day), '1', KEEP.submissionSeconds);
 }
 
-/** A kept row as the client sees it: without the server's own bookkeeping. */
-function shownRow(row: KeptRow): OtherIsland {
-  return {
-    rank: row.rank,
-    username: row.username,
-    snoovatar: row.snoovatar,
-    pieces: row.pieces,
-    timeMs: row.timeMs,
-    placements: row.placements,
-    same: row.same ?? 1,
-  };
-}
-
-function readOthersTop(
-  island: PlayableIsland,
-  text: string | undefined
-): KeptRow[] | null {
-  if (text === undefined) return null;
-  try {
-    const value: unknown = JSON.parse(text);
-    if (!Array.isArray(value)) return null;
-    const islands: KeptRow[] = [];
-    for (const entry of value) {
-      if (typeof entry !== 'object' || entry === null) return null;
-      const fields: Record<string, unknown> = { ...entry };
-      const { rank, username, snoovatar, pieces, timeMs } = fields;
-      if (
-        (rank !== null && typeof rank !== 'number') ||
-        typeof username !== 'string' ||
-        typeof snoovatar !== 'string' ||
-        typeof pieces !== 'number' ||
-        typeof timeMs !== 'number'
-      )
-        return null;
-      const stored = fields['placements'];
-      const placements =
-        stored === null
-          ? null
-          : readBoardPieces(island, JSON.stringify(stored));
-      if (stored !== null && placements === null) return null;
-      const same = fields['same'];
-      const next = fields['next'];
-      islands.push({
-        rank,
-        username,
-        snoovatar,
-        pieces,
-        timeMs,
-        placements,
-        same: typeof same === 'number' ? same : 1,
-        ...(typeof next === 'string' ? { next } : {}),
-      });
-    }
-    return islands;
-  } catch {
-    return null;
-  }
+/** Every board group of a day goes (dev clean-up). */
+export async function clearGroups(store: Store, day: number): Promise<void> {
+  const groups = await store.zRange(
+    KEYS.boardGroups(day),
+    0,
+    GROUPS.clearMax - 1
+  );
+  await Promise.all([
+    ...groups.map((group) => store.del(KEYS.boardPlayers(day, group.member))),
+    store.del(KEYS.boardGroups(day)),
+    store.del(KEYS.boardGroupsReady(day)),
+  ]);
 }
 
 export type OthersOutcome =
@@ -934,15 +911,15 @@ export async function readOthers(
   // Its maker lit it in their test, so their list is open from the start.
   const isMaker =
     creator !== null && player !== null && creator.username === player.username;
-  const [mine, kept, stats, total] = await Promise.all([
+  const [mine, stats, total] = await Promise.all([
     player === null
       ? undefined
       : store.get(KEYS.submission(island.day, player.userId)),
-    store.get(KEYS.othersTop(island.day)),
     store.hGetAll(KEYS.stats(island.day)),
     store.zCard(KEYS.leaderboard(island.day)),
   ]);
   if (!over && mine === undefined && !isMaker) return { ok: false };
+  await ensureGroups(store, island);
 
   let me: OtherIsland | null = null;
   const result = readResult(mine);
@@ -967,57 +944,60 @@ export async function readOthers(
       };
   }
   // The viewer's board: its whole group is folded into their own row, never listed again.
-  const myKey = me === null ? null : keyOfRow(me);
+  const myId = me === null ? null : boardId(keyOfRow(me));
 
-  // Every count is read now, not kept: a board's count grows without the list changing.
-  const counted = async (
-    rows: KeptRow[]
-  ): Promise<{ rows: KeptRow[]; mine: number }> => {
-    const keys = rows.map(keyOfRow);
-    const counts = await store.hMGet(
-      KEYS.groups(island.day),
-      myKey === null ? keys : [...keys, myKey]
-    );
-    return {
-      rows: rows.map((row, index) => ({
-        ...row,
-        same: groupCount(counts[index]),
-      })),
-      // The viewer's group counts the viewer. A ranked viewer is in the board's counts already;
-      // the maker of a Sunday pick (kept, never ranked, E5) is not, so they are added.
-      mine:
-        myKey === null
-          ? 1
-          : result?.ranked === false
-            ? (Number(counts[keys.length] ?? 0) || 0) + 1
-            : groupCount(counts[keys.length]),
-    };
+  // The best boards, by their best player: one more than shown, so the list stays full once the
+  // viewer's own board is taken out. However many players share a board, it is one entry here.
+  const best = await store.zRange(KEYS.boardGroups(island.day), 0, OTHERS.top);
+  const ids = best
+    .map((group) => group.member)
+    .filter((id) => id !== myId)
+    .slice(0, OTHERS.top);
+  const read = async (id: string) => {
+    const members = KEYS.boardPlayers(island.day, id);
+    const [firsts, count] = await Promise.all([
+      store.zRange(members, 0, 1),
+      store.zCard(members),
+    ]);
+    return { firsts, count };
   };
-  const keptTop = readOthersTop(island, kept);
-  let list = keptTop === null ? null : await counted(keptTop);
-  // The kept rows cover the board when they are full, or when their players add up to everyone
-  // on it. Otherwise a board is missing (a newer Lock in, an older version kept the list, two
-  // Lock ins crossed): work it out again.
-  const covered =
-    list?.rows.reduce((sum, row) => sum + (row.same ?? 1), 0) ?? 0;
-  if (list === null || !(list.rows.length > OTHERS.top || covered >= total))
-    list = await counted(await rebuildOthers(store, island));
+  const [groups, mine2] = await Promise.all([
+    Promise.all(ids.map(read)),
+    myId === null ? Promise.resolve(null) : read(myId),
+  ]);
+  // Each row is its board's first player, with their place, portrait and pieces.
+  const shown = groups.flatMap((group) => {
+    const first = group.firsts[0];
+    return first === undefined ? [] : [{ first, count: group.count }];
+  });
+  const names = shown.map((row) => row.first.member);
+  const [places, avatars, pieces] = await Promise.all([
+    Promise.all(
+      names.map((name) => store.zRank(KEYS.leaderboard(island.day), name))
+    ),
+    avatarsOf(store, names),
+    store.hMGet(KEYS.boards(island.day), names),
+  ]);
+  const top: OtherIsland[] = [];
+  shown.forEach(({ first, count }, at) => {
+    const place = places[at];
+    // Gone from the board since (a dev reset in between): not listed.
+    if (place === undefined) return;
+    top.push({
+      ...boardRow(first.member, first.score, place + 1, avatars[at] ?? ''),
+      placements: readBoardPieces(island, pieces[at]),
+      same: Math.max(1, count),
+    });
+  });
 
-  if (me !== null && myKey !== null) {
-    me.same = list.mine;
-    const group = list.rows.find((row) => keyOfRow(row) === myKey);
-    const other =
-      group === undefined
-        ? undefined
-        : group.username !== me.username
-          ? group.username
-          : group.next;
-    if (list.mine > 1 && other !== undefined) me.sameAs = other;
+  if (me !== null && mine2 !== null && result !== null) {
+    // The viewer's group counts the viewer. A ranked viewer is among its players already; the
+    // maker of a Sunday pick (kept, never ranked, E5) is not, so they are added.
+    const same = result.ranked ? Math.max(1, mine2.count) : mine2.count + 1;
+    me.same = same;
+    const other = mine2.firsts.find((entry) => entry.member !== me?.username);
+    if (same > 1 && other !== undefined) me.sameAs = other.member;
   }
-  const top = list.rows
-    .filter((row) => keyOfRow(row) !== myKey)
-    .slice(0, OTHERS.top)
-    .map(shownRow);
   return {
     ok: true,
     top,

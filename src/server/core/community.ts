@@ -37,7 +37,7 @@ import { trace } from '../../shared/trace';
 import type { Inventory, Placement } from '../../shared/types';
 import { validatePlacements } from '../../shared/validate';
 import { checkIsland, type CheckOutcome } from './check';
-import { resetPlayer, type Player } from './game';
+import { clearGroups, resetPlayer, type Player } from './game';
 import { islandOfDay, type SundayPick } from './sunday-store';
 import { KEYS, type Store } from './store';
 
@@ -867,8 +867,7 @@ export async function cleanUpCommunity(
       store.del(KEYS.sky(number)),
       store.del(KEYS.stats(number)),
       store.del(KEYS.boards(number)),
-      store.del(KEYS.othersTop(number)),
-      store.del(KEYS.groups(number)),
+      clearGroups(store, number),
       record === null
         ? Promise.resolve()
         : store.del(KEYS.stickyOfPost(record.postId)),

@@ -7,6 +7,7 @@ import type { Placement } from '../../shared/types';
 import { islandForDay, lastDay } from './content';
 import {
   claimShare,
+  clearGroups,
   type Effects,
   lockIn,
   type LockInInput,
@@ -494,11 +495,11 @@ describe("see others' islands", () => {
     expect(others.me).toBeNull();
   });
 
-  it('works the list out at Lock in, so opening it writes nothing', async () => {
+  it('keeps the board groups at Lock in, so opening the list writes nothing', async () => {
     const { store, effects, input } = setup();
     await recordStart(store, ana, 1, DAY_ONE);
     await lockIn(store, ana, input(1, DAY_ONE + HOUR), effects);
-    expect(await store.get(KEYS.othersTop(1))).toBeDefined();
+    expect(await store.get(KEYS.boardGroupsReady(1))).toBeDefined();
     const before = store.writes();
     expect((await open(store, ana)).ok).toBe(true);
     expect(store.writes()).toBe(before);
@@ -517,16 +518,14 @@ describe("see others' islands", () => {
     expect(store.writes()).toBe(before);
   });
 
-  it('a Lock in below the top leaves the kept list alone', async () => {
+  it('lists the best different boards, one more than the list shows, whoever is asking', async () => {
     const { store, effects, input } = setup();
-    // One row more than OTHERS.top is kept, so the player in place top + 2 is below it.
     const players = Array.from({ length: OTHERS.top + 2 }, (_, i) => ({
       userId: `t2_p${i}`,
       username: `p${i}`,
     }));
     const boards = variants(1, players.length);
     for (const [i, player] of players.entries()) {
-      if (i === OTHERS.top + 1) await store.del(KEYS.othersTop(1));
       await recordStart(store, player, 1, DAY_ONE);
       await lockIn(
         store,
@@ -535,14 +534,12 @@ describe("see others' islands", () => {
         effects
       );
     }
-    // The last player came twelfth: their Lock in did not rebuild the deleted list.
-    expect(await store.get(KEYS.othersTop(1))).toBeUndefined();
+    // The last player came twelfth: the ten best other boards are listed, theirs is their own.
     const others = await open(store, players[OTHERS.top + 1] ?? null);
     if (!others.ok) throw new Error('should be open');
-    expect(others.top).toHaveLength(OTHERS.top);
-    expect(
-      others.top.some((row) => row.username === `p${OTHERS.top + 1}`)
-    ).toBe(false);
+    expect(others.top.map((row) => row.username)).toEqual(
+      players.slice(0, OTHERS.top).map((p) => p.username)
+    );
     expect(others.me?.rank).toBe(OTHERS.top + 2);
   });
 
@@ -551,10 +548,9 @@ describe("see others' islands", () => {
     const { store, effects, input } = setup();
     await recordStart(store, ben, 1, DAY_ONE);
     await lockIn(store, ben, input(1, DAY_ONE + HOUR), effects);
-    // Those solves came before boards and their counts were stored.
+    // Those solves came before boards and their groups were stored.
     await store.del(KEYS.boards(1));
-    await store.del(KEYS.groups(1));
-    await store.del(KEYS.othersTop(1));
+    await clearGroups(store, 1);
     await recordStart(store, ana, 1, DAY_ONE);
     await lockIn(store, ana, input(1, DAY_ONE + 2 * HOUR), effects);
     const others = await open(store, ana, DAY_ONE + 2 * HOUR);
@@ -569,7 +565,7 @@ describe("see others' islands", () => {
     });
   });
 
-  it('rebuilds a kept list that is shorter than the board', async () => {
+  it('works out the groups once for a board played before they were kept', async () => {
     const { store, effects, input } = setup();
     await recordStart(store, ben, 1, DAY_ONE);
     await lockIn(store, ben, input(1, DAY_ONE + HOUR), effects);
@@ -583,8 +579,8 @@ describe("see others' islands", () => {
       input(1, DAY_ONE + 2 * HOUR, { placements: variants(1, 1)[0] }),
       effects
     );
-    // A list kept empty by an older version, before anyone's pieces were stored.
-    await store.set(KEYS.othersTop(1), '[]');
+    // Played before groups were kept at Lock in (before v0.0.1.96).
+    await clearGroups(store, 1);
     const others = await open(store, carl, DAY_ONE + 2 * HOUR);
     if (!others.ok) throw new Error('should be open');
     // Same board, same time: one row for both.

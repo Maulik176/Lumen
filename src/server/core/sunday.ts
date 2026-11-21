@@ -82,10 +82,15 @@ export function devSunday(nowMs: number): number {
 
 /** What the pick needs from Reddit. The route passes the real calls; tests pass fakes. */
 export type PickReddit = {
-  /** A post's live score, and whether it still stands; null when Reddit cannot say. */
-  readPost: (
-    postId: string
-  ) => Promise<{ score: number; live: boolean } | null>;
+  /**
+   * Many posts' live scores, and whether each still stands, at once (the subreddit's newest
+   * posts, a page of 100 per call, back to `since`). A post Reddit could not say anything about
+   * is missing from the answer.
+   */
+  readPosts: (
+    postIds: readonly string[],
+    since: number
+  ) => Promise<ReadonlyMap<string, { score: number; live: boolean }>>;
   /** Comment on a post as the app; answers the comment's id. */
   comment: (postId: string, text: string) => Promise<string>;
   editComment: (commentId: string, text: string) => Promise<void>;
@@ -105,8 +110,56 @@ export type PickOptions = {
   enabled?: boolean;
   /** SUNDAY.minDifficulty unless given (tests). */
   minDifficulty?: number;
+  /** SUNDAY.pageSize unless given (tests use small pages to cross page edges). */
+  pageSize?: number;
   log?: (line: string) => void;
 };
+
+/** A post id as Reddit gives it: always with "t3_". */
+export function fullPostId(id: string): string {
+  return id.startsWith('t3_') ? id : `t3_${id}`;
+}
+
+/**
+ * Every community island published in a window, newest first, read a page at a time from the
+ * list of all islands (kept by publish time) until the window's start is passed. No island in
+ * the window is left out for being one too many (Nov 21 audit); SUNDAY.readMax only guards the
+ * request, and an island past it is counted, never silently dropped.
+ */
+export async function islandsInWindow(
+  store: Store,
+  window: { from: number; to: number },
+  pageSize: number = SUNDAY.pageSize
+): Promise<{ records: CommunityRecord[]; overflow: number }> {
+  const records: CommunityRecord[] = [];
+  let overflow = 0;
+  for (let at = 0; ; at += pageSize) {
+    const page = await store.zRange(
+      KEYS.communityAll,
+      at,
+      at + pageSize - 1,
+      true
+    );
+    if (page.length === 0) break;
+    let older = false;
+    for (const { member, score } of page) {
+      // Publish time is the list's score: past the window's start, the rest are older still.
+      if (score < window.from) {
+        older = true;
+        break;
+      }
+      if (score >= window.to) continue;
+      if (records.length >= SUNDAY.readMax) {
+        overflow++;
+        continue;
+      }
+      const record = await readCommunity(store, Number(member));
+      if (record !== null) records.push(record);
+    }
+    if (older) break;
+  }
+  return { records, overflow };
+}
 
 /** One island in the running, with what it is ranked by. */
 export type Candidate = {
@@ -186,7 +239,7 @@ function recheck(
  */
 export async function chooseWinner(
   store: Store,
-  reddit: Pick<PickReddit, 'readPost'>,
+  reddit: Pick<PickReddit, 'readPosts'>,
   day: number,
   window: { from: number; to: number },
   options: PickOptions
@@ -199,17 +252,16 @@ export async function chooseWinner(
       considered: 0,
       reasons: 'community off',
     };
-  const members = await store.zRange(
-    KEYS.communityAll,
-    0,
-    SUNDAY.scanMax - 1,
-    true
+  const { records, overflow } = await islandsInWindow(
+    store,
+    window,
+    options.pageSize
   );
+  // More islands than one request reads: said in the log, never silently dropped.
+  if (overflow > 0)
+    reasons.set(`over the read limit ${SUNDAY.readMax}`, overflow);
   const fits: CommunityRecord[] = [];
-  for (const { member } of members) {
-    const record = await readCommunity(store, Number(member));
-    if (record === null) continue;
-    if (record.created < window.from || record.created >= window.to) continue;
+  for (const record of records) {
     if (!record.active) note(reasons, 'taken down');
     else if (record.excluded !== '') note(reasons, 'excluded');
     else if (record.sunday !== 0 && record.sunday !== day)
@@ -220,14 +272,27 @@ export async function chooseWinner(
   }
   const considered =
     fits.length + [...reasons.values()].reduce((a, b) => a + b, 0);
+  // Every score at once: a few calls for the whole week, not one per island.
+  const posts = await reddit
+    .readPosts(
+      fits.map((record) => fullPostId(record.postId)),
+      window.from
+    )
+    .catch(
+      (): ReadonlyMap<string, { score: number; live: boolean }> => new Map()
+    );
   const read = await Promise.all(
     fits.map(async (record) => {
-      const [post, plays, stats] = await Promise.all([
-        reddit.readPost(record.postId).catch(() => null),
+      const [plays, stats] = await Promise.all([
         skyCount(store, communityNumber(record.index)),
         store.hGetAll(KEYS.stats(communityNumber(record.index))),
       ]);
-      return { record, post, plays, stats };
+      return {
+        record,
+        post: posts.get(fullPostId(record.postId)) ?? null,
+        plays,
+        stats,
+      };
     })
   );
   const running: Candidate[] = [];

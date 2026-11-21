@@ -6,7 +6,12 @@ import { toPostData } from '../../shared/api';
 import { TEST_PICTURE } from '../core/test-picture';
 import { islandForDay } from '../core/content';
 import { COPY, DEV, LAUNCH, TRAILER } from '../../shared/config';
-import { currentDay, resetPlayer, sharedCommentOf } from '../core/game';
+import {
+  clearGroups,
+  currentDay,
+  resetPlayer,
+  sharedCommentOf,
+} from '../core/game';
 import { KEYS, redisStore } from '../core/store';
 import { lastDay } from '../core/content';
 import { ensureDailyPost } from '../core/post';
@@ -214,8 +219,7 @@ menu.post('/clean-up', async (c) => {
         redisStore.del(KEYS.sky(day)),
         redisStore.del(KEYS.stats(day)),
         redisStore.del(KEYS.boards(day)),
-        redisStore.del(KEYS.othersTop(day)),
-        redisStore.del(KEYS.groups(day)),
+        clearGroups(redisStore, day),
       ]);
     }
     await redisStore.del(KEYS.allTime);

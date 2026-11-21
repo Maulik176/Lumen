@@ -230,6 +230,28 @@ describe("the Archipelago's Community view (E9)", () => {
     expect(rows).toEqual([communityNumber(other.index)]);
   });
 
+  it('a busy week: the best ten show under This week, and every other island still appears once', async () => {
+    const store = memoryStore();
+    const { reddit, scores } = fakeReddit();
+    const made = await publishMany(
+      store,
+      SUNDAY.weekShown + 4,
+      [],
+      (i) => `b${i}`,
+      (i) => MIDWEEK - i * 60_000
+    );
+    expect(made).toHaveLength(SUNDAY.weekShown + 4);
+    made.forEach((one, i) => scores.set(one.postId, 100 - i));
+    await refreshVotes(store, reddit, MIDWEEK + HOUR);
+    const { first, older } = await everything(store, MIDWEEK + HOUR);
+    expect(first.week).toHaveLength(SUNDAY.weekShown);
+    const listed = [...first.week, ...older].map((row) => row.number);
+    expect([...listed].sort()).toEqual(
+      made.map((one) => communityNumber(one.index)).sort()
+    );
+    expect(new Set(listed).size).toBe(listed.length);
+  });
+
   it('switched off it rests', async () => {
     expect(await communityShelf(memoryStore(), MIDWEEK, 0, false)).toEqual({
       ok: false,

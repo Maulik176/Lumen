@@ -16,7 +16,13 @@ import { readCommunity, type CommunityRecord } from './community';
 import { skyCount } from './game';
 import { KEYS, type Store } from './store';
 import { readPick } from './sunday-store';
-import { pickWindow, runningFor, type PickReddit } from './sunday';
+import {
+  fullPostId,
+  islandsInWindow,
+  pickWindow,
+  runningFor,
+  type PickReddit,
+} from './sunday';
 
 /** Listed at all: its post stands and no moderator kept it out. */
 function listed(record: CommunityRecord): boolean {
@@ -108,34 +114,28 @@ export async function communityShelf(
   const voted = await store.zRange(
     KEYS.sundayVotes(sunday),
     0,
-    SUNDAY.scanMax - 1,
+    SUNDAY.readMax - 1,
     true
   );
   const scores = new Map(
     voted.map((entry) => [Number(entry.member), entry.score])
   );
-  const recent = await store.zRange(
-    KEYS.communityAll,
-    0,
-    SUNDAY.scanMax - 1,
-    true
-  );
+  const { records } = await islandsInWindow(store, window);
   const running: { record: CommunityRecord; score: number | null }[] = [];
-  for (const { member } of recent) {
-    const record = await readCommunity(store, Number(member));
-    if (record === null) continue;
-    if (record.created < window.from) break;
-    if (record.created >= window.to || !shown(record)) continue;
-    running.push({ record, score: scores.get(record.index) ?? null });
-  }
+  for (const record of records)
+    if (shown(record))
+      running.push({ record, score: scores.get(record.index) ?? null });
   running.sort(
     (a, b) =>
       (b.score ?? -Infinity) - (a.score ?? -Infinity) ||
       b.record.created - a.record.created
   );
-  const inWeek = new Set(running.map((entry) => entry.record.index));
+  // The week's best are listed here; the rest of the week flows on below with every other
+  // island, newest first (Nov 21 audit: they used to vanish from the view).
+  const best = running.slice(0, SUNDAY.weekShown);
+  const inWeek = new Set(best.map((entry) => entry.record.index));
   const week: ShelfIsland[] = [];
-  for (const { record, score } of running.slice(0, SUNDAY.weekShown))
+  for (const { record, score } of best)
     week.push(await shelfIsland(store, record, score));
 
   // Older islands, newest first.
@@ -179,11 +179,11 @@ export async function communityShelf(
 
 /**
  * Read the scores of the islands running for the coming Sunday, for the Community view. Called
- * by the half-hourly task; one Reddit read per island, at most SUNDAY.scanMax.
+ * by the half-hourly task; the scores come in bulk (the subreddit's newest posts).
  */
 export async function refreshVotes(
   store: Store,
-  reddit: Pick<PickReddit, 'readPost'>,
+  reddit: Pick<PickReddit, 'readPosts'>,
   nowMs: number,
   enabled: boolean = COMMUNITY.enabled
 ): Promise<number> {
@@ -191,25 +191,23 @@ export async function refreshVotes(
   const sunday = runningFor(nowMs);
   const window = pickWindow(sunday);
   const key = KEYS.sundayVotes(sunday);
-  const members = await store.zRange(
-    KEYS.communityAll,
-    0,
-    SUNDAY.scanMax - 1,
-    true
-  );
+  const { records } = await islandsInWindow(store, window);
+  for (const record of records)
+    if (!listed(record)) await store.zRem(key, String(record.index));
+  const live = records.filter(listed);
+  // Every score at once: a few calls for the whole week.
+  const posts = await reddit
+    .readPosts(
+      live.map((record) => fullPostId(record.postId)),
+      window.from
+    )
+    .catch(
+      (): ReadonlyMap<string, { score: number; live: boolean }> => new Map()
+    );
   let read = 0;
-  for (const { member } of members) {
-    const record = await readCommunity(store, Number(member));
-    if (record === null) continue;
-    // Newest first: once past the window's start, the rest are older still.
-    if (record.created < window.from) break;
-    if (record.created >= window.to) continue;
-    if (!listed(record)) {
-      await store.zRem(key, String(record.index));
-      continue;
-    }
-    const post = await reddit.readPost(record.postId).catch(() => null);
-    if (post === null) continue;
+  for (const record of live) {
+    const post = posts.get(fullPostId(record.postId));
+    if (post === undefined) continue;
     if (!post.live) {
       await store.zRem(key, String(record.index));
       continue;

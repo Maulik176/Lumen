@@ -31,10 +31,16 @@ export function fakeReddit() {
   const flairs: [string, string][] = [];
   const deleted: string[] = [];
   let made = 0;
+  let reads = 0;
   const reddit: PickReddit = {
-    async readPost(postId) {
-      const score = scores.get(postId);
-      return score === undefined ? null : { score, live: !gone.has(postId) };
+    async readPosts(postIds) {
+      reads++;
+      const found = new Map<string, { score: number; live: boolean }>();
+      for (const id of postIds) {
+        const score = scores.get(id);
+        if (score !== undefined) found.set(id, { score, live: !gone.has(id) });
+      }
+      return found;
     },
     async comment(post, text) {
       made++;
@@ -55,7 +61,16 @@ export function fakeReddit() {
     },
     subreddit: 'lumen_game_dev',
   };
-  return { reddit, scores, gone, comments, flairs, deleted };
+  return {
+    reddit,
+    scores,
+    gone,
+    comments,
+    flairs,
+    deleted,
+    /** How many times scores were read: once a run, however many islands. */
+    reads: () => reads,
+  };
 }
 
 let posts = 0;

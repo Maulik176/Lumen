@@ -21,6 +21,7 @@
     "seats": "node scripts/seats.mjs",
     "sunday-pass": "node scripts/sunday-pass.mjs",
     "test": "vitest run",
+    "test:scale": "vitest run src/server/core/accounted-scale.test.ts src/server/core/shelf.test.ts src/server/core/sunday.test.ts",
     "test:types": "tsc --build",
     "test:watch": "vitest"
   },

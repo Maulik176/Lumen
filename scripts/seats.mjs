@@ -134,7 +134,8 @@ async function seat({ label, day, user, total, distinct }) {
 // A daily island: eight players, most with the par answer.
 await api('/api/forget');
 const daily = 1;
-await api(`/api/dev/crowd?day=${daily}&players=8&seed=seats&practice=0`);
+// A launch-size night: 150 players, three in four on the par answer (Nov 21 busy-night bug).
+await api(`/api/dev/crowd?day=${daily}&players=150&seed=seats&practice=0&par=0.75&boards=6`);
 const board = await api(`/api/leaderboard?day=${daily}`);
 const first = board.top[0].username;
 const fromFirst = await api(`/api/others?day=${daily}`, first);
