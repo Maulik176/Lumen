@@ -5,14 +5,47 @@ Vite). It is an entry for Reddit's Game of the Day hackathon; submission closes 
 
 ## Where things stand (update at the end of every milestone)
 
-**Start here: Sat Nov 21, 2026 (Opus). Phase 3 (the Sunday pick) is built and uploaded
-(v0.0.1.96, with the busy-night fix): report and phone checks in `PHASE3_PLAN.md` ("P3 report") and `docs/TESTS-TO-RUN.md`
-1f (D1, the pins, must pass before launch).** The "everyone accounted for" fix is live
-(v0.0.1.92): R1 and R2 passed on Maulik's phone, R3 and R4 run on the Nov 21 daily post (1e).
-Timeline (Maulik, Nov 19): launch Tue Nov 24, first Sunday pick Sat Nov 28 20:00 UTC, P4 polish
-Nov 26–27, atmosphere pass and trailer ending after launch (Nov 24–26). Each phase starts with
-a plan for Maulik's OK, one commit per numbered item, push after the phase; **upload only when
-Maulik says.** Read "Quality rules" below before any change.
+**Start here: Sat Nov 21, 2026 (Opus). v0.0.1.96 is live (Phase 3, the Community duplicate fix,
+the busy-night fix, the scale audit fixes). Today Claude is Maulik's test guide on
+r/lumen_game_dev, NO CODE CHANGES while testing.** Timeline (Maulik, Nov 19): launch Tue Nov 24,
+first Sunday pick Sat Nov 28 20:00 UTC, P4 polish Nov 26–27, atmosphere pass and trailer ending
+after launch (Nov 24–26). Each phase starts with a plan for Maulik's OK, one commit per numbered
+item, push after the phase; **upload only when Maulik says.** Read "Quality rules" below first.
+- **The Nov 21 test session (Maulik's brief):** order D1 (pins, blocks launch), R3, R4, then
+  D2–D10 (D11 is the real Sat Nov 28 run, D12 the real Sun Nov 29 rollover: not today), then two
+  visual checks ("You" label centred on the phone; on the laptop, whether another lantern hides
+  behind his own). One test at a time: what it checks, who (Maulik on iPhone or laptop, brother
+  u/mohak2605 on Android), exact taps, what a pass looks like; wait for his answer; judge his
+  screenshots; record every result in `docs/TESTS-TO-RUN.md` (pass/fail, date, device, notes); a
+  failure is written down, ranked P0/P1/P2 and passed over (no fix until the end, unless it
+  blocks later tests). At the end: summary table, failures ranked with a proposed fix each, the
+  exact steps back to a clean subreddit for launch, then guide him through 2–3 showcase islands
+  kept as **drafts** (launch clean-up would delete published ones) and how his brother test-solves
+  them. **Step 1 (prep) was sent; waiting for his "prep done" and a screenshot of current pins.**
+- **Test days (Feb 2027 in Lumen's calendar, never days 1–13):** 77 Mon "Hush Nook" (par 2, 6x6)
+  and 78 Tue for D1, R3, R4 (D1: set today 77, Post today's Lumen, then set today 78, post again:
+  #78 pinned on top, #77 unpinned, How to play still pinned); 82 Sat → 83 Sun → 84 Mon for D3–D8;
+  89 Sat → 90 Sun for D9; 75 Sat (pick for Sunday 76) for D10. Never post a Sunday before its pick.
+- **R3 needs identical boards on day 77** (it has two par answers): first tap on a tile places a
+  "/" mirror, second tap turns it "\". Answer: mirror at column 2, row 2 (counted from the top
+  left, the tile just right of the upper lantern) tapped once; mirror at column 4, row 3 tapped
+  twice. R4: Maulik locks in slowly, his brother faster on the same board, then Maulik's card and
+  board must both say #2.
+- **Gotchas for the session:** the test Sunday pick must go to **Maulik's** island (clean-up
+  resets only his own player data; "Islandwright" on his brother would leak into launch), so in
+  D3 only his brother upvotes Maulik's island; islands need par 3–5 and difficulty ≥ 55 (build
+  par 4 to be safe); an island already picked is "picked before" for later Sundays, so D9 needs a
+  second qualifying island with 2 votes. Never tap "Reset my Lumen progress (dev)" today (it also
+  deletes Builder drafts). The dev clock moves "today" for every account in the subreddit.
+- **Clean-up after testing (for the final summary):** "Dev: clean up this subreddit" (deletes
+  the app's posts, removes island posts, resets all 90 days, Sunday picks, pins and Maulik's own
+  progress and Islandwright), then "Dev: set today to day N" → 0 (real time), then check
+  `post:day` is empty by opening the subreddit; his brother's flair may show a test medal until
+  his first real Lock in (harmless). LAUNCH.md section 2 has the launch-day steps.
+- **The video session** (`docs/VIDEO.md`, `docs/CAPTURES.md` runs 4–5): its local clips (a sky
+  of 140 lanterns, the Builder, the publish celebration) will likely be in the final video
+  because the real subreddit may never have that many players before Dec 8; Maulik's phone
+  recordings cover the real-Reddit beats.
 - **Phase 3 in one breath:** `server/core/sunday.ts` (pick, freeze in `sun:{day}`, withdrawal,
   effects), `sunday-store.ts` (reading a pick; `islandOfDay` serves it to every route),
   `shelf.ts` (the map's Community view, scores in `cm:votes:{sunday}`), `pins.ts`,
@@ -29,7 +62,7 @@ Maulik says.** Read "Quality rules" below before any change.
   could not see u/VisibleSalamander536, who placed his exact board. Phase 2's grouping of
   identical boards collided with the list's "don't show me twice" filter; daily posts too. Now
   the viewer's board group folds into their own row ("same as u/name and N others"), the list
-  shows only other boards, every count is read fresh, kept lists moved to `others:v2:{day}`.
+  shows only other boards, and every count is read fresh (board groups, see busy nights).
   The new suite also found: a dev reset kept the par hit (fixed), and the card's rank was the
   rank at Lock in (now the board's). List logic lives in `src/shared/others.ts`.
 - **Last uploaded:** v0.0.1.96 (Nov 21), commit fb2d3ff, tag `release-v0.0.1.96`, through
@@ -39,7 +72,7 @@ Maulik says.** Read "Quality rules" below before any change.
 - **Phase 2 (built Nov 20):** publish flow, community island posts, Your islands, the switch, dev
   tools. Plan, report, judge pass: `PHASE2_PLAN.md` (brief: `docs/PHASE2_BRIEF.md`). Community
   islands use numbers from `COMMUNITY.numberBase` (`shared/community.ts`), `lookUpIsland` in every
-  route, `cm:*` keys, `groups:{n}` for identical boards, triggers `onPostDelete`/`onModAction`.
+  route, `cm:*` keys, triggers `onPostDelete`/`onModAction` (identical boards: `bg:`/`bm:`).
   Local: publish in `builder.html`, then `game.html?day=1000001` and `preview.html?day=1000001`
   (`&user=name` as another player; editing `config.ts` restarts the stand-in and forgets local
   islands). Headless renders: `scripts/shoot.mjs` `withPage` (the preview pane is often hidden,
@@ -342,7 +375,8 @@ These five rules exist so that class of bug cannot reach Maulik's phone again.
    fed by made-up rows.
 3. **When data changes meaning, list every reader.** A plan or commit that changes what a
    field, row or key means names every place that reads it (grep), and each gets a test with
-   the new meaning. Stored data from the old meaning is migrated or versioned (`others:v2`).
+   the new meaning. Stored data from the old meaning is migrated or versioned (board groups are
+   built once for boards played before they existed).
 4. **Every bug: root cause, then the class.** Failing test first; then find the same
    assumption elsewhere and add an invariant (not one example); then prove the test fails
    without the fix.
