@@ -20,6 +20,11 @@ Maulik says.** Read "Quality rules" below before any change.
   the stand-in and checks every Sunday screen from four seats; `/api/dev/island`, `/dev/score`,
   `/dev/pick`, `/dev/log` drive it by hand. A video storyboard and shot list is in
   `docs/VIDEO.md` (another session wrote it Nov 21).
+- **Nov 21, busy nights (P0, found by the video session):** "See others' islands" scanned only
+  the top 40 board rows, so more than 40 players on the par answer hid every other board. Now
+  board groups are kept at each Lock in (`bg:{day}`, `bm:{day}:{board}` in `game.ts`), and a
+  scale audit (`docs/SCALE_AUDIT.md`) fixed the pick's newest-200 cut, the Community view's
+  This-week overflow and the map's 30-night limit.
 - **Nov 20 evening, the missing stranger:** on Blossom Island #3 Maulik (first on the board)
   could not see u/VisibleSalamander536, who placed his exact board. Phase 2's grouping of
   identical boards collided with the list's "don't show me twice" filter; daily posts too. Now
@@ -345,8 +350,14 @@ These five rules exist so that class of bug cannot reach Maulik's phone again.
    and a community island's maker who also played it, at 430x701, 360x460 and 1100x700, and
    checks the lists from the screen; screenshots go to `captures/`. Look at them.
 
+6. **Launch scale.** Lists and counts are checked on nights of 10, 150 and 500 players with
+   60-90% on the par answer (`accounted-scale.test.ts`, `npm run test:scale`), and every fixed
+   limit is listed in `docs/SCALE_AUDIT.md` with what it does at 500 and 5,000 players. A new
+   top-N, page or cap gets a row there and, if anyone could vanish, a scale test.
+
 **Before every upload `npm run checks` must pass**: `npm run release` runs it and refuses to
-upload otherwise (tests, types, lint, build, and the four-seat pass at 430x701).
+upload otherwise (the scale tests by name first, then tests, types, lint, build, the four-seat
+pass on a 150-player night and the Sunday pass, at 430x701).
 
 ## Read first
 
