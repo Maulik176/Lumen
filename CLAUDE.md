@@ -5,8 +5,8 @@ Vite). It is an entry for Reddit's Game of the Day hackathon; submission closes 
 
 ## Where things stand (update at the end of every milestone)
 
-**Start here: Sat Nov 21, 2026 (Opus). Phase 3 (the Sunday pick) is built and pushed, not
-uploaded: report and phone checks in `PHASE3_PLAN.md` ("P3 report") and `docs/TESTS-TO-RUN.md`
+**Start here: Sat Nov 21, 2026 (Opus). Phase 3 (the Sunday pick) is built and uploaded
+(v0.0.1.96, with the busy-night fix): report and phone checks in `PHASE3_PLAN.md` ("P3 report") and `docs/TESTS-TO-RUN.md`
 1f (D1, the pins, must pass before launch).** The "everyone accounted for" fix is live
 (v0.0.1.92): R1 and R2 passed on Maulik's phone, R3 and R4 run on the Nov 21 daily post (1e).
 Timeline (Maulik, Nov 19): launch Tue Nov 24, first Sunday pick Sat Nov 28 20:00 UTC, P4 polish
@@ -32,9 +32,10 @@ Maulik says.** Read "Quality rules" below before any change.
   shows only other boards, every count is read fresh, kept lists moved to `others:v2:{day}`.
   The new suite also found: a dev reset kept the par hit (fixed), and the card's rank was the
   rank at Lock in (now the board's). List logic lives in `src/shared/others.ts`.
-- **Last uploaded:** v0.0.1.92 (Nov 20), commit f40fa04, tag `release-v0.0.1.92`, through
-  `npm run release` (checks passed: 448 tests, four seats). Since then on `main`, not uploaded:
-  all of Phase 3 (488 tests); `npm run checks` now also runs the Sunday pass.
+- **Last uploaded:** v0.0.1.96 (Nov 21), commit fb2d3ff, tag `release-v0.0.1.96`, through
+  `npm run release` (scale tests 39, all tests 499, four seats on 150 players, Sunday pass):
+  Phase 3, the Community duplicate fix, the busy-night fix and the scale audit fixes. GitHub
+  `main` matches. Phone checks D1-D12 (`docs/TESTS-TO-RUN.md` 1f) are next; D1 before launch.
 - **Phase 2 (built Nov 20):** publish flow, community island posts, Your islands, the switch, dev
   tools. Plan, report, judge pass: `PHASE2_PLAN.md` (brief: `docs/PHASE2_BRIEF.md`). Community
   islands use numbers from `COMMUNITY.numberBase` (`shared/community.ts`), `lookUpIsland` in every
