@@ -124,6 +124,24 @@ Nov 24**: it decides whether `PINS.enabled` stays on. D11 and D12 are the real f
 | D11 | **Real run:** Sat Nov 28 20:00 UTC (Sun 01:30 IST): the pick happens by itself (`npx devvit logs lumen_game_dev lumen-game`: "Sunday pick for day 6") and the comment appears |
 | D12 | **Real rollover:** Sun Nov 29 00:00 UTC (05:30 IST): Lumen #6 is the pick, pinned, credited |
 
+**Nov 22, an unplanned real run (v0.0.1.96).** The dev clock was still at day 12 (a Saturday)
+from earlier testing, so the real Saturday 20:00 UTC job ran the pick for day 13, a week early.
+Server log: "Sunday pick for day 13: Blossom Island #3 by u/mohak2605 (score 2, par 3; 4 islands
+considered; left out: 1 taken down, 2 below score 2)", then "Pinned day 13's post"; every
+half-hourly run after: "its post exists, the pick stays as it is". On Maulik's laptop: "Lumen #13
+· Blossom Island #3 · Sunday · Island by u/mohak2605" in Community highlights, feed card credit,
+Maulik ranked #1. So D11's and D12's code path ran unattended and passed (cron, rules, log,
+freeze, post, pin, credit). Still to look at: the comment on the island post, the results
+comment's credit, How to play beside the pin (it did not exist yet). The Nov 28/29 checks stay.
+
+**P1 found by it:** "Dev: clean up this subreddit" deletes test picks (`cleanUpSundays`) but does
+not undo their effects on other accounts: u/mohak2605 keeps `islandwright` 1 and the
+"Islandwright" flair into launch (his first real Lock in rewrites his flair with it). Fix after
+the session: clean-up undoes each stored pick (comment, island mark, Islandwright count, flair)
+before deleting it, failing test first; then look for any other effect a test leaves on an
+account that isn't the moderator's. **Do not run clean-up before the fix:** `sun:13` is the only
+record of whom to undo.
+
 Before launch: "Dev: clean up this subreddit" also clears test picks; afterwards open day 6
 with "Dev: set today" and check it is the generated island again ("Two Suns").
 

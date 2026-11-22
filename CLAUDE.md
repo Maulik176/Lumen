@@ -22,6 +22,12 @@ item, push after the phase; **upload only when Maulik says.** Read "Quality rule
   exact steps back to a clean subreddit for launch, then guide him through 2–3 showcase islands
   kept as **drafts** (launch clean-up would delete published ones) and how his brother test-solves
   them. **Step 1 (prep) was sent; waiting for his "prep done" and a screenshot of current pins.**
+- **Nov 22 morning, before prep:** the dev clock was still at day 12, so the real Saturday job
+  picked u/mohak2605's Blossom Island #3 for day 13 and posted and pinned it (record and P1 in
+  `docs/TESTS-TO-RUN.md` 1f). Clean-up does not undo his Islandwright: **no clean-up until that
+  fix lands.** Lesson for every test prep: first check where the dev clock stands and which
+  scheduled job (00:00 UTC post, Sat 20:00 UTC pick, half-hourly catch-up) fires before testing.
+  The catch-up posts today's island by itself within 30 minutes of "Dev: set today".
 - **Test days (Feb 2027 in Lumen's calendar, never days 1–13):** 77 Mon "Hush Nook" (par 2, 6x6)
   and 78 Tue for D1, R3, R4 (D1: set today 77, Post today's Lumen, then set today 78, post again:
   #78 pinned on top, #77 unpinned, How to play still pinned); 82 Sat → 83 Sun → 84 Mon for D3–D8;
