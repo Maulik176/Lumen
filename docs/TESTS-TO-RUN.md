@@ -131,8 +131,19 @@ considered; left out: 1 taken down, 2 below score 2)", then "Pinned day 13's pos
 half-hourly run after: "its post exists, the pick stays as it is". On Maulik's laptop: "Lumen #13
 · Blossom Island #3 · Sunday · Island by u/mohak2605" in Community highlights, feed card credit,
 Maulik ranked #1. So D11's and D12's code path ran unattended and passed (cron, rules, log,
-freeze, post, pin, credit). Still to look at: the comment on the island post, the results
-comment's credit, How to play beside the pin (it did not exist yet). The Nov 28/29 checks stay.
+freeze, post, pin, credit). The Nov 28/29 checks stay.
+
+Checked on the laptop, Nov 22 (Maulik's screenshots):
+- **D7 pass:** #13's stickied results comment: "Tonight's results: 1 player lit Blossom Island #3.
+  Share yours below 👇 / Island by u/mohak2605, chosen by the community: <link to his post>".
+- **D1, first half pass:** #13 carries the pin mark, #12 (Hush Meeting) none: the app unpinned
+  the previous daily by itself. How to play beside it is still untested (no such post yet).
+- Pending: the app's comment on Blossom Island #3's own post; whether u/mohak2605 has a Reddit
+  avatar (the card's credit chip shows the "M" seal, which is right only if he has none).
+- **P2 found:** a past night's post says "#1 tonight" (feed card `COPY.cardRank`, and the result
+  card's `COPY.rankLine`) beside "See that night's sky" and "1 lit it on its night". Fix after
+  the session: a past-night wording ("#1 that night"), and check every "tonight" string a past
+  post can show.
 
 **P1 found by it:** "Dev: clean up this subreddit" deletes test picks (`cleanUpSundays`) but does
 not undo their effects on other accounts: u/mohak2605 keeps `islandwright` 1 and the
