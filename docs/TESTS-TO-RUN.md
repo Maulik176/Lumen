@@ -144,6 +144,19 @@ Checked on the laptop, Nov 22 (Maulik's screenshots):
   card's `COPY.rankLine`) beside "See that night's sky" and "1 lit it on its night". Fix after
   the session: a past-night wording ("#1 that night"), and check every "tonight" string a past
   post can show.
+- Nov 23 05:31 IST: "Pinned day 14's post" (the clock was still 14 days ahead, so the daily job
+  posted day 14; expected, cleared by the final clean-up).
+- **P1 found, Nov 23 13:24 IST:** after Maulik was signed out of Reddit and signed back in,
+  Share to comments failed three times ("Could not post…"). Server log: "Share failed: … failed
+  to mint edge context … refresh token does not exist", then "user account t2_bmohxs5g …
+  refresh token not found in cache". Reddit no longer held the token that lets the app act as
+  him (`runAs: 'USER'`); the Builder's Publish uses the same path, so it would fail too. Not
+  the developer CLI (that was logged out as well, and only matters for uploads and logs). The
+  app never calls the SDK's `canRunAsUser(event)` (`@devvit/client`, experimental), which
+  checks the player's consent and asks again when it is missing. Any player who signs out of
+  Reddit could hit this at launch. First try without code: reopen the app and the post, share
+  again. Proposed fix if that fails: call `canRunAsUser` on the Share and Publish taps, and a
+  clear line when Reddit refuses.
 
 **P1 found by it:** "Dev: clean up this subreddit" deletes test picks (`cleanUpSundays`) but does
 not undo their effects on other accounts: u/mohak2605 keeps `islandwright` 1 and the
