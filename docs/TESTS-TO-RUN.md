@@ -150,13 +150,14 @@ Checked on the laptop, Nov 22 (Maulik's screenshots):
   Share to comments failed three times ("Could not post…"). Server log: "Share failed: … failed
   to mint edge context … refresh token does not exist", then "user account t2_bmohxs5g …
   refresh token not found in cache". Reddit no longer held the token that lets the app act as
-  him (`runAs: 'USER'`); the Builder's Publish uses the same path, so it would fail too. Not
-  the developer CLI (that was logged out as well, and only matters for uploads and logs). The
-  app never calls the SDK's `canRunAsUser(event)` (`@devvit/client`, experimental), which
-  checks the player's consent and asks again when it is missing. Any player who signs out of
-  Reddit could hit this at launch. First try without code: reopen the app and the post, share
-  again. Proposed fix if that fails: call `canRunAsUser` on the Share and Publish taps, and a
-  clear line when Reddit refuses.
+  him (`runAs: 'USER'`). Not the developer CLI (that was logged out as well, and only matters
+  for uploads and logs). The Builder's Publish is safe: it falls back to posting as the app,
+  with the maker credited. **Recovered:** after Maulik closed and reopened the Reddit app on
+  his iPhone, Share posted; the laptop then showed "Shared · View comment". Lowered to **P2**:
+  any player who signs out and back in may see "Could not post. Try again from the Reddit app."
+  once. Proposed fix after the session: on this refusal, call the SDK's `canRunAsUser(event)`
+  (`@devvit/client`, experimental; the app never calls it) and say "Reopen Reddit, then share
+  again."
 
 **P1 found by it:** "Dev: clean up this subreddit" deletes test picks (`cleanUpSundays`) but does
 not undo their effects on other accounts: u/mohak2605 keeps `islandwright` 1 and the
