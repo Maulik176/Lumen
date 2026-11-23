@@ -28,6 +28,13 @@ item, push after the phase; **upload only when Maulik says.** Read "Quality rule
   fix lands.** Lesson for every test prep: first check where the dev clock stands and which
   scheduled job (00:00 UTC post, Sat 20:00 UTC pick, half-hourly catch-up) fires before testing.
   The catch-up posts today's island by itself within 30 minutes of "Dev: set today".
+- **Fix after the test session (Maulik: "after testing"; details in `docs/TESTS-TO-RUN.md` 1f):**
+  (1) P1 clean-up undoes each stored Sunday pick (comment, island mark, Islandwright, flair)
+  before deleting it, and run it before any clean-up; (2) P2 a past night's post says "#1
+  tonight" (`COPY.cardRank`, `COPY.rankLine`); (3) P2 Share after a Reddit sign-out: call
+  `canRunAsUser` on refusal and say to reopen Reddit; (4) GitHub CI fails at random on
+  `shelf.test.ts` "page by page" (1 s locally, 5.3–6.1 s on GitHub's runner, 5 s limit): give
+  it a longer timeout. Test-only, no upload needed.
 - **Test days (Feb 2027 in Lumen's calendar, never days 1–13):** 77 Mon "Hush Nook" (par 2, 6x6)
   and 78 Tue for D1, R3, R4 (D1: set today 77, Post today's Lumen, then set today 78, post again:
   #78 pinned on top, #77 unpinned, How to play still pinned); 82 Sat → 83 Sun → 84 Mon for D3–D8;
