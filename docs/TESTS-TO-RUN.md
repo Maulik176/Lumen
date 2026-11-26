@@ -189,6 +189,18 @@ with "Dev: set today" and check it is the generated island again ("Two Suns").
 | E7 | Atmosphere: petals on a blossom day, snow on a snow day, fireflies on a moss island at dusk (play slowly for 2 minutes), stars breathing at night; with Reduce Motion on, nothing drifts. Now and then a soft breath of wind while playing (sound on) | Maulik |
 | E8 | Trailer (mod menu "Play the Lumen trailer (once)"): after the title, the map of nights fades in, glides down, and the title returns over it | Maulik, laptop |
 
+**Nov 26, v0.0.1.102, Maulik's iPhone:** **E1 pass** (Lumen #3 Dew Ford's card shows its own
+island). **E2 pass, but the picture was soft:** "Maulik's Hollow" posted with its 3D picture;
+cause: with the game running underneath, the off-screen render saw slow frames and lowered its
+own resolution to 1.25x, so the picture came out about 675 px wide and was stretched. Fixed
+after: drawn at a fixed 2x (2160x960) and scaled down to 1080x480, JPEG 0.86 (re-check E2 on
+the next build). **E4 pass:** Reddit's own screen "Give lumen-game limited access … Create
+posts as you / Post comments as you", once per player, on the Share tap; after Allow the reply
+posted as u/Dry_Promotion2506. Deny now says "Not shared. Sharing posts the reply as you, so
+Reddit asks first." **E5 pass** (snoovatar beside Lamplighter). Results comment: "Results: 1
+player lit Dew Ford, 1 hit par." Note: Maulik's Hollow is par 2, so it cannot be a Sunday
+pick (par 3 to 5 only).
+
 ## 2. Fixed in code, never confirmed on a phone
 
 | # | Test | How |

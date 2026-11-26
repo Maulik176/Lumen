@@ -80,7 +80,9 @@ export type Hud = {
   setShare: (
     state: 'idle' | 'busy' | 'done' | 'failed',
     /** Done, with the reply's address: the button opens it. */
-    url?: string | null
+    url?: string | null,
+    /** Failed: the line under the buttons, when it is not the usual one. */
+    why?: string
   ) => void;
   /** The small "You" label on the player's own lantern; null hides it. */
   you: (spot: { x: number; y: number } | null) => void;
@@ -594,7 +596,7 @@ export function createHud(
       root.classList.remove('resulting');
     },
 
-    setShare(state, url) {
+    setShare(state, url, why) {
       if (shareButton === null) return;
       sharedAt = state === 'done' && url != null ? url : null;
       shareButton.disabled =
@@ -616,7 +618,7 @@ export function createHud(
               : COPY.share;
       }
       if (state !== 'failed') return;
-      resultFooter.textContent = COPY.shareFailed;
+      resultFooter.textContent = why ?? COPY.shareFailed;
       window.clearTimeout(footerTimer);
       footerTimer = window.setTimeout(() => {
         resultFooter.textContent = COPY.comeBack;
