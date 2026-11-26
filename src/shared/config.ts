@@ -418,9 +418,13 @@ export const COPY = {
   pastEmpty: 'Earlier islands will gather here.',
   /** Tonight's board, opened from the time and place on the result card. */
   boardTitle: "Tonight's board",
+  /** The same on a post whose night has passed. */
+  boardTitlePast: "That night's board",
   boardTonight: 'Tonight',
+  boardTonightPast: 'That night',
   boardAllTime: 'All time',
   boardEmpty: 'No lanterns yet tonight.',
+  boardEmptyPast: 'No lanterns that night.',
   /** A row's detail. {pieces} and {time}; all time: {medals} nights at par. */
   boardRow: '{pieces} pieces · {time}',
   boardRowOne: '1 piece · {time}',
@@ -451,7 +455,7 @@ export const COPY = {
   /** The same, when no name is at hand (all of them are far down a busy board). */
   othersSameCountOne: 'same as 1 other',
   othersSameCount: 'same as {count} others',
-  othersEmpty: 'No other islands yet tonight.',
+  othersEmpty: 'No other islands yet.',
   /** Others lit it, every one with exactly the player's board. */
   othersAllSame: 'Everyone so far lit it just as you did.',
   /** Looking at one island: back to the list. */
@@ -482,16 +486,20 @@ export const COPY = {
   /** Island Builder, when the server cannot prove an island solvable inside its budget. */
   builderTooComplex: 'Too complex to verify. Try removing a piece.',
   /** Share button failure. Never blocks play. */
-  shareFailed: 'Could not post. Try again from the Reddit app.',
+  shareFailed:
+    'Could not post. Close and reopen the Reddit app, then share again.',
   /** Result card, after a ranked solve: posts the result as the player's own comment. */
   share: 'Share to comments',
-  /** The app's stickied comment on each post, which shared results reply to. */
+  /**
+   * The app's stickied comment on each post, which shared results reply to. No "tonight": the
+   * comment stays on the post long after its night (Nov 26).
+   */
   resultsNone:
-    "Tonight's results for Lumen #{day} \u00b7 {island}. Be the first to light it, then share yours below \ud83d\udc47",
+    'Results for Lumen #{day} \u00b7 {island}. Be the first to light it, then share yours below \ud83d\udc47',
   resultsOne:
-    "Tonight's results: 1 player lit {island}{par}. Share yours below \ud83d\udc47",
+    'Results: 1 player lit {island}{par}. Share yours below \ud83d\udc47',
   resultsMany:
-    "Tonight's results: {solves} players lit {island}{par}. Share yours below \ud83d\udc47",
+    'Results: {solves} players lit {island}{par}. Share yours below \ud83d\udc47',
   /** The middle of that line: how many hit par. Left out when nobody has. */
   resultsPar: ', {hits} hit par',
   sharing: 'Posting\u2026',
@@ -514,15 +522,18 @@ export const COPY = {
 
 /** The camera that looks at the island. Angles in degrees, times in milliseconds. */
 export const CAMERA = {
-  /** Tilt down from the horizon. Higher is flatter and easier to tap; lower is more scenic. */
-  pitchDegrees: 52,
+  /**
+   * Tilt down from the horizon. Higher is flatter and easier to tap; lower is more scenic.
+   * 52 until Nov 26; raised for O-9 (tiles on 8x8 and 9x9 islands were 18-26 px deep on phones).
+   */
+  pitchDegrees: 58,
   /** Lens angle. Small keeps the island close to isometric. */
   fieldOfViewDegrees: 28,
   /** Each tap on Rotate turns the view this far. */
   rotateStepDegrees: 90,
   rotateMs: 400,
-  /** Empty space kept around the island, as a share of the island's size. */
-  margin: 0.08,
+  /** Empty space kept around the island, as a share of the island's size (0.08 until O-9). */
+  margin: 0.06,
   /** How far the camera rises to follow the night, as a share of its distance. */
   nightLift: 0.06,
 } as const;
@@ -599,6 +610,92 @@ export const SOUND = {
   padHz: 110,
   padSeconds: 4,
   padVolume: 0.18,
+  /**
+   * The atmosphere pass: a soft breath of wind while an island is played, about this often
+   * (each gap varies by 30% either way), this long, this loud, its filter rising and falling
+   * between the two pitches.
+   */
+  breezeEveryMs: 26_000,
+  breezeSeconds: 5,
+  breezeVolume: 0.05,
+  breezeLowHz: 260,
+  breezeHighHz: 720,
+} as const;
+
+/**
+ * The atmosphere pass (Nov 26): life in the air over each world, one draw call. `from` is the
+ * dusk value where a world's motes change: fireflies (glow) wake after it, the others thin out.
+ * Sizes are in screen pixels at a typical distance; speeds in island tiles per second.
+ */
+export const AMBIENT = {
+  /** How far past the island's edges the motes may wander, as a share of its half width. */
+  overhang: 1.35,
+  /** The height of the air they move in, in tiles, and the sideways wrap for drifting motes. */
+  height: 4.2,
+  spread: 6,
+  sizeScale: 55,
+  /** Day motes keep this share of their opacity at full night. */
+  nightFloor: 0.25,
+  /** The large stars breathe this much, over this period (the band at 1.37 times it). */
+  starTwinkle: 0.32,
+  starPeriodMs: 3800,
+  kinds: {
+    moss: {
+      count: 26,
+      colour: 0xe9ff9a,
+      size: 3.2,
+      fall: 0,
+      sway: 0.35,
+      drift: 0,
+      glow: true,
+      from: 0.35,
+      opacity: 0.95,
+    },
+    snow: {
+      count: 70,
+      colour: 0xffffff,
+      size: 2.6,
+      fall: 0.32,
+      sway: 0.25,
+      drift: 0.02,
+      glow: false,
+      from: 0.75,
+      opacity: 0.85,
+    },
+    blossom: {
+      count: 34,
+      colour: 0xf6b8cf,
+      size: 3.4,
+      fall: 0.22,
+      sway: 0.45,
+      drift: 0.06,
+      glow: false,
+      from: 0.7,
+      opacity: 0.9,
+    },
+    dune: {
+      count: 40,
+      colour: 0xffe2a8,
+      size: 1.9,
+      fall: 0.02,
+      sway: 0.15,
+      drift: 0.35,
+      glow: false,
+      from: 0.7,
+      opacity: 0.6,
+    },
+    autumn: {
+      count: 24,
+      colour: 0xe58a3a,
+      size: 3.6,
+      fall: 0.26,
+      sway: 0.5,
+      drift: 0.08,
+      glow: false,
+      from: 0.7,
+      opacity: 0.9,
+    },
+  },
 } as const;
 
 /** Weekly look of the island. Same geometry, different palette and props. */
@@ -907,6 +1004,24 @@ export const COMMUNITY = {
   numberBase: 1_000_000,
   /** Islands one player may publish in a UTC day. */
   publishPerDay: 3,
+  /**
+   * Phase 4: the card picture taken at Publish. Size of the 3D snapshot in pixels (the stock
+   * pictures' frame), its JPEG quality, the most the server accepts as a data URL (about 150 KB
+   * of picture), and how long the maker's device may spend taking it before publishing without.
+   */
+  pictureWidth: 1080,
+  pictureHeight: 480,
+  pictureQuality: 0.78,
+  pictureMaxChars: 200_000,
+  pictureWaitMs: 4000,
+  /** How long the off-screen island is left for its first light to settle before the picture. */
+  pictureSettleMs: 2600,
+  /**
+   * Room left above and below the island, as a share of the picture's height, so the island
+   * sits in the middle as in the daily pictures: a phone's card shows only about the middle
+   * 40% of the picture's width.
+   */
+  pictureInset: 0.2,
   /** "Your islands" lists this many, newest first. */
   yoursShown: 60,
   /** "Dev: clean up this subreddit" and the dev reset read at most this many islands. */
@@ -1553,6 +1668,11 @@ export const CARD = {
   /** Today's island outline: canvas size in CSS pixels. */
   outlineWidth: 92,
   outlineHeight: 62,
+  /**
+   * Share asks Reddit first whether the player lets Lumen post as them (an experimental SDK
+   * call). If Reddit has not answered in this long, the share is tried anyway.
+   */
+  consentWaitMs: 6000,
 } as const;
 
 /** Tonight's board and the all-time board. */
@@ -1603,6 +1723,15 @@ export const TRAILER = {
   /** Held on the lit island before night, and on the sky before the title. */
   litHoldMs: 1400,
   skyHoldMs: 4000,
+  /**
+   * The ending (REVIEW P1-7): the title is held this long, the map of every night fades in over
+   * this long, then glides down this share of its length over this long before the title
+   * returns over it.
+   */
+  titleHoldMs: 3500,
+  mapFadeMs: 2400,
+  mapGlideMs: 7000,
+  mapGlideShare: 0.6,
   /** A moderator who arms the trailer has this many seconds to open the game. */
   armedSeconds: 600,
 } as const;

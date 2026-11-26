@@ -24,10 +24,12 @@ import { warmUpDay, type Biome } from '../../shared/calendar';
 import {
   BIOMES,
   BUILDER_VIEW,
+  CARD,
   COMMUNITY,
   COPY,
   DEV,
   SKY,
+  SOUND,
   VIEW,
 } from '../../shared/config';
 import type { Placement } from '../../shared/types';
@@ -315,6 +317,20 @@ function mountIsland(
   let disposed = false;
   /** Last night's lanterns are in the sky (a quiet night), so the rise says which are which. */
   let lastNightShown = false;
+  // The atmosphere pass: now and then a breath of wind over the island while it is played.
+  // Never queued: it is heard only once the player's own taps have woken the sound.
+  let breezeTimer = 0;
+  const nextBreeze = (): void => {
+    breezeTimer = window.setTimeout(
+      () => {
+        if (disposed) return;
+        if (!paused && state.phase !== 'locked') sound.breeze();
+        nextBreeze();
+      },
+      SOUND.breezeEveryMs * (0.7 + 0.6 * Math.random())
+    );
+  };
+  nextBreeze();
 
   const layout = (): void => {
     if (disposed) return;
@@ -454,15 +470,31 @@ function mountIsland(
           hud.hideSheet();
           layout();
         },
-        layout
+        layout,
+        loaded.night === 'past'
       )
     );
     layout();
   };
 
-  const share = async (): Promise<void> => {
+  const share = async (event: MouseEvent): Promise<void> => {
     hud.setShare('busy');
     let answer: ShareResponse = { ok: false, reason: 'failed' };
+    // Reddit's own check that the player lets Lumen post as them (it asks when it does not
+    // know). Nov 23: after a sign-out Reddit had lost that permission and the reply failed.
+    // Experimental in the SDK, so it may never answer: then the share is simply tried.
+    const allowed = await Promise.race([
+      import('@devvit/web/client')
+        .then(({ canRunAsUser }) => canRunAsUser(event))
+        .catch(() => true),
+      new Promise<boolean>((resolve) =>
+        window.setTimeout(() => resolve(true), CARD.consentWaitMs)
+      ),
+    ]);
+    if (!allowed) {
+      hud.setShare('failed', null);
+      return;
+    }
     try {
       const response = await fetch('/api/share', { method: 'POST' });
       answer = await response.json();
@@ -496,6 +528,7 @@ function mountIsland(
   };
 
   const actions: HudActions = {
+    avatar: rider.snoovatar ?? '',
     undo: () => apply(undo(state)),
     reset: () => apply(reset(state)),
     rotate: () => {
@@ -526,7 +559,7 @@ function mountIsland(
   actions.others = () => void showOthers();
   // Sharing is the player's own comment: only signed in, and only on its own tap.
   if (tonight && me.loggedIn) {
-    actions.share = () => void share();
+    actions.share = (event) => void share(event);
     actions.openShared = (url) => {
       void import('@devvit/web/client')
         .then(({ navigateTo }) => navigateTo(url))
@@ -722,6 +755,22 @@ function mountIsland(
       lumenArrive: (name: string) => welcome({ u: name, s: 'plain', a: '' }),
       // Where a tile's centre is on screen, for measuring tap sizes.
       lumenScreen: (x: number, y: number) => view.screenOf(x, y),
+      // The card picture Publish would take of this island (Phase 4), as a data URL.
+      lumenSnapshot: () =>
+        snapshotIsland(
+          {
+            draft: {
+              size: island.rows.length,
+              biome: island.biome,
+              name: island.name,
+              spare: 0,
+              rows: island.rows,
+            },
+            inventory: island.inventory,
+            par: island.par,
+          },
+          shared
+        ),
     });
     perfTimer = window.setInterval(() => {
       const stats = view.stats();
@@ -754,6 +803,7 @@ function mountIsland(
       window.removeEventListener('resize', layout);
       window.clearInterval(handTimer);
       window.clearInterval(perfTimer);
+      window.clearTimeout(breezeTimer);
       cancelAnimationFrame(youFrame);
       view.dispose();
       root.replaceChildren();
@@ -859,6 +909,63 @@ async function testIsland(
   });
 }
 
+/**
+ * Phase 4: the island as its post's card picture. Drawn in 3D off screen, unsolved (no pieces,
+ * lanterns unlit, only the suns' first light), in the afternoon light a player first sees, at
+ * the stock pictures' size, then read as a JPEG data URL small enough for the server to accept.
+ */
+async function snapshotIsland(
+  island: TestIsland,
+  shared: Shared
+): Promise<string | null> {
+  const { draft, inventory } = island;
+  const base = puzzleFromText({
+    rows: draft.rows,
+    inventory,
+    sourceColours: [],
+  });
+  const puzzle = puzzleFromText({
+    rows: draft.rows,
+    inventory,
+    sourceColours: base.sources.map(() => 'white'),
+  });
+  const canvas = document.createElement('canvas');
+  canvas.className = 'snapshot';
+  document.body.append(canvas);
+  const view = createIslandView(canvas, puzzle, {
+    biome: draft.biome,
+    calm: true,
+    rider: shared.rider,
+    teach: false,
+  });
+  try {
+    const ratio = view.stats().pixelRatio || 1;
+    const inset = (COMMUNITY.pictureHeight / ratio) * COMMUNITY.pictureInset;
+    view.resize(
+      COMMUNITY.pictureWidth / ratio,
+      COMMUNITY.pictureHeight / ratio,
+      inset,
+      inset
+    );
+    view.sync(startPlay(puzzle));
+    // Long enough for the suns' first light to reach as far as it goes.
+    await new Promise((resolve) =>
+      window.setTimeout(resolve, COMMUNITY.pictureSettleMs)
+    );
+    for (const quality of [COMMUNITY.pictureQuality, 0.6, 0.45]) {
+      const picture = view.capture('image/jpeg', quality);
+      if (!picture.startsWith('data:image/jpeg')) return null;
+      if (picture.length <= COMMUNITY.pictureMaxChars) return picture;
+    }
+    return null;
+  } catch {
+    return null;
+  } finally {
+    view.dispose();
+    canvas.remove();
+  }
+}
+
 /** The Island Builder on `root`. Its code is loaded only when it is first opened. */
 async function startBuilder(
   root: HTMLElement,
@@ -873,6 +980,7 @@ async function startBuilder(
     click: () => shared.sound.click(),
     chime: (index) => shared.sound.chime(index),
     test: (island) => testIsland(island, shared),
+    snapshot: (island) => snapshotIsland(island, shared),
     open: (url) => {
       void import('@devvit/web/client')
         .then(({ navigateTo }) => navigateTo(url))
@@ -955,6 +1063,17 @@ async function start(): Promise<void> {
       rider,
       sound: shared.sound,
       sky: lanterns,
+      // The ending: the map of every night so far, with nothing to tap.
+      archipelago: async () => {
+        const past = await loadPast(island.day);
+        openArchipelago(
+          past?.islands ?? null,
+          calm,
+          () => undefined,
+          () => undefined
+        );
+        return document.querySelector<HTMLElement>('.layer.map .map-scroll');
+      },
     });
     return;
   }

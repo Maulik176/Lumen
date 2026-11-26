@@ -40,6 +40,7 @@ import type { Puzzle } from '../../shared/types';
 import { createBeams } from './beams';
 import { cameraPosition, easeInOut, fitDistance, tileCentre } from './fit';
 import { createGround, RIM } from './ground';
+import { createAmbient } from './ambient';
 import { createKeeper, rays, softDisc, sparkle } from './kit';
 import { createLanterns } from './lanterns';
 import { createPieceKit } from './pieces';
@@ -121,6 +122,11 @@ export type IslandView = {
   /** Where a tile's centre is on the screen, in CSS pixels. For pointing at it. */
   screenOf: (x: number, y: number) => { x: number; y: number };
   stats: () => ViewStats;
+  /**
+   * The picture as it stands, drawn now and read at once (so the drawing buffer is still
+   * whole), as a data URL. For the card picture taken at Publish (Phase 4).
+   */
+  capture: (type: 'image/jpeg' | 'image/webp', quality: number) => string;
   dispose: () => void;
 };
 
@@ -198,6 +204,15 @@ export function createIslandView(
   island.add(lanterns.group);
   const beams = createBeams(sparkleMap, keeper, beamEdge(look.groundA));
   island.add(beams.group);
+  // The atmosphere pass: a little life in the air over each world.
+  const ambient = createAmbient(
+    island,
+    options.biome,
+    width,
+    height,
+    calm,
+    keeper
+  );
   const skyLantern = createSkyLantern(options.rider, glowMap, keeper);
   island.add(skyLantern.group);
 
@@ -393,6 +408,7 @@ export function createIslandView(
     }
     lanterns.update(time, delta, allLit, nightAt >= 0, teaching);
     beams.update(time, night, calm);
+    ambient.update(time, dusk, pixelRatio);
     skyField.update(time, night, calm, pixelRatio, yawNow, skyView);
 
     for (const piece of pieces.values()) {
@@ -712,6 +728,12 @@ export function createIslandView(
 
     stats() {
       return { fps, calls, triangles, pixelRatio };
+    },
+
+    capture(type, quality) {
+      applyCamera();
+      renderer.render(scene, camera);
+      return canvas.toDataURL(type, quality);
     },
 
     dispose() {

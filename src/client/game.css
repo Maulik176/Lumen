@@ -1356,9 +1356,18 @@ div.others-row {
 }
 
 .bd-island {
+  position: relative;
   flex: none;
   min-height: 36px;
   padding: 0 12px;
+}
+
+/* Its tap area is 44 px tall without making the top bar taller (the settings panel sits just
+   below the bar): an invisible border of touch around the drawn button (Nov 26 judge pass). */
+.bd-island::after {
+  content: '';
+  position: absolute;
+  inset: -4px -2px;
 }
 
 .bd-settings {
@@ -2046,5 +2055,70 @@ div.others-row {
 @media (max-width: 380px) {
   .bd-hint {
     font-size: 13px;
+  }
+}
+
+/* Phase 4: the island drawn off screen for its card picture at Publish. */
+canvas.snapshot {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  pointer-events: none;
+}
+
+/* The trailer's ending (REVIEW P1-7): the map fades in over tonight's sky, with no controls. */
+.layer.map.trailer-end {
+  opacity: 0;
+  transition: opacity 2400ms ease;
+  pointer-events: none;
+}
+
+.layer.map.trailer-end.shown {
+  opacity: 1;
+}
+
+.layer.map.trailer-end .map-bar,
+.layer.map.trailer-end .map-build {
+  display: none;
+}
+
+.trailer-over-map {
+  position: fixed;
+  z-index: 2;
+  /* In a dark band at the foot of the screen, clear of the map's islands and their names. */
+  place-content: end center;
+  padding-bottom: 12vh;
+  background: linear-gradient(
+    180deg,
+    transparent 45%,
+    rgba(12, 10, 36, 0.78) 72%,
+    rgba(12, 10, 36, 0.92) 100%
+  );
+}
+
+/* The player's snoovatar beside their medal (HANDOFF O-7). */
+.result-avatar {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: top;
+  background: rgba(42, 34, 51, 0.08);
+}
+
+/*
+ * Short screens (Reddit's inline view on a small phone, 460 px tall): the rule card's drawing
+ * left the island under 110 px, so it spilled up under the top bar. There the card is its line
+ * and its button only, and the island keeps its room (M4: a card never covers the island).
+ */
+@media (max-height: 560px) {
+  .rule-art {
+    display: none;
+  }
+
+  .rule-line {
+    margin-bottom: 8px;
+    font-size: 14px;
   }
 }

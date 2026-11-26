@@ -65,7 +65,6 @@ function row(
   return line;
 }
 
-
 function allTimeDetail(entry: AllTimeRow): string {
   return (entry.medals === 1 ? COPY.allTimeRowOne : COPY.allTimeRow).replace(
     '{medals}',
@@ -94,7 +93,9 @@ export function boardSheet(
   day: number,
   username: string | null,
   onClose: () => void,
-  onChange: () => void
+  onChange: () => void,
+  /** The post's night has passed: "That night's board", never "Tonight's". */
+  past = false
 ): HTMLElement {
   const community = isCommunity(day);
   const holder = element('div', 'sheet-body');
@@ -171,7 +172,9 @@ export function boardSheet(
                 ? COPY.loadFailed
                 : community
                   ? COPY.communityBoardEmpty
-                  : COPY.boardEmpty
+                  : past
+                    ? COPY.boardEmptyPast
+                    : COPY.boardEmpty
             ),
           ])
     );
@@ -182,7 +185,7 @@ export function boardSheet(
   for (const [scope, label] of community
     ? []
     : ([
-        ['day', COPY.boardTonight],
+        ['day', past ? COPY.boardTonightPast : COPY.boardTonight],
         ['alltime', COPY.boardAllTime],
       ] as const)) {
     const tab = element('button', 'board-tab', label);
@@ -197,7 +200,11 @@ export function boardSheet(
     element(
       'h2',
       'sheet-title',
-      community ? COPY.communityBoardTitle : COPY.boardTitle
+      community
+        ? COPY.communityBoardTitle
+        : past
+          ? COPY.boardTitlePast
+          : COPY.boardTitle
     ),
     tabs,
     list,

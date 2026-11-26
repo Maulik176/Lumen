@@ -31,6 +31,11 @@ export async function runTrailer(
     sound: Sound;
     /** Tonight's real lanterns; in the trailer they carry no names. */
     sky: readonly SkyLantern[];
+    /**
+     * The ending (REVIEW P1-7): the map of every night so far, opened on top. Answers how to
+     * scroll it; absent, the take ends on the title.
+     */
+    archipelago?: () => Promise<HTMLElement | null>;
   }
 ): Promise<void> {
   const puzzle = puzzleFromText(island);
@@ -90,4 +95,48 @@ export async function runTrailer(
   // Reading a layout property lets the fade begin from clear.
   void title.offsetWidth;
   title.classList.add('shown');
+  if (options.archipelago === undefined) return;
+
+  // The ending: the camera "pulls back" from tonight's sky to the map of every night, which
+  // drifts slowly down through the islands before the title line comes back over it.
+  await wait(TRAILER.titleHoldMs);
+  const scroller = await options.archipelago();
+  if (scroller === null) return;
+  const map = scroller.closest('.layer');
+  map?.classList.add('trailer-end');
+  void map?.clientHeight;
+  map?.classList.add('shown');
+  title.classList.remove('shown');
+  await wait(TRAILER.mapFadeMs);
+  title.remove();
+  if (!options.calm) await glide(scroller, TRAILER.mapGlideMs);
+  else await wait(TRAILER.mapGlideMs / 2);
+  const last = element('div', 'trailer-title trailer-over-map');
+  last.append(
+    element('h1', 'trailer-name', COPY.trailerTitle),
+    element('p', 'trailer-line', COPY.trailerLine)
+  );
+  map?.append(last);
+  void last.offsetWidth;
+  last.classList.add('shown');
+}
+
+/** Scroll the map down a share of its length, easing in and out, over `ms`. */
+function glide(scroller: HTMLElement, ms: number): Promise<void> {
+  const from = scroller.scrollTop;
+  const to = Math.max(
+    from,
+    (scroller.scrollHeight - scroller.clientHeight) * TRAILER.mapGlideShare
+  );
+  const began = performance.now();
+  return new Promise((resolve) => {
+    const step = (time: number): void => {
+      const t = Math.min(1, (time - began) / ms);
+      const eased = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
+      scroller.scrollTop = from + (to - from) * eased;
+      if (t < 1) requestAnimationFrame(step);
+      else resolve();
+    };
+    requestAnimationFrame(step);
+  });
 }

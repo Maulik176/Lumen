@@ -60,10 +60,10 @@ describe('resultsText', () => {
       'Lumen #12 \u00b7 Moss Steps. Be the first'
     );
     expect(resultsText(12, 'Moss Steps', 1, 0)).toBe(
-      "Tonight's results: 1 player lit Moss Steps. Share yours below \u{1F447}"
+      "Results: 1 player lit Moss Steps. Share yours below \u{1F447}"
     );
     expect(resultsText(12, 'Moss Steps', 1284, 231)).toBe(
-      "Tonight's results: 1,284 players lit Moss Steps, 231 hit par. Share yours below \u{1F447}"
+      "Results: 1,284 players lit Moss Steps, 231 hit par. Share yours below \u{1F447}"
     );
   });
 });

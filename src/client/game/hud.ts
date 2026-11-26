@@ -5,7 +5,11 @@
  * The island is always framed in the space these leave free: `insets()` reports how much room
  * the interface is taking at the top and the bottom right now.
  */
-import type { LockInResult, PublicIsland } from '../../shared/api';
+import {
+  cleanSnoovatar,
+  type LockInResult,
+  type PublicIsland,
+} from '../../shared/api';
 import type { ArrivalPath } from '../../shared/arrival';
 import { COPY, OTHERS, SKY, UI, VIEW } from '../../shared/config';
 import type { SkyNote } from '../../shared/skynote';
@@ -42,12 +46,15 @@ export type HudActions = {
   others?: () => void;
   /** Result card on a post that is not tonight's: go to tonight's island. */
   tonight?: () => void;
+  /** The signed-in player's snoovatar, shown beside the medal on the result card (O-7). */
+  avatar?: string;
   /** The post's night has passed: its rank is "that night", not "tonight". */
   passed?: boolean;
   /** Result card on a community island: tonight's daily post. */
   lumen?: () => void;
   /** Result card, ranked and signed in: post the result as the player's own comment. */
-  share?: () => void;
+  /** The tap itself is passed on: Reddit asks for it before posting as the player. */
+  share?: (event: MouseEvent) => void;
   /** Open the player's shared reply. */
   openShared?: (url: string) => void;
 };
@@ -339,7 +346,7 @@ export function createHud(
   const button = (
     text: string,
     kind: 'main' | 'quiet',
-    onTap: (() => void) | undefined
+    onTap: ((event: MouseEvent) => void) | undefined
   ): HTMLButtonElement | null => {
     if (onTap === undefined) return null;
     const node = element('button', `button button-${kind}`, text);
@@ -359,9 +366,9 @@ export function createHud(
     'quiet',
     share === undefined
       ? undefined
-      : () => {
+      : (event) => {
           if (sharedAt !== null) actions.openShared?.(sharedAt);
-          else share();
+          else share(event);
         }
   );
   let footerTimer = 0;
@@ -505,6 +512,15 @@ export function createHud(
           medalEmblem(outcome.medal),
           document.createTextNode(MEDAL_NAME[outcome.medal])
         );
+        // The player's own snoovatar beside their medal, when they have one (HANDOFF O-7).
+        const face = cleanSnoovatar(actions.avatar);
+        if (face !== '') {
+          const image = element('img', 'result-avatar');
+          image.crossOrigin = 'anonymous';
+          image.alt = '';
+          image.src = face;
+          resultMedal.append(image);
+        }
         resultMedal.dataset['medal'] = outcome.medal;
       }
       resultLine.textContent =
@@ -629,8 +645,18 @@ export function createHud(
           bottom: VIEW.wideGapPx * 2,
           right: VIEW.widePanelPx + VIEW.wideGapPx * 2,
         };
+      // A card while the island is played (a rule card) leaves the top bar and the hint line
+      // in place, so the island keeps clear of them (Nov 26: on a 460 px screen it slid under
+      // them). Over a result, the top bar has gone.
       if (sheetShown)
-        return { top: gap, bottom: sheet.offsetHeight + gap * 2, right: 0 };
+        return {
+          top:
+            resultShown || hushed
+              ? gap
+              : top.offsetHeight + gap * 2 + VIEW.hintRoomPx,
+          bottom: sheet.offsetHeight + gap * 2,
+          right: 0,
+        };
       if (resultShown)
         return { top: gap, bottom: result.offsetHeight + gap * 2, right: 0 };
       if (hushed) return { top: gap, bottom: gap, right: 0 };
