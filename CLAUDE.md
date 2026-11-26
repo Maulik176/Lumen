@@ -27,6 +27,10 @@ breathing, `sound.breeze`), the trailer ending on the map. O-6 Subscribe not bui
 build would subscribe the app, not the player). Phone checks E1-E8 in `docs/TESTS-TO-RUN.md`
 1g. **Editing `src/shared` or `src/server` restarts the stand-in: never during `day-cards` or
 `hero` renders.** Re-run `npm run day-cards` and `npm run hero` after any change to the look.
+Feedback request posted Nov 26 on r/Devvit (Reddit's developer feedback tool, game link Lumen
+#3): https://www.reddit.com/r/Devvit/comments/1y5u3qb/feedback_wanted_for_lumen_a_daily_light_puzzle/
+Claude cannot open reddit.com: Maulik pastes the replies; triage each into a fix (P0/P1/P2) or
+a note, and record them in `docs/TESTS-TO-RUN.md`. Its image is `captures/2026-11-26-feedback/`.
 Sunday pick keeps `SUNDAY.minScore` 2 (Maulik, Nov 26, asked again: a lone island with only its
 maker's vote does not win; Sunday is then the generated island). Don't propose lowering it again.
 Older notes below (the Nov 21 test session) are history.
