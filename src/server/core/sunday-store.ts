@@ -3,7 +3,11 @@
  * number with it. Kept apart from sunday.ts so the island lookup in community.ts can use it
  * without the two modules importing each other.
  */
-import type { CommunityCredit, OtherIsland } from '../../shared/api';
+import {
+  cleanPicture,
+  type CommunityCredit,
+  type OtherIsland,
+} from '../../shared/api';
 import { readDraft } from '../../shared/builder';
 import { dateOfDay, weekdayOfDay } from '../../shared/calendar';
 import { COMMUNITY } from '../../shared/config';
@@ -75,7 +79,7 @@ function readWinner(fields: Record<string, string>): SundayPick['winner'] {
     !Array.isArray(placements)
   )
     return null;
-  const { maker, makerAvatar, makerId, label } = credit;
+  const { maker, makerAvatar, makerId, label, picture } = credit;
   if (
     typeof maker !== 'string' ||
     typeof makerId !== 'string' ||
@@ -131,6 +135,9 @@ function readWinner(fields: Record<string, string>): SundayPick['winner'] {
       makerId,
       makerAvatar: typeof makerAvatar === 'string' ? makerAvatar : '',
       label,
+      ...(cleanPicture(picture) === ''
+        ? {}
+        : { picture: cleanPicture(picture) }),
     },
     creator: {
       rank: null,

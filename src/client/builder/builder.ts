@@ -68,6 +68,11 @@ export type TestResult =
 export type BuilderHost = {
   /** Open the island in the real game for the maker to light. */
   test: (island: TestIsland) => Promise<TestResult>;
+  /**
+   * The island in 3D, unsolved, as its post's card picture (a data URL), or null when the device
+   * cannot draw it. Phase 4; absent where there is no 3D view.
+   */
+  snapshot?: (island: TestIsland) => Promise<string | null>;
   /** Leave the Builder. Absent on its own page, where there is nowhere else to go. */
   close?: () => void;
   click: () => void;
@@ -209,6 +214,8 @@ export async function openBuilder(
   let published = false;
   /** Kept for one version of the island, so a retry after a lost answer finds the first post. */
   let publishToken: { key: string; token: string } | null = null;
+  /** The card picture being drawn for this board (Phase 4). */
+  let snapshot: { key: string; picture: Promise<string | null> } | null = null;
 
   // --- The screen ---------------------------------------------------------------------------
   const screen = element('div', 'bd');
@@ -676,6 +683,22 @@ export async function openBuilder(
   function showConfirm(open: boolean): void {
     confirm.hidden = !open;
     if (!open || checked === null) return;
+    // The card's picture is drawn while the maker reads the panel, so Publish rarely waits.
+    const key = checkKey(history.draft);
+    if (snapshot === null || snapshot.key !== key) {
+      const island = {
+        draft: history.draft,
+        inventory: checked.inventory,
+        par: checked.par,
+      };
+      snapshot = {
+        key,
+        picture:
+          host.snapshot === undefined
+            ? Promise.resolve(null)
+            : host.snapshot(island).catch(() => null),
+      };
+    }
     showSettings(false);
     const draft = history.draft;
     const look = BIOME_LOOK[draft.biome];
@@ -718,11 +741,27 @@ export async function openBuilder(
     publishing = true;
     status = '';
     render();
-    const answer = await post<BuilderPublishResponse>('/api/builder/publish', {
-      draft,
-      token: publishToken.token,
-      snoovatar: host.avatar,
-    });
+    // The picture if it is ready in time; the island goes out without one otherwise.
+    const picture =
+      snapshot !== null && snapshot.key === key
+        ? await Promise.race([
+            snapshot.picture,
+            wait(COMMUNITY.pictureWaitMs).then(() => null),
+          ])
+        : null;
+    const send = (
+      withPicture: boolean
+    ): Promise<BuilderPublishResponse | null> =>
+      post<BuilderPublishResponse>('/api/builder/publish', {
+        draft,
+        token: publishToken?.token,
+        snoovatar: host.avatar,
+        ...(withPicture && picture !== null ? { picture } : {}),
+      });
+    // The picture makes the request larger; if Reddit refuses the request itself, the island is
+    // published without it (the same token, so a post that did go out is never made twice).
+    let answer = await send(true);
+    if (answer === null && picture !== null) answer = await send(false);
     publishing = false;
     showConfirm(false);
     if (answer === null || !answer.ok) {

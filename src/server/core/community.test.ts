@@ -15,6 +15,7 @@ import {
   loadDraft,
   lookUpIsland,
   postActivity,
+  creditOf,
   publishIsland,
   readCommunity,
   setIslandActive,
@@ -494,6 +495,70 @@ describe('publishing an island', () => {
     expect(flaky.posts).toHaveLength(1);
     expect(flaky.posts[0]?.asUser).toBe(false);
     expect(await readCommunity(store, 1)).toMatchObject({ postedAs: 'app' });
+  });
+
+  describe('the card picture taken at Publish (Phase 4)', () => {
+    const SNAPSHOT = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD=';
+    const HOSTED = 'https://i.redd.it/abc123.jpeg';
+    const withPicture = (
+      store: ReturnType<typeof memoryStore>,
+      fake: Poster,
+      picture: unknown,
+      upload: (dataUrl: string) => Promise<string>
+    ) =>
+      publishIsland(
+        store,
+        ana,
+        {
+          draft: twoMirrors(),
+          token: 'token0001',
+          avatar: '',
+          nowMs: Date.UTC(2026, 10, 25, 12),
+          picture,
+        },
+        { poster: fake, daily: never, clock, upload }
+      );
+
+    it('is uploaded before the post, so the post, the record and the Sunday credit carry it', async () => {
+      const store = memoryStore();
+      await ready(store, twoMirrors());
+      const { fake, posts } = poster();
+      const sent: string[] = [];
+      const answer = await withPicture(store, fake, SNAPSHOT, async (url) => {
+        sent.push(url);
+        return HOSTED;
+      });
+      expect(answer).toMatchObject({ ok: true });
+      expect(sent).toEqual([SNAPSHOT]);
+      expect(posts[0]?.postData.picture).toBe(HOSTED);
+      const record = await readCommunity(store, 1);
+      expect(record?.picture).toBe(HOSTED);
+      expect(record === null ? null : creditOf(record).picture).toBe(HOSTED);
+    });
+
+    it('a failed upload, a picture from elsewhere, or no picture: published all the same, without one', async () => {
+      for (const [picture, upload] of [
+        [
+          SNAPSHOT,
+          async () => {
+            throw new Error('media down');
+          },
+        ],
+        [SNAPSHOT, async () => 'https://example.com/x.jpeg'],
+        ['data:text/html;base64,PHNjcmlwdD4=', async () => HOSTED],
+        ['x'.repeat(COMMUNITY.pictureMaxChars + 1), async () => HOSTED],
+        [undefined, async () => HOSTED],
+      ] as const) {
+        const store = memoryStore();
+        await ready(store, twoMirrors());
+        const { fake, posts } = poster();
+        expect(await withPicture(store, fake, picture, upload)).toMatchObject({
+          ok: true,
+        });
+        expect(posts[0]?.postData.picture).toBeUndefined();
+        expect((await readCommunity(store, 1))?.picture).toBe('');
+      }
+    });
   });
 });
 

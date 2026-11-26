@@ -681,8 +681,31 @@ function localApi(): Plugin {
             token: fields['token'],
             avatar: '',
             nowMs: Date.now(),
+            picture: fields['picture'],
           },
-          { poster: localPoster, daily: dailyHashes(), clock: () => 0 }
+          {
+            poster: localPoster,
+            daily: dailyHashes(),
+            clock: () => 0,
+            // Locally there is no Reddit image host: the picture the device took is saved to
+            // captures/local-pictures/ to be looked at, and the island goes out without one.
+            upload: async (dataUrl) => {
+              const { mkdirSync, writeFileSync } = await import('node:fs');
+              mkdirSync('captures/local-pictures', { recursive: true });
+              const file = `captures/local-pictures/${Date.now()}.jpeg`;
+              writeFileSync(
+                file,
+                Buffer.from(
+                  dataUrl.replace(/^data:image\/\w+;base64,/, ''),
+                  'base64'
+                )
+              );
+              console.log(
+                `Local publish picture: ${file} (${dataUrl.length} chars)`
+              );
+              return '';
+            },
+          }
         );
         // A real publish takes a moment (check, post, comment): so does this one.
         await new Promise((done) => setTimeout(done, 700));

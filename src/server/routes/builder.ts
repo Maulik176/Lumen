@@ -3,7 +3,7 @@
  * stays on the device); checking, testing and keeping a draft on the server need an account.
  */
 import { Hono } from 'hono';
-import { context, reddit } from '@devvit/web/server';
+import { context, media, reddit } from '@devvit/web/server';
 import {
   cleanSnoovatar,
   type BuilderCheckResponse,
@@ -186,8 +186,11 @@ builder.post('/publish', async (c) => {
       token: fields['token'],
       avatar: cleanSnoovatar(fields['snoovatar']),
       nowMs: nowMs(),
+      picture: fields['picture'],
     },
     {
+      upload: async (dataUrl) =>
+        (await media.upload({ url: dataUrl, type: 'image' })).mediaUrl,
       poster: {
         async post({ title, text, postData, asUser }) {
           // As the player when Reddit allows it (a playtest build posts it from the app for

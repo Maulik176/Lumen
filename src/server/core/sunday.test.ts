@@ -90,6 +90,7 @@ describe('who wins', () => {
       creator: { placements: [], pieces: 4, ms: 1 },
       excluded: '',
       sunday: 0,
+      picture: '',
     },
   });
 

@@ -13,6 +13,7 @@ import {
   type IslandDraft,
 } from '../../shared/builder';
 import {
+  cleanPicture,
   toCommunityPostData,
   type BuilderPublishResponse,
   type BuilderStatus,
@@ -296,6 +297,8 @@ export type CommunityRecord = {
   excluded: string;
   /** The Sunday (day number) it was picked for, or 0. */
   sunday: number;
+  /** Its card picture on Reddit's image host, taken at Publish (Phase 4), or ''. */
+  picture: string;
 };
 
 /** What publishing needs from Reddit; the route passes the real calls, tests pass fakes. */
@@ -402,6 +405,7 @@ function readRecord(
     creator,
     excluded: fields['excluded'] ?? '',
     sunday: Number(fields['sunday'] ?? 0) || 0,
+    picture: cleanPicture(fields['picture']),
   };
 }
 
@@ -426,6 +430,7 @@ function writeRecord(record: CommunityRecord): Record<string, string> {
     creator: JSON.stringify(record.creator),
     excluded: record.excluded,
     sunday: String(record.sunday),
+    picture: record.picture,
   };
 }
 
@@ -468,6 +473,7 @@ export function creditOf(record: CommunityRecord): CommunityCredit {
     maker: record.maker,
     makerAvatar: record.makerAvatar,
     label: record.label,
+    ...(record.picture === '' ? {} : { picture: record.picture }),
   };
 }
 
@@ -562,12 +568,33 @@ function publishDate(nowMs: number): string {
  * filtered. A retry with the same token returns the first answer, so a double tap or a retry
  * after a timeout never makes two posts.
  */
+/** A picture sent with a publish: a JPEG or WebP data URL under COMMUNITY.pictureMaxChars. */
+export function pictureData(value: unknown): string | null {
+  if (typeof value !== 'string' || value.length > COMMUNITY.pictureMaxChars)
+    return null;
+  return /^data:image\/(jpeg|webp);base64,[A-Za-z0-9+/]+=*$/.test(value)
+    ? value
+    : null;
+}
+
 export async function publishIsland(
   store: Store,
   player: Player,
-  input: { draft: unknown; token: unknown; avatar: string; nowMs: number },
+  input: {
+    draft: unknown;
+    token: unknown;
+    avatar: string;
+    nowMs: number;
+    /** The island's 3D picture from the maker's device, as a data URL (Phase 4). Optional. */
+    picture?: unknown;
+  },
   deps: {
     poster: Poster;
+    /**
+     * Uploads a picture (data URL) to Reddit's image host and answers its address. Absent, or
+     * failing, the island is published without a picture and its card shows its world's.
+     */
+    upload?: (dataUrl: string) => Promise<string>;
     daily: ReadonlySet<string>;
     clock: () => number;
     nodeLimit?: number;
@@ -637,6 +664,19 @@ export async function publishIsland(
     return refuse('busy');
   }
 
+  // The card's picture, uploaded before the post so the post's own data carries it. Decoration:
+  // anything wrong with it and the island goes out without one.
+  const snapshot = pictureData(input.picture);
+  const picture =
+    snapshot === null || deps.upload === undefined
+      ? ''
+      : cleanPicture(
+          await deps.upload(snapshot).catch((error: unknown) => {
+            console.error(`Publish picture failed: ${String(error)}`);
+            return '';
+          })
+        );
+
   const index = await store.count(KEYS.communityNext);
   const record: CommunityRecord = {
     index,
@@ -659,6 +699,7 @@ export async function publishIsland(
     creator: checked.test,
     excluded: '',
     sunday: 0,
+    picture,
   };
   const island = toPlayable(record);
   const post = {

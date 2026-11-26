@@ -16,6 +16,8 @@ export type CommunityCredit = {
   /** The maker's snoovatar on Reddit's image host, or ''. */
   makerAvatar: string;
   label: DifficultyLabel;
+  /** The island's picture, taken at Publish and uploaded to Reddit's image host (Phase 4). */
+  picture?: string;
 };
 
 /** What a player's device is told about an island. Never includes the solution. */
@@ -410,6 +412,7 @@ export function toCommunityPostData(
     label: credit.label,
     maker: credit.maker,
     makerAvatar: credit.makerAvatar,
+    ...(credit.picture ? { picture: credit.picture } : {}),
   };
 }
 
@@ -425,6 +428,7 @@ export function toSundayPostData(
     label: credit.label,
     maker: credit.maker,
     makerAvatar: credit.makerAvatar,
+    ...(credit.picture ? { picture: credit.picture } : {}),
   };
 }
 

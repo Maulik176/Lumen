@@ -119,8 +119,8 @@ function islandFor(day: number): Promise<IslandLookup> {
 function sundayCredit(found: IslandLookup): CommunityCredit | undefined {
   const winner = found.ok ? found.pick?.winner : undefined;
   if (winner === undefined || winner === null) return undefined;
-  const { maker, makerAvatar, label } = winner.credit;
-  return { maker, makerAvatar, label };
+  const { maker, makerAvatar, label, picture } = winner.credit;
+  return { maker, makerAvatar, label, ...(picture ? { picture } : {}) };
 }
 
 async function body(request: {
