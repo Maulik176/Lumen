@@ -119,7 +119,7 @@ Older notes below (the Nov 21 test session) are history.
 - **Phase 4 queue (end of `BUILDER_PLAN.md`):** (1) real pictures for community cards, approved
   after Phase 3: 3D snapshot at Publish, uploaded with `media.upload` (tested Nov 20: data URL
   works, 960 ms, 21 KB JPEG on i.redd.it, PLATFORM.md); card shows stock art first and swaps in;
-  remove "Dev: test picture upload" when it lands. (2) Daily cards: pre-render all 90 islands
+  "Dev: test picture upload" removed Nov 26. (2) Daily cards: pre-render all 90 islands
   unsolved.
 - **Phone tests by Claude:** iPhone Mirroring through computer use (needs full-screen control;
   `open_application("iPhone Mirroring")` brings it to the front before clicking). Type one

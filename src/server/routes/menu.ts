@@ -1,10 +1,7 @@
 import { Hono } from 'hono';
 import { nowMs } from '../core/clock';
 import type { UiResponse } from '@devvit/web/shared';
-import { context, media, reddit } from '@devvit/web/server';
-import { toPostData } from '../../shared/api';
-import { TEST_PICTURE } from '../core/test-picture';
-import { islandForDay } from '../core/content';
+import { context, reddit } from '@devvit/web/server';
 import { COPY, DEV, LAUNCH, TRAILER } from '../../shared/config';
 import {
   clearGroups,
@@ -283,49 +280,6 @@ menu.post('/style-preview', async (c) => {
   );
 });
 
-/**
- * Playtest subreddit only, before launch: does Reddit's media upload take a data URL in this
- * build, how long does it take, and which host serves the result? It uploads a small render,
- * then makes a test post whose feed card shows the uploaded picture instead of the stock one
- * (PHASE 4: real pictures for community island cards). Details go to the server log.
- */
-menu.post('/test-picture', async (c) => {
-  const refused = devToolsRefusal(context.subredditName);
-  if (refused !== null) return c.json<UiResponse>({ showToast: refused }, 200);
-  const began = performance.now();
-  try {
-    const asset = await media.upload({ url: TEST_PICTURE, type: 'image' });
-    const ms = Math.round(performance.now() - began);
-    console.log(
-      `Picture test: uploaded in ${ms} ms, id ${asset.mediaId}, url ${asset.mediaUrl}`
-    );
-    const island = islandForDay(currentDay(nowMs(), lastDay()));
-    if (island === undefined)
-      return c.json<UiResponse>(
-        { showToast: `Uploaded in ${ms} ms: ${asset.mediaUrl}` },
-        200
-      );
-    const post = await reddit.submitCustomPost({
-      title: `Lumen picture test (${ms} ms)`,
-      entry: 'default',
-      postData: { ...toPostData(island), picture: asset.mediaUrl },
-    });
-    console.log(`Picture test: post ${post.id}`);
-    return c.json<UiResponse>({ navigateTo: await openPost(post.id) }, 200);
-  } catch (error) {
-    const ms = Math.round(performance.now() - began);
-    console.error(`Picture test failed after ${ms} ms: ${String(error)}`);
-    return c.json<UiResponse>(
-      { showToast: `Upload failed: ${String(error).slice(0, 90)}` },
-      200
-    );
-  }
-});
-
-/**
- * Moderators, on any post (stays after launch): keep a community island out of the Sunday pick.
- * If it is the pick for a Sunday whose post does not exist yet, the pick runs again without it.
- */
 menu.post('/exclude-island', async (c) => {
   try {
     const index =

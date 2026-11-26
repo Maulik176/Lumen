@@ -79,13 +79,6 @@
         "endpoint": "/internal/menu/style-preview"
       },
       {
-        "label": "Dev: test picture upload",
-        "description": "Playtest subreddit only: uploads a small picture with Reddit's media upload and opens a test post whose card shows it",
-        "location": "subreddit",
-        "forUserType": "moderator",
-        "endpoint": "/internal/menu/test-picture"
-      },
-      {
         "label": "Lumen: exclude from Sunday pick",
         "description": "Keep this community island out of the Sunday pick",
         "location": "post",
