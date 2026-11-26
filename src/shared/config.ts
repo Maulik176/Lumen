@@ -201,7 +201,8 @@ export const COPY = {
   /** The same on a Sunday picked from the community (E5). */
   makerBoard: "Maker's board",
   /** Sunday's post title when a player's island was picked. */
-  sundayTitle: 'Lumen #{day} \u00b7 {name} \u00b7 Sunday \u00b7 Island by u/{maker}',
+  sundayTitle:
+    'Lumen #{day} \u00b7 {name} \u00b7 Sunday \u00b7 Island by u/{maker}',
   /** Under the medal on Sunday's result card, and in the results comment. */
   sundayCredit: 'Island by u/{maker}, chosen by the community',
   /** The maker playing their own Sunday: not ranked, the streak goes on (E5). */
@@ -221,7 +222,8 @@ export const COPY = {
    * The app's comment on the winning post (E11). Naming the maker makes Reddit notify them.
    * Emoji allowed: it is a Reddit comment. {sub} is the subreddit.
    */
-  sundayComment: "Chosen as Sunday's island for r/{sub} \u2728 Well built, u/{maker}.",
+  sundayComment:
+    "Chosen as Sunday's island for r/{sub} \u2728 Well built, u/{maker}.",
   sundayCommentLinked:
     "Chosen as Sunday's island for r/{sub} \u2728 Well built, u/{maker}. Play it: {url}",
   /** The results comment on a picked Sunday: the credit and the original island. */
@@ -232,7 +234,8 @@ export const COPY = {
   sundayExcludedRepicked: 'Excluded. It was the pick: the pick ran again.',
   sundayIncluded: 'In the running again.',
   sundayNotIsland: 'This is not a community island.',
-  sundayPreview: '{name} by u/{maker}, score {score}, par {par}. {others} more in the running.',
+  sundayPreview:
+    '{name} by u/{maker}, score {score}, par {par}. {others} more in the running.',
   sundayPreviewNone: 'No island would win: the generated Sunday stays',
   sundayFrozen: "Sunday's post exists: its island stays as it is.",
   sundayBusy: 'Another pick is running. Try again in a minute.',
@@ -289,6 +292,8 @@ export const COPY = {
   /** Feed card once the player has locked in: their night in one line, and the way back in. */
   cardSolved: 'Lit \u00b7 {pieces} (par {par})',
   cardRank: '#{rank} tonight',
+  /** The same on a post whose night has passed. */
+  cardRankPast: '#{rank} that night',
   cardSeeSky: "See tonight's sky",
   cardSeeSkyPast: "See that night's sky",
   /** A post whose island is not tonight's: said on the feed card and in the game. */
@@ -362,6 +367,8 @@ export const COPY = {
   unranked: 'Played for practice',
   /** Result card, time and place on tonight's board. */
   rankLine: '{time} · #{rank} tonight',
+  /** The same on a post whose night has passed. */
+  rankLinePast: '{time} · #{rank} that night',
   /** The small label on the player's own lantern, and the name shown when a lantern is tapped. */
   you: 'You',
   skyName: 'u/{name}',

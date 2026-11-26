@@ -537,6 +537,7 @@ function mountIsland(
   // A post that is not tonight's says so, and always offers the way to tonight's island.
   const elsewhere = tonight && loaded.night !== 'tonight';
   const there = loaded.tonightPost;
+  if (elsewhere) actions.passed = loaded.night === 'past';
   if (elsewhere && there !== null)
     actions.tonight = () => {
       void import('@devvit/web/client')

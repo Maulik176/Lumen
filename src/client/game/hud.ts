@@ -42,6 +42,8 @@ export type HudActions = {
   others?: () => void;
   /** Result card on a post that is not tonight's: go to tonight's island. */
   tonight?: () => void;
+  /** The post's night has passed: its rank is "that night", not "tonight". */
+  passed?: boolean;
   /** Result card on a community island: tonight's daily post. */
   lumen?: () => void;
   /** Result card, ranked and signed in: post the result as the player's own comment. */
@@ -518,10 +520,17 @@ export function createHud(
         : !outcome.ranked
           ? COPY.unranked
           : outcome.rank > 0
-            ? fill(community ? COPY.communityRank : COPY.rankLine, {
-                time: formatTime(outcome.elapsedMs),
-                rank: outcome.rank,
-              })
+            ? fill(
+                community
+                  ? COPY.communityRank
+                  : actions.passed === true
+                    ? COPY.rankLinePast
+                    : COPY.rankLine,
+                {
+                  time: formatTime(outcome.elapsedMs),
+                  rank: outcome.rank,
+                }
+              )
             : formatTime(outcome.elapsedMs);
       // A ranked result is final; anything else can be played again.
       // Tonight's islands open after a ranked solve; an earlier night's are open after any solve.

@@ -237,7 +237,13 @@ function paint(): void {
     if (solved.rank > 0)
       parts.push(
         text('span', '·'),
-        text('b', COPY.cardRank.replace('{rank}', String(solved.rank)))
+        text(
+          'b',
+          (night === 'past' ? COPY.cardRankPast : COPY.cardRank).replace(
+            '{rank}',
+            String(solved.rank)
+          )
+        )
       );
     // The streak shows from the very first night.
     if (solved.streak >= 1)
