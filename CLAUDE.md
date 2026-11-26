@@ -5,12 +5,18 @@ Vite). It is an entry for Reddit's Game of the Day hackathon; submission closes 
 
 ## Where things stand (update at the end of every milestone)
 
-**Start here: Sat Nov 21, 2026 (Opus). v0.0.1.96 is live (Phase 3, the Community duplicate fix,
-the busy-night fix, the scale audit fixes). Today Claude is Maulik's test guide on
-r/lumen_game_dev, NO CODE CHANGES while testing.** Timeline (Maulik, Nov 19): launch Tue Nov 24,
-first Sunday pick Sat Nov 28 20:00 UTC, P4 polish Nov 26–27, atmosphere pass and trailer ending
-after launch (Nov 24–26). Each phase starts with a plan for Maulik's OK, one commit per numbered
-item, push after the phase; **upload only when Maulik says.** Read "Quality rules" below first.
+**Start here: Thu Nov 26, 2026 (Opus). LUMEN IS LIVE: launched Nov 26 with Lumen #3 (the
+calendar starts Nov 24; days 1-2 never had posts), v0.0.1.100, `LAUNCH.launched` true, so the
+dev clock, clean-up and test posts are off and every upload is live (`npm run release` only).**
+Maulik missed Nov 24-25 (office work); the subreddit had stayed on the test clock until the
+launch clean-up. Left, in order: phone check of #3; feedback request post linked to #3 (the
+hackathon's "Create Feedback Request" form: title, Context card); R3/R4 with his brother on a
+real daily; 2-3 showcase islands published for real (Sunday candidates); D11/D12 real pick Sat
+Nov 28 20:00 UTC and Sunday Nov 29; video phone shots (`docs/VIDEO.md`); Devpost by Dec 7 with a
+fresh-profile stranger test; P2 Share recovery (`canRunAsUser`). D1: the subreddit keeps one
+pin in practice; the app pins the daily, How to play lives in the sidebar. D3-D10 can no
+longer run (no dev clock); the Nov 22 unplanned real run covered the pick path.
+Older notes below (the Nov 21 test session) are history.
 - **The Nov 21 test session (Maulik's brief):** order D1 (pins, blocks launch), R3, R4, then
   D2–D10 (D11 is the real Sat Nov 28 run, D12 the real Sun Nov 29 rollover: not today), then two
   visual checks ("You" label centred on the phone; on the laptop, whether another lantern hides
