@@ -13,6 +13,7 @@
     "dev": "tsx scripts/live-guard.ts && devvit playtest",
     "gen": "tsx scripts/gen.ts",
     "hero": "node scripts/hero.mjs",
+    "day-cards": "node scripts/day-cards.mjs",
     "lint": "eslint 'src/**/*.{ts,tsx}'",
     "login": "devvit login",
     "prettier": "prettier --write .",

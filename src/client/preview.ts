@@ -33,6 +33,15 @@ const HERO: Record<Biome, string> = {
   autumn: new URL('./assets/hero/autumn.webp', import.meta.url).href,
 };
 
+/**
+ * Phase 4: each daily island's own picture, rendered unsolved from the real 3D scene by
+ * `npm run day-cards` (about 7 KB each; only the one in use is downloaded). A day without one
+ * fails to load and falls back to the stock picture of its world.
+ */
+function dayPicture(day: number): string {
+  return new URL(`./assets/days/${day}.webp`, import.meta.url).href;
+}
+
 /** Hand-drawn, single stroke, like the game's icons. Drawn on a 20 x 20 grid. */
 const TICK = 'M4.2 10.6l3.9 3.900 7.800-8.700';
 const FLAME =
@@ -166,12 +175,17 @@ function paint(): void {
       // The island's own world: a community island's, or a picked Sunday's maker's.
       const stock = HERO[post.biome ?? biomeOfDay(post.day)];
       hero.addEventListener('load', () => hero.classList.add('shown'));
-      // The island's own picture when the post has one; the world's stock picture otherwise,
-      // and whenever the picture cannot be loaded.
+      // The island's own picture; the world's stock picture whenever it cannot be loaded.
       hero.addEventListener('error', () => {
         if (!hero.src.endsWith(stock)) hero.src = stock;
       });
-      hero.src = post.picture ?? stock;
+      // A daily post (or an unpicked Sunday) shows its own island; a community island or a
+      // picked Sunday shows the picture taken at Publish, when there is one.
+      const own =
+        post.kind === 'community' || post.maker !== undefined
+          ? undefined
+          : dayPicture(post.day);
+      hero.src = post.picture ?? own ?? stock;
     }
   }
   if (refused !== null) {
