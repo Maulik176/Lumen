@@ -488,6 +488,9 @@ export const COPY = {
   /** Share button failure. Never blocks play. */
   shareFailed:
     'Could not post. Close and reopen the Reddit app, then share again.',
+  /** The player tapped Deny on Reddit's permission screen. */
+  shareDenied:
+    'Not shared. Sharing posts the reply as you, so Reddit asks first.',
   /** Result card, after a ranked solve: posts the result as the player's own comment. */
   share: 'Share to comments',
   /**
@@ -1011,7 +1014,9 @@ export const COMMUNITY = {
    */
   pictureWidth: 1080,
   pictureHeight: 480,
-  pictureQuality: 0.78,
+  /** Drawn at this many times the picture's size, then scaled down (sharp on every phone). */
+  pictureSupersample: 2,
+  pictureQuality: 0.86,
   pictureMaxChars: 200_000,
   pictureWaitMs: 4000,
   /** How long the off-screen island is left for its first light to settle before the picture. */

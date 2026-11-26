@@ -492,7 +492,8 @@ function mountIsland(
       ),
     ]);
     if (!allowed) {
-      hud.setShare('failed', null);
+      // The player said no on Reddit's own screen: nothing is wrong, nothing is posted.
+      hud.setShare('failed', null, COPY.shareDenied);
       return;
     }
     try {
@@ -932,28 +933,28 @@ async function snapshotIsland(
   const canvas = document.createElement('canvas');
   canvas.className = 'snapshot';
   document.body.append(canvas);
+  // Drawn at twice the picture's size whatever the device, then scaled down: sharp and smooth
+  // on every phone (Nov 26: the first ones were drawn at the device's lowered resolution).
   const view = createIslandView(canvas, puzzle, {
     biome: draft.biome,
     calm: true,
     rider: shared.rider,
     teach: false,
+    fixedPixelRatio: COMMUNITY.pictureSupersample,
   });
   try {
-    const ratio = view.stats().pixelRatio || 1;
-    const inset = (COMMUNITY.pictureHeight / ratio) * COMMUNITY.pictureInset;
-    view.resize(
-      COMMUNITY.pictureWidth / ratio,
-      COMMUNITY.pictureHeight / ratio,
-      inset,
-      inset
-    );
+    const inset = COMMUNITY.pictureHeight * COMMUNITY.pictureInset;
+    view.resize(COMMUNITY.pictureWidth, COMMUNITY.pictureHeight, inset, inset);
     view.sync(startPlay(puzzle));
     // Long enough for the suns' first light to reach as far as it goes.
     await new Promise((resolve) =>
       window.setTimeout(resolve, COMMUNITY.pictureSettleMs)
     );
     for (const quality of [COMMUNITY.pictureQuality, 0.6, 0.45]) {
-      const picture = view.capture('image/jpeg', quality);
+      const picture = view.capture('image/jpeg', quality, {
+        width: COMMUNITY.pictureWidth,
+        height: COMMUNITY.pictureHeight,
+      });
       if (!picture.startsWith('data:image/jpeg')) return null;
       if (picture.length <= COMMUNITY.pictureMaxChars) return picture;
     }

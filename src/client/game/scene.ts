@@ -126,7 +126,12 @@ export type IslandView = {
    * The picture as it stands, drawn now and read at once (so the drawing buffer is still
    * whole), as a data URL. For the card picture taken at Publish (Phase 4).
    */
-  capture: (type: 'image/jpeg' | 'image/webp', quality: number) => string;
+  capture: (
+    type: 'image/jpeg' | 'image/webp',
+    quality: number,
+    /** Scale the picture down to this size first (drawn larger, it comes out smooth). */
+    size?: { width: number; height: number }
+  ) => string;
   dispose: () => void;
 };
 
@@ -136,6 +141,11 @@ export type ViewOptions = {
   rider: Rider;
   /** First-time teaching: slow first light, pulsing suns, breathing lanterns. */
   teach: boolean;
+  /**
+   * A picture, not play (Phase 4 card picture): this pixel ratio exactly, never lowered when
+   * frames are slow (Nov 26: on the iPhone the drop to 1.25 made the card picture blurry).
+   */
+  fixedPixelRatio?: number;
 };
 
 export function createIslandView(
@@ -154,7 +164,9 @@ export function createIslandView(
     antialias: (window.devicePixelRatio || 1) < VIEW.antialiasBelowRatio,
     powerPreference: 'high-performance',
   });
-  let pixelRatio = Math.min(window.devicePixelRatio || 1, VIEW.maxPixelRatio);
+  let pixelRatio =
+    options.fixedPixelRatio ??
+    Math.min(window.devicePixelRatio || 1, VIEW.maxPixelRatio);
   renderer.setPixelRatio(pixelRatio);
   renderer.info.autoReset = false;
 
@@ -344,7 +356,11 @@ export function createIslandView(
     fps += (1000 / delta - fps) * 0.05;
 
     // Drop the resolution once if this device cannot keep up.
-    if (delta > VIEW.slowFrameMs && pixelRatio > VIEW.lowPixelRatio) {
+    if (
+      options.fixedPixelRatio === undefined &&
+      delta > VIEW.slowFrameMs &&
+      pixelRatio > VIEW.lowPixelRatio
+    ) {
       slowFrames++;
       if (slowFrames > VIEW.slowFramesBeforeDrop) {
         pixelRatio = VIEW.lowPixelRatio;
@@ -730,10 +746,20 @@ export function createIslandView(
       return { fps, calls, triangles, pixelRatio };
     },
 
-    capture(type, quality) {
+    capture(type, quality, size) {
       applyCamera();
       renderer.render(scene, camera);
-      return canvas.toDataURL(type, quality);
+      if (size === undefined) return canvas.toDataURL(type, quality);
+      // Read in the same moment as the drawing, while the drawing buffer is still whole.
+      const small = document.createElement('canvas');
+      small.width = size.width;
+      small.height = size.height;
+      const context = small.getContext('2d');
+      if (context === null) return canvas.toDataURL(type, quality);
+      context.imageSmoothingEnabled = true;
+      context.imageSmoothingQuality = 'high';
+      context.drawImage(canvas, 0, 0, size.width, size.height);
+      return small.toDataURL(type, quality);
     },
 
     dispose() {
