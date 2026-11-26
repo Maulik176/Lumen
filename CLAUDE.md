@@ -16,7 +16,7 @@ Nov 28 20:00 UTC and Sunday Nov 29; video phone shots (`docs/VIDEO.md`); Devpost
 fresh-profile stranger test; P2 Share recovery (`canRunAsUser`). D1: the subreddit keeps one
 pin in practice; the app pins the daily, How to play lives in the sidebar. D3-D10 can no
 longer run (no dev clock); the Nov 22 unplanned real run covered the pick path.
-**Nov 26 (later): everything left to build is built** (`PHASE4_PLAN.md`, Maulik: "we should
+**v0.0.1.102 live Nov 26 (tag `release-v0.0.1.102`, commit 5e2714b), phone checks E1-E8 next.** **Nov 26 (later): everything left to build is built** (`PHASE4_PLAN.md`, Maulik: "we should
 be only left with real user testing and submission details and videos shots"): daily card
 pictures (`npm run day-cards`, `src/client/assets/days/`), a 3D picture taken at Publish and
 uploaded with `media.upload` (`snapshotIsland` in `main.ts`, `pictureData` in `community.ts`),
