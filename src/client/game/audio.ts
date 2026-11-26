@@ -34,6 +34,11 @@ export type Sound = {
   /** Chime number `index` of the nightfall, rising in pitch. */
   chime: (index: number) => void;
   nightPad: () => void;
+  /**
+   * The atmosphere pass: a soft breath of wind over the island. Only when sound is already
+   * running: never queued, never the thing that wakes the audio.
+   */
+  breeze: () => void;
   isMuted: () => boolean;
   toggleMute: () => boolean;
 };
@@ -258,6 +263,49 @@ export function createSound(host: SoundHost = browserHost()): Sound {
         'triangle',
         0.4
       );
+    },
+    breeze() {
+      if (muted || !running() || context === null || master === null) return;
+      try {
+        const start = context.currentTime;
+        const seconds = SOUND.breezeSeconds;
+        const length = Math.floor(context.sampleRate * seconds);
+        const buffer = context.createBuffer(1, length, context.sampleRate);
+        const data = buffer.getChannelData(0);
+        // Brown-ish noise: each sample leans on the last, which sounds like air, not hiss.
+        let last = 0;
+        for (let i = 0; i < length; i++) {
+          last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02;
+          data[i] = last * 3.5;
+        }
+        const source = context.createBufferSource();
+        source.buffer = buffer;
+        const filter = context.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(SOUND.breezeLowHz, start);
+        filter.frequency.linearRampToValueAtTime(
+          SOUND.breezeHighHz,
+          start + seconds * 0.45
+        );
+        filter.frequency.linearRampToValueAtTime(
+          SOUND.breezeLowHz,
+          start + seconds
+        );
+        const gain = context.createGain();
+        gain.gain.setValueAtTime(0.0001, start);
+        gain.gain.linearRampToValueAtTime(
+          SOUND.breezeVolume,
+          start + seconds * 0.4
+        );
+        gain.gain.linearRampToValueAtTime(0.0001, start + seconds);
+        source.connect(filter);
+        filter.connect(gain);
+        gain.connect(master);
+        source.start(start);
+        source.stop(start + seconds + 0.05);
+      } catch {
+        // Decoration: a sound that cannot be made is simply not heard.
+      }
     },
     isMuted: () => muted,
     toggleMute() {

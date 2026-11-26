@@ -28,7 +28,7 @@ import {
   type Scene,
   type Texture,
 } from 'three';
-import { ART, LOOK, type BiomeLook } from '../../shared/config';
+import { AMBIENT, ART, LOOK, type BiomeLook } from '../../shared/config';
 import { at, merge, noise, paint, place, type Keeper } from './kit';
 
 const STAR_COUNT = 900;
@@ -326,8 +326,22 @@ export function createSky(
         .multiplyScalar(0.8 - 0.25 * night);
       nightAmount.value = night;
       skyTime.value = calm ? 0 : timeMs / 1000;
+      // The atmosphere pass: the large stars and the band breathe slowly, out of step with
+      // each other, so the night is never quite still (held steady with Reduce Motion).
+      const breathe = (periodMs: number): number =>
+        calm
+          ? 1
+          : 1 -
+            AMBIENT.starTwinkle *
+              (0.5 + 0.5 * Math.sin((timeMs / periodMs) * Math.PI * 2));
       stars.forEach((star, index) => {
-        star.opacity = night * (index === 0 ? 0.85 : index === 1 ? 1 : 0.6);
+        star.opacity =
+          night *
+          (index === 0
+            ? 0.85
+            : index === 1
+              ? breathe(AMBIENT.starPeriodMs)
+              : 0.6 * breathe(AMBIENT.starPeriodMs * 1.37));
       });
       // A veil of sky colour over the islets: they fade with distance and darken at night.
       rockColour
