@@ -69,62 +69,67 @@ async function everything(store: Store, nowMs: number) {
 }
 
 describe("the Archipelago's Community view (E9)", () => {
-  it('lists every live island exactly once: this week by score, then older ones, page by page', async () => {
-    const store = memoryStore();
-    const { reddit, scores } = fakeReddit();
-    const made: { index: number; postId: string; created: number }[] = [];
-    // Seven this week, and more than a page of older ones (published weeks before).
-    for (const [i, day] of DAYS.entries()) {
-      const created = MIDWEEK + i * HOUR;
-      made.push({
-        ...(await publishFrom(store, day, maker(`w${i}`), created)),
-        created,
-      });
+  // About 1 s here, but 5-6 s on GitHub's shared runner beside the rest of the suite (Nov 23).
+  it(
+    'lists every live island exactly once: this week by score, then older ones, page by page',
+    { timeout: 30_000 },
+    async () => {
+      const store = memoryStore();
+      const { reddit, scores } = fakeReddit();
+      const made: { index: number; postId: string; created: number }[] = [];
+      // Seven this week, and more than a page of older ones (published weeks before).
+      for (const [i, day] of DAYS.entries()) {
+        const created = MIDWEEK + i * HOUR;
+        made.push({
+          ...(await publishFrom(store, day, maker(`w${i}`), created)),
+          created,
+        });
+      }
+      const olderOnes = await publishMany(
+        store,
+        SUNDAY.olderPage + 5,
+        DAYS,
+        (i) => `o${i}`,
+        (i) => MIDWEEK - 14 * DAY - i * HOUR
+      );
+      expect(olderOnes).toHaveLength(SUNDAY.olderPage + 5);
+      made.push(
+        ...olderOnes.map((one, i) => ({
+          ...one,
+          created: MIDWEEK - 14 * DAY - i * HOUR,
+        }))
+      );
+      made.forEach((one, i) => scores.set(one.postId, (i * 7) % 11));
+      // One removed, one excluded: never listed.
+      const removed = made[1];
+      const excluded = made[DAYS.length + 2];
+      if (removed === undefined || excluded === undefined)
+        throw new Error('setup');
+      await setIslandActive(store, removed.postId, false);
+      await setIslandExcluded(store, excluded.index, 'mod');
+      const now = MIDWEEK + 12 * HOUR;
+      expect(await refreshVotes(store, reddit, now)).toBe(DAYS.length - 1);
+      const { first, older } = await everything(store, now);
+      const listed = [...first.week, ...older].map((row) => row.number);
+      const expected = made
+        .filter((one) => one !== removed && one !== excluded)
+        .map((one) => communityNumber(one.index));
+      // Exactly once each, nothing else.
+      expect([...listed].sort()).toEqual([...expected].sort());
+      expect(new Set(listed).size).toBe(listed.length);
+      // This week: only this week's, highest score first.
+      expect(first.week).toHaveLength(DAYS.length - 1);
+      const weekScores = first.week.map((row) => row.score ?? -1);
+      expect(weekScores).toEqual([...weekScores].sort((a, b) => b - a));
+      for (const row of first.week)
+        expect(row.number).toBeGreaterThanOrEqual(communityNumber(1));
+      // Older: newest first.
+      expect(older.length).toBe(SUNDAY.olderPage + 5 - 1);
+      // Plays agree with the island's own board.
+      for (const row of [...first.week, ...older])
+        expect(row.plays).toBe(await skyCount(store, row.number));
     }
-    const olderOnes = await publishMany(
-      store,
-      SUNDAY.olderPage + 5,
-      DAYS,
-      (i) => `o${i}`,
-      (i) => MIDWEEK - 14 * DAY - i * HOUR
-    );
-    expect(olderOnes).toHaveLength(SUNDAY.olderPage + 5);
-    made.push(
-      ...olderOnes.map((one, i) => ({
-        ...one,
-        created: MIDWEEK - 14 * DAY - i * HOUR,
-      }))
-    );
-    made.forEach((one, i) => scores.set(one.postId, (i * 7) % 11));
-    // One removed, one excluded: never listed.
-    const removed = made[1];
-    const excluded = made[DAYS.length + 2];
-    if (removed === undefined || excluded === undefined)
-      throw new Error('setup');
-    await setIslandActive(store, removed.postId, false);
-    await setIslandExcluded(store, excluded.index, 'mod');
-    const now = MIDWEEK + 12 * HOUR;
-    expect(await refreshVotes(store, reddit, now)).toBe(DAYS.length - 1);
-    const { first, older } = await everything(store, now);
-    const listed = [...first.week, ...older].map((row) => row.number);
-    const expected = made
-      .filter((one) => one !== removed && one !== excluded)
-      .map((one) => communityNumber(one.index));
-    // Exactly once each, nothing else.
-    expect([...listed].sort()).toEqual([...expected].sort());
-    expect(new Set(listed).size).toBe(listed.length);
-    // This week: only this week's, highest score first.
-    expect(first.week).toHaveLength(DAYS.length - 1);
-    const weekScores = first.week.map((row) => row.score ?? -1);
-    expect(weekScores).toEqual([...weekScores].sort((a, b) => b - a));
-    for (const row of first.week)
-      expect(row.number).toBeGreaterThanOrEqual(communityNumber(1));
-    // Older: newest first.
-    expect(older.length).toBe(SUNDAY.olderPage + 5 - 1);
-    // Plays agree with the island's own board.
-    for (const row of [...first.week, ...older])
-      expect(row.plays).toBe(await skyCount(store, row.number));
-  });
+  );
 
   it("an island's plays are its board's count, and a removed post leaves the week's scores", async () => {
     const store = memoryStore();
