@@ -1615,7 +1615,7 @@ export const TRAILER = {
  * (every save would go live). Releases then go through `npm run release` (docs/LAUNCH.md).
  */
 export const LAUNCH = {
-  launched: false,
+  launched: true,
 };
 
 /** Developer tools that exist only on the playtest subreddit, and only until launch. */

@@ -144,6 +144,12 @@ Checked on the laptop, Nov 22 (Maulik's screenshots):
   card's `COPY.rankLine`) beside "See that night's sky" and "1 lit it on its night". Fix after
   the session: a past-night wording ("#1 that night"), and check every "tonight" string a past
   post can show.
+- **D1, Nov 26 (launch day), laptop: fail, by Reddit's rules, not the app's.** How to play was
+  added to highlights by hand (Lumen #17, pinned by the app that morning, left the highlights);
+  after clean-up and "Post today's Lumen", Lumen #3 was pinned and How to play left. This
+  subreddit keeps one pinned post at a time in practice. Decision: the app keeps pinning the
+  daily post (`PINS` unchanged; today's island is what a visitor needs), and How to play goes in
+  the sidebar; the game's own "How to play" stays on every card.
 - Nov 23 05:31 IST: "Pinned day 14's post" (the clock was still 14 days ahead, so the daily job
   posted day 14; expected, cleared by the final clean-up).
 - **P1 found, Nov 23 13:24 IST:** after Maulik was signed out of Reddit and signed back in,
