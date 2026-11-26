@@ -27,6 +27,8 @@ breathing, `sound.breeze`), the trailer ending on the map. O-6 Subscribe not bui
 build would subscribe the app, not the player). Phone checks E1-E8 in `docs/TESTS-TO-RUN.md`
 1g. **Editing `src/shared` or `src/server` restarts the stand-in: never during `day-cards` or
 `hero` renders.** Re-run `npm run day-cards` and `npm run hero` after any change to the look.
+Sunday pick keeps `SUNDAY.minScore` 2 (Maulik, Nov 26, asked again: a lone island with only its
+maker's vote does not win; Sunday is then the generated island). Don't propose lowering it again.
 Older notes below (the Nov 21 test session) are history.
 - **The Nov 21 test session (Maulik's brief):** order D1 (pins, blocks launch), R3, R4, then
   D2–D10 (D11 is the real Sat Nov 28 run, D12 the real Sun Nov 29 rollover: not today), then two
