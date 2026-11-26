@@ -176,6 +176,19 @@ record of whom to undo.
 Before launch: "Dev: clean up this subreddit" also clears test picks; afterwards open day 6
 with "Dev: set today" and check it is the generated island again ("Two Suns").
 
+## 1g. Phase 4 and the last build items (built Nov 26, `PHASE4_PLAN.md`)
+
+| # | Check | Who |
+| --- | --- | --- |
+| E1 | Today's daily post in the feed: the card shows **this island** (unsolved, its own layout), not the shared stock picture; an older daily post shows its own island too | Maulik, iPhone + laptop |
+| E2 | Publish an island from the Builder: the new post's card shows **a 3D picture of that island** within a few seconds (stock picture first is fine). Server log: no "Publish picture failed" | Maulik |
+| E3 | An older post (yesterday's): "#1 that night", the board says "That night's board", the results comment says "Results: …" (after its next refresh) | Maulik |
+| E4 | Share to comments on a ranked result: a Reddit permission prompt may appear once (allow it); the reply posts | Maulik, brother |
+| E5 | Result card: your snoovatar beside the medal | Maulik |
+| E6 | A 9x9 Saturday island on the phone: taps land where meant; the island is a little flatter and larger than before | Maulik |
+| E7 | Atmosphere: petals on a blossom day, snow on a snow day, fireflies on a moss island at dusk (play slowly for 2 minutes), stars breathing at night; with Reduce Motion on, nothing drifts. Now and then a soft breath of wind while playing (sound on) | Maulik |
+| E8 | Trailer (mod menu "Play the Lumen trailer (once)"): after the title, the map of nights fades in, glides down, and the title returns over it | Maulik, laptop |
+
 ## 2. Fixed in code, never confirmed on a phone
 
 | # | Test | How |

@@ -56,6 +56,29 @@ Then:
 - **Streaks** with a one-day grace earn lantern styles at 3, 7, 14 and 30 nights, and a flair
   with your medal and streak.
 
+## Build your own island
+
+After you lock in, **Build an island**: place suns, lanterns, rocks, trees, water and stone
+mirrors on a flat board, name it, pick its world and size. **Check island** runs the same exact
+solver as the daily islands on the server: it proves the island can be lit, sets its par and its
+label, and refuses copies of a daily island. Then you must light it yourself in 3D before
+**Publish** posts it as its own Reddit post, credited to you, with its own board, sky and
+"See others' islands" (your own solve shown first as the creator's board).
+
+Every Saturday at 20:00 UTC the best-voted island of the week becomes **Sunday's island for
+everyone**: posted as that day's Lumen, credited to its maker, who earns the **Islandwright**
+title in their flair. The maker's own Sunday play is never ranked, but it keeps their streak.
+The Archipelago's **Community** view shows Sunday's pick, this week's islands by votes, and
+every earlier one.
+
+## The feed card and the world
+
+Each post's card shows its own island: daily islands are rendered from the real 3D scene,
+unsolved; a published island's card shows the picture its maker's device took at Publish,
+uploaded to Reddit's image host. The air over each world has its own life (fireflies at dusk,
+petals, snow, drifting motes, falling leaves), the stars breathe at night, and a soft wind
+passes now and then. With Reduce Motion on, nothing drifts.
+
 ## How it uses Reddit
 
 | Feature | How Lumen uses it |
@@ -67,6 +90,10 @@ Then:
 | Snoovatars | On your sky lantern, other players' lanterns and the board |
 | Redis | Results, boards, streaks, unfinished boards (so you can come back to one), the sky |
 | Journeys | Start, progress per lantern, interactions and a server-verified end; see `JOURNEY_MAP.md` |
+| Posts as the player | A published island is the maker's own post and a share is their own reply (`runAs: 'USER'`); in this unpublished playtest build Reddit posts them from the app for everyone but the owner, so every line names the player |
+| Media upload | A published island's 3D picture becomes its card picture on Reddit's image host |
+| Votes and triggers | The Sunday pick reads the week's post scores; a removed or deleted island leaves the running at once |
+| Pins | Each day's post is pinned and yesterday's unpinned |
 
 The server re-checks every answer with the same engine the game uses, and keeps its own clock.
 The client never scores itself.
@@ -77,8 +104,8 @@ Ninety islands are generated ahead of time and checked by an exact solver: every
 solvable, its par is proven minimal, and it sits in its weekday's difficulty band. Five biomes
 (moss, snow, blossom, dune, autumn) rotate weekly. `npm run report` prints the ramp.
 
-**Cut:** the Island Builder and the Sunday community island. Sunday is a generated island like
-the rest.
+On Sundays the island is the community's pick when one qualifies (2 or more votes, par 3 to 5);
+otherwise the generated Sunday island.
 
 ## Running it
 
@@ -96,10 +123,11 @@ Then open `http://localhost:5199/game.html?day=7` (`&calm=1` for reduced motion,
 | --- | --- |
 | `npm test` | All tests (engine, server rules, client logic) |
 | `npm run test:types` / `npm run lint` | Type check and lint |
-| `npm run dev` | Playtest on r/lumen_game_dev before launch (stop it when done; it uploads every save) |
-| `npm run release` | After launch: check everything, confirm, upload once, stop the watcher (`docs/LAUNCH.md`) |
+| `npm run release` | The only way to upload: runs `npm run checks`, uploads once, tags the release (`docs/LAUNCH.md`) |
 | `npm run report` | Par and difficulty per weekday |
-| `npm run hero` | Re-render the feed card pictures (needs `npm run debug` running) |
+| `npm run checks` | Everything an upload needs: launch-scale nights (10, 150, 500 players), all tests, types, lint, build, the four-seat and Sunday passes in a real browser |
+| `npm run hero` | Re-render the stock feed card pictures (needs `npm run debug` running) |
+| `npm run day-cards` | Re-render every daily island's card picture (needs `npm run debug` running) |
 
 `HANDOFF.md` has the full tool list, a tuning guide for `src/shared/config.ts`, and what is
 left. `PLATFORM.md` records what Devvit really allows, as tested.

@@ -24,6 +24,7 @@ disappears. Tests named here run in `npm run test:scale`, which `npm run checks`
 | 15 | **Archipelago**: was 30 past nights (`PAST.max`) | Same | Same | **Was yes**, after a month. Now all 90 nights | none (config) | **Fixed** |
 | 16 | **Publish limit**: 3 islands a player a day (`COMMUNITY.publishPerDay`) | Same | Same | No (a rule, said to the player) | community tests | OK |
 | 17 | **Dev clean-up**: 500 islands (`cleanUpMax`), the 200 newest posts | n/a | n/a | Dev only, refused after launch; on a busy test subreddit run it twice | none | OK |
+| 19 | **Card picture at Publish** (Nov 26): at most 200,000 characters of data URL (`COMMUNITY.pictureMaxChars`; real pictures measured 27-45 K), and the device waits at most 4 s for it (`pictureWaitMs`) | Same | Same | No: an island whose picture is too large, too slow or refused is published all the same, with its world's stock picture | `community.test.ts` "the card picture taken at Publish" | OK |
 | 18 | **Board groups for boards played before v0.0.1.96**: grouped once from the whole board on first open (`GROUPS.readChunk`) | One slower open | One very slow open (may pass 30 s) | No loss, but a long request. Only boards from before this version; launch-day clean-up removes them all, and every new board is grouped as it fills | game tests ("worked out once") | Note |
 
 **What is still possible at 5,000 (row 9):** Reddit's newest-posts listing stops at about
