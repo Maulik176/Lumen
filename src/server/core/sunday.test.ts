@@ -530,13 +530,35 @@ describe('the dev tools (r/lumen_game_dev, before launch)', () => {
     await runPick(store, reddit, SUNDAY_6, MIDWEEK, { ...options, dev: true });
     await store.set(KEYS.pinned(SUNDAY_6), '1');
     await store.set(KEYS.pinnedLast, 't3_x');
-    await cleanUpSundays(store, 90);
+    await cleanUpSundays(store, 90, reddit);
     expect(await readPick(store, SUNDAY_6)).toBeNull();
     expect((await islandOfDay(store, SUNDAY_6))?.island).toEqual(
       islandForDay(SUNDAY_6)
     );
     expect(await store.get(KEYS.pinned(SUNDAY_6))).toBeUndefined();
     expect(await store.get(KEYS.pinnedLast)).toBeUndefined();
+  });
+
+  it('clean-up takes back what a test pick gave its maker: Islandwright, the flair, the comment (Nov 22 P1)', async () => {
+    const store = memoryStore();
+    const { reddit, scores, comments, flairs, deleted } = fakeReddit();
+    const one = await publishFrom(store, 6, maker('ana'), MIDWEEK);
+    scores.set(one.postId, 7);
+    await runPick(store, reddit, SUNDAY_6, MIDWEEK, { ...options, dev: true });
+    await markPosted(store, reddit, SUNDAY_6, 'https://x', () => undefined);
+    expect((await store.hGetAll(KEYS.user('t2_ana')))['islandwright']).toBe(
+      '1'
+    );
+    const comment = [...comments.keys()][0];
+    await cleanUpSundays(store, 90, reddit);
+    // Even a pick frozen by its post is undone: the subreddit starts again from nothing.
+    expect((await store.hGetAll(KEYS.user('t2_ana')))['islandwright']).toBe(
+      '0'
+    );
+    expect(flairs.at(-1)).toEqual(['ana', '']);
+    expect(deleted).toContain(comment);
+    expect((await readCommunity(store, one.index))?.sunday).toBe(0);
+    expect(await readPick(store, SUNDAY_6)).toBeNull();
   });
 });
 

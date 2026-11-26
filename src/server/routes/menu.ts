@@ -224,8 +224,11 @@ menu.post('/clean-up', async (c) => {
     }
     await redisStore.del(KEYS.allTime);
     // Sunday picks made while testing, their scores and the pin records: without this a test
-    // pick would become the real Sunday after launch.
-    await cleanUpSundays(redisStore, lastDay());
+    // pick would become the real Sunday after launch. Each pick's Islandwright, flair and
+    // comment are taken back from its maker first.
+    await cleanUpSundays(redisStore, lastDay(), pickReddit(), (line) =>
+      console.log(line)
+    );
     // Community islands: players' posts are removed as a moderator (the app may delete only
     // its own), and every island's keys go.
     const islands = await cleanUpCommunity(

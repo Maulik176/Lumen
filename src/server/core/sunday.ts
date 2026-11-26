@@ -613,12 +613,25 @@ export function previewLine(choice: Choice): string {
 
 /**
  * "Dev: clean up this subreddit": every Sunday's pick, lock and scores, and every pin record.
- * Without it, a pick made while testing would become the real Sunday after launch.
+ * Without it, a pick made while testing would become the real Sunday after launch. Each pick's
+ * effects on its maker (Islandwright, flair, the comment) are undone first, whoever the maker
+ * is: the record is the only trace of whom to undo (Nov 22: a test pick left Islandwright on
+ * another account).
  */
 export async function cleanUpSundays(
   store: Store,
-  lastDay: number
+  lastDay: number,
+  reddit: PickReddit,
+  log: (line: string) => void = () => undefined
 ): Promise<void> {
+  for (let day = 1; day <= lastDay + 7; day++) {
+    if (!isSunday(day)) continue;
+    const pick = await readPick(store, day);
+    if (pick !== null)
+      await undoPick(store, reddit, pick, log).catch((error: unknown) =>
+        log(`Could not undo the pick for day ${day}: ${String(error)}`)
+      );
+  }
   const keys: string[] = [KEYS.pinnedLast];
   for (let day = 1; day <= lastDay + 7; day++) {
     keys.push(KEYS.pinned(day));
