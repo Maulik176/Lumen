@@ -201,6 +201,30 @@ Reddit asks first." **E5 pass** (snoovatar beside Lamplighter). Results comment:
 player lit Dew Ford, 1 hit par." Note: Maulik's Hollow is par 2, so it cannot be a Sunday
 pick (par 3 to 5 only).
 
+**Nov 27, P0 found by Maulik on v0.0.1.104:** u/SolariaHues published "Sunset"; its card showed
+another island (the stock autumn picture), pushed left and cut, on phone and laptop. Three
+causes, all fixed:
+1. **Reddit refused the picture.** Server log: "Publish picture failed: … unable to get media
+   lease for url: data:image/jpeg…" (desktop Chrome, a 1080x480 JPEG at 0.86, about 40 K
+   characters, made after the Nov 26 "sharper picture" change and never uploaded to Reddit before
+   shipping). What has worked: a 14 K WebP (Nov 20) and a ~25 K iPhone JPEG (Nov 26). Now the
+   device sends WebP where it can make it, JPEG otherwise, each kept under 22 K characters
+   (measured: WebP 16 K, JPEG 19-21 K), plus a 720x320 backup under 12 K; the server tries them
+   in turn. The log line no longer holds the picture itself.
+2. **The fallback showed another island.** A community island without a picture showed its
+   world's stock picture (the hand-made hero island). Now a card always shows its own island:
+   the uploaded picture, or, if none, the island drawn from its own rows (water, rocks, glowing
+   suns, lanterns in their colours) on its world's sky. The stock picture is left only for an
+   old post with no rows.
+3. **The stock pictures were mis-framed.** Re-rendered Nov 26 with a rule card open (the
+   stand-in keeps rules seen on the server since Nov 20, so the script's localStorage trick no
+   longer closed it); on a wide view a card moves the island aside. Not looked at before commit.
+   Now `scripts/card-stage.mjs` marks rules seen on the server, closes anything open, refuses to
+   shoot with a card open, and measures the island: off centre, the render stops. All 95
+   pictures re-rendered under that check.
+Sunset (already posted, no picture) now shows its own island drawn from its rows.
+**Re-check E2 on the next build: publish from the laptop (Chrome) and from the iPhone.**
+
 ## 2. Fixed in code, never confirmed on a phone
 
 | # | Test | How |

@@ -85,6 +85,21 @@ Body: the r/GamesOnReddit body, plus one line on what you want to learn:
 > island is solved by an exact solver before it goes out, so par is the true minimum. Monday is
 > gentle, Saturday is demanding. Free, in your browser or the Reddit app: r/lumen_game_dev
 
+### X, Nov 27 set (attach `lumen-x-18s.mp4`: dusk, light bending, nightfall, the lantern rising)
+
+Post 1 (257 of 280):
+
+> I built a daily puzzle that lives inside Reddit.
+>
+> Bend sunlight into every lantern. Lock in, night falls, and your lantern rises into one sky
+> shared with everyone who solved the same island.
+>
+> New island every night. Free, no install:
+> reddit.com/r/lumen_game_dev
+
+Reply to it (236): the hackathon, Devvit + Three.js, the exact solver, feedback welcome.
+Later post (238): players build islands; the best-voted becomes Sunday's; first pick Saturday.
+
 ### X (one post, with the video)
 
 > I made Lumen, a daily puzzle that lives inside Reddit.
