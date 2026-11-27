@@ -16,7 +16,7 @@ Nov 28 20:00 UTC and Sunday Nov 29; video phone shots (`docs/VIDEO.md`); Devpost
 fresh-profile stranger test; P2 Share recovery (`canRunAsUser`). D1: the subreddit keeps one
 pin in practice; the app pins the daily, How to play lives in the sidebar. D3-D10 can no
 longer run (no dev clock); the Nov 22 unplanned real run covered the pick path.
-**v0.0.1.104 live Nov 26 (tag `release-v0.0.1.104`): sharp Publish pictures, Share Deny line. E1, E2, E4, E5 passed on v0.0.1.102; re-check E2 (sharpness), then E3, E6-E8.** **Nov 26 (later): everything left to build is built** (`PHASE4_PLAN.md`, Maulik: "we should
+**v0.0.1.106 live Nov 27 (tag `release-v0.0.1.106`): the card fix (picture forms Reddit accepts, drawn fallback, 95 pictures re-rendered). Next: publish from laptop Chrome and iPhone, check the log line "Publish picture: form 1 of 2 … uploaded" and the cards.** **Nov 26 (later): everything left to build is built** (`PHASE4_PLAN.md`, Maulik: "we should
 be only left with real user testing and submission details and videos shots"): daily card
 pictures (`npm run day-cards`, `src/client/assets/days/`), a 3D picture taken at Publish and
 uploaded with `media.upload` (`snapshotIsland` in `main.ts`, `pictureData` in `community.ts`),
@@ -31,7 +31,7 @@ Feedback request posted Nov 26 on r/Devvit (Reddit's developer feedback tool, ga
 #3): https://www.reddit.com/r/Devvit/comments/1y5u3qb/feedback_wanted_for_lumen_a_daily_light_puzzle/
 Claude cannot open reddit.com: Maulik pastes the replies; triage each into a fix (P0/P1/P2) or
 a note, and record them in `docs/TESTS-TO-RUN.md`. Its image is `captures/2026-11-26-feedback/`.
-**Nov 27 card incident (P0, fixed, not yet uploaded at the time of writing):** Reddit refused a
+**Nov 27 card incident (P0, fixed, uploaded Nov 27):** Reddit refused a
 ~40 K-character JPEG picture at Publish and the card showed a mis-framed stock island; see
 `docs/TESTS-TO-RUN.md` 1g. Rules from it: anything sent to Reddit (pictures, posts, comments)
 stays within what Reddit has actually accepted before, or is tested on Reddit before it ships;
