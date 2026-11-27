@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { emptyDraft, islandHash, type IslandDraft } from '../../shared/builder';
 import type { PostData } from '../../shared/api';
 import { communityNumber } from '../../shared/community';
@@ -16,6 +16,7 @@ import {
   lookUpIsland,
   postActivity,
   creditOf,
+  pictureCandidates,
   publishIsland,
   readCommunity,
   setIslandActive,
@@ -534,6 +535,50 @@ describe('publishing an island', () => {
       const record = await readCommunity(store, 1);
       expect(record?.picture).toBe(HOSTED);
       expect(record === null ? null : creditOf(record).picture).toBe(HOSTED);
+    });
+
+    it('Nov 27: when Reddit refuses the first form, the smaller one is uploaded, and no picture reaches the log', async () => {
+      const store = memoryStore();
+      await ready(store, twoMirrors());
+      const { fake, posts } = poster();
+      const WEBP = 'data:image/webp;base64,UklGRhQAAABXRUJQ';
+      const errors: string[] = [];
+      const spy = vi
+        .spyOn(console, 'error')
+        .mockImplementation((line: unknown) => errors.push(String(line)));
+      const tried: string[] = [];
+      const answer = await publishIsland(
+        store,
+        ana,
+        {
+          draft: twoMirrors(),
+          token: 'token0001',
+          avatar: '',
+          nowMs: Date.UTC(2026, 10, 25, 12),
+          pictures: [SNAPSHOT, WEBP, 'not a picture'],
+        },
+        {
+          poster: fake,
+          daily: never,
+          clock,
+          upload: async (url) => {
+            tried.push(url);
+            if (url === SNAPSHOT)
+              throw new Error(`unable to get media lease for url: ${url}`);
+            return HOSTED;
+          },
+        }
+      );
+      spy.mockRestore();
+      expect(answer).toMatchObject({ ok: true });
+      expect(tried).toEqual([SNAPSHOT, WEBP]);
+      expect(posts[0]?.postData.picture).toBe(HOSTED);
+      expect(errors).toHaveLength(1);
+      expect(errors[0]).toContain('unable to get media lease');
+      expect(errors[0]).not.toContain('base64');
+      expect(pictureCandidates([SNAPSHOT, WEBP, SNAPSHOT])).toHaveLength(
+        COMMUNITY.pictureForms
+      );
     });
 
     it('a failed upload, a picture from elsewhere, or no picture: published all the same, without one', async () => {

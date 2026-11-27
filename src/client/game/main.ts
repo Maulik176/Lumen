@@ -754,8 +754,9 @@ function mountIsland(
       lumenLockIn: () => void commit(),
       // Stands in for a realtime message: another player has just lit the island.
       lumenArrive: (name: string) => welcome({ u: name, s: 'plain', a: '' }),
-      // Where a tile's centre is on screen, for measuring tap sizes.
+      // Where a tile's centre is on screen, for measuring tap sizes and checking card framing.
       lumenScreen: (x: number, y: number) => view.screenOf(x, y),
+      lumenSize: { w: puzzle.width, h: puzzle.height },
       // The card picture Publish would take of this island (Phase 4), as a data URL.
       lumenSnapshot: () =>
         snapshotIsland(
@@ -918,7 +919,7 @@ async function testIsland(
 async function snapshotIsland(
   island: TestIsland,
   shared: Shared
-): Promise<string | null> {
+): Promise<string[] | null> {
   const { draft, inventory } = island;
   const base = puzzleFromText({
     rows: draft.rows,
@@ -950,15 +951,35 @@ async function snapshotIsland(
     await new Promise((resolve) =>
       window.setTimeout(resolve, COMMUNITY.pictureSettleMs)
     );
-    for (const quality of [COMMUNITY.pictureQuality, 0.6, 0.45]) {
-      const picture = view.capture('image/jpeg', quality, {
-        width: COMMUNITY.pictureWidth,
-        height: COMMUNITY.pictureHeight,
-      });
-      if (!picture.startsWith('data:image/jpeg')) return null;
-      if (picture.length <= COMMUNITY.pictureMaxChars) return picture;
-    }
-    return null;
+    // WebP where the browser can make it (the form Reddit took on Nov 20), JPEG otherwise (an
+    // iPhone's, taken on Nov 26); each the best quality that fits the size Reddit has accepted.
+    const fit = (
+      size: { width: number; height: number },
+      limit: number
+    ): string | null => {
+      for (const type of ['image/webp', 'image/jpeg'] as const)
+        for (const quality of COMMUNITY.pictureQualities) {
+          const picture = view.capture(type, quality, size);
+          // A browser that cannot make this type answers with another one: try the next type.
+          if (!picture.startsWith(`data:${type};base64,`)) break;
+          if (picture.length <= limit) return picture;
+        }
+      return null;
+    };
+    const forms = [
+      fit(
+        { width: COMMUNITY.pictureWidth, height: COMMUNITY.pictureHeight },
+        COMMUNITY.pictureTargetChars
+      ),
+      fit(
+        {
+          width: COMMUNITY.pictureBackupWidth,
+          height: COMMUNITY.pictureBackupHeight,
+        },
+        COMMUNITY.pictureBackupChars
+      ),
+    ].filter((form): form is string => form !== null);
+    return forms.length > 0 ? forms : null;
   } catch {
     return null;
   } finally {

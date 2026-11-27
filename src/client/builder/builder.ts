@@ -69,10 +69,10 @@ export type BuilderHost = {
   /** Open the island in the real game for the maker to light. */
   test: (island: TestIsland) => Promise<TestResult>;
   /**
-   * The island in 3D, unsolved, as its post's card picture (a data URL), or null when the device
+   * The island in 3D, unsolved, as its post's card picture (data URLs, best form first), or null when the device
    * cannot draw it. Phase 4; absent where there is no 3D view.
    */
-  snapshot?: (island: TestIsland) => Promise<string | null>;
+  snapshot?: (island: TestIsland) => Promise<string[] | null>;
   /** Leave the Builder. Absent on its own page, where there is nowhere else to go. */
   close?: () => void;
   click: () => void;
@@ -215,7 +215,8 @@ export async function openBuilder(
   /** Kept for one version of the island, so a retry after a lost answer finds the first post. */
   let publishToken: { key: string; token: string } | null = null;
   /** The card picture being drawn for this board (Phase 4). */
-  let snapshot: { key: string; picture: Promise<string | null> } | null = null;
+  let snapshot: { key: string; picture: Promise<string[] | null> } | null =
+    null;
 
   // --- The screen ---------------------------------------------------------------------------
   const screen = element('div', 'bd');
@@ -756,7 +757,7 @@ export async function openBuilder(
         draft,
         token: publishToken?.token,
         snoovatar: host.avatar,
-        ...(withPicture && picture !== null ? { picture } : {}),
+        ...(withPicture && picture !== null ? { pictures: picture } : {}),
       });
     // The picture makes the request larger; if Reddit refuses the request itself, the island is
     // published without it (the same token, so a post that did go out is never made twice).

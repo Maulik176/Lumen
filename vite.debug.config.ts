@@ -682,6 +682,7 @@ function localApi(): Plugin {
             avatar: '',
             nowMs: Date.now(),
             picture: fields['picture'],
+            pictures: fields['pictures'],
           },
           {
             poster: localPoster,

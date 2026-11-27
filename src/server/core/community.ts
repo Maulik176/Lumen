@@ -568,6 +568,53 @@ function publishDate(nowMs: number): string {
  * filtered. A retry with the same token returns the first answer, so a double tap or a retry
  * after a timeout never makes two posts.
  */
+/** The pictures a publish sent, valid ones only, best first, at most COMMUNITY.pictureForms. */
+export function pictureCandidates(
+  pictures: unknown,
+  picture?: unknown
+): string[] {
+  const sent = Array.isArray(pictures) ? pictures : [picture];
+  return sent
+    .map((value) => pictureData(value))
+    .filter((value): value is string => value !== null)
+    .slice(0, COMMUNITY.pictureForms);
+}
+
+/** An upload error, without the picture itself (Nov 27: one log line held the whole picture). */
+function quietError(error: unknown): string {
+  return String(error)
+    .replace(/data:[\w/+.-]+;base64,[A-Za-z0-9+/=]*/g, '<picture>')
+    .slice(0, 240);
+}
+
+/** Upload the first form Reddit accepts; '' when none does, or there is nothing to upload. */
+export async function uploadPicture(
+  candidates: readonly string[],
+  upload: ((dataUrl: string) => Promise<string>) | undefined
+): Promise<string> {
+  if (upload === undefined) return '';
+  for (const [index, dataUrl] of candidates.entries()) {
+    const kind = /^data:image\/(\w+)/.exec(dataUrl)?.[1] ?? '?';
+    try {
+      const address = cleanPicture(await upload(dataUrl));
+      if (address !== '') {
+        console.log(
+          `Publish picture: form ${index + 1} of ${candidates.length} (${kind}, ${dataUrl.length} chars) uploaded`
+        );
+        return address;
+      }
+      console.error(
+        `Publish picture: form ${index + 1} (${kind}, ${dataUrl.length} chars) gave no Reddit address`
+      );
+    } catch (error) {
+      console.error(
+        `Publish picture failed: form ${index + 1} of ${candidates.length} (${kind}, ${dataUrl.length} chars): ${quietError(error)}`
+      );
+    }
+  }
+  return '';
+}
+
 /** A picture sent with a publish: a JPEG or WebP data URL under COMMUNITY.pictureMaxChars. */
 export function pictureData(value: unknown): string | null {
   if (typeof value !== 'string' || value.length > COMMUNITY.pictureMaxChars)
@@ -587,6 +634,11 @@ export async function publishIsland(
     nowMs: number;
     /** The island's 3D picture from the maker's device, as a data URL (Phase 4). Optional. */
     picture?: unknown;
+    /**
+     * The same picture in more than one form, best first (Nov 27: a WebP or JPEG within the
+     * sizes Reddit has accepted, then a smaller one). Tried in order until one uploads.
+     */
+    pictures?: unknown;
   },
   deps: {
     poster: Poster;
@@ -664,18 +716,13 @@ export async function publishIsland(
     return refuse('busy');
   }
 
-  // The card's picture, uploaded before the post so the post's own data carries it. Decoration:
-  // anything wrong with it and the island goes out without one.
-  const snapshot = pictureData(input.picture);
-  const picture =
-    snapshot === null || deps.upload === undefined
-      ? ''
-      : cleanPicture(
-          await deps.upload(snapshot).catch((error: unknown) => {
-            console.error(`Publish picture failed: ${String(error)}`);
-            return '';
-          })
-        );
+  // The card's picture, uploaded before the post so the post's own data carries it. Each form
+  // the device sent is tried in turn; if none uploads, the island goes out without one and its
+  // card draws the island from its own layout (never another island's picture).
+  const picture = await uploadPicture(
+    pictureCandidates(input.pictures, input.picture),
+    deps.upload
+  );
 
   const index = await store.count(KEYS.communityNext);
   const record: CommunityRecord = {

@@ -1016,7 +1016,21 @@ export const COMMUNITY = {
   pictureHeight: 480,
   /** Drawn at this many times the picture's size, then scaled down (sharp on every phone). */
   pictureSupersample: 2,
-  pictureQuality: 0.86,
+  /**
+   * Nov 27: Reddit refused a 1080x480 JPEG of about 40 K characters from desktop Chrome
+   * ("unable to get media lease"); a 14 K WebP (Nov 20) and a ~25 K iPhone JPEG (Nov 26) were
+   * accepted. So the device sends WebP where it can make it, JPEG otherwise, each kept under
+   * `pictureTargetChars`, plus a smaller backup under `pictureBackupChars`; the server tries
+   * them in turn. Qualities are tried from the first down until a form fits.
+   */
+  pictureQualities: [0.82, 0.72, 0.62, 0.52, 0.42],
+  pictureTargetChars: 22_000,
+  pictureBackupWidth: 720,
+  pictureBackupHeight: 320,
+  pictureBackupChars: 12_000,
+  /** How many forms of the picture a publish may send. */
+  pictureForms: 2,
+  /** The most the server accepts as one data URL (a guard, far above what devices send). */
   pictureMaxChars: 200_000,
   pictureWaitMs: 4000,
   /** How long the off-screen island is left for its first light to settle before the picture. */
@@ -1678,6 +1692,8 @@ export const CARD = {
    * call). If Reddit has not answered in this long, the share is tried anyway.
    */
   consentWaitMs: 6000,
+  /** An island drawn from its rows (no picture of its own): its share of the card's height. */
+  drawnIslandShare: 0.46,
 } as const;
 
 /** Tonight's board and the all-time board. */

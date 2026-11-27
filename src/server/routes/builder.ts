@@ -187,6 +187,7 @@ builder.post('/publish', async (c) => {
       avatar: cleanSnoovatar(fields['snoovatar']),
       nowMs: nowMs(),
       picture: fields['picture'],
+      pictures: fields['pictures'],
     },
     {
       upload: async (dataUrl) =>
