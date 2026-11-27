@@ -14,6 +14,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { checkFraming, clearStage } from './card-stage.mjs';
 import { withPage } from './shoot.mjs';
 
 const BASE = process.env.LUMEN_LOCAL ?? 'http://localhost:5199';
@@ -36,18 +37,12 @@ mkdirSync(out, { recursive: true });
 for (const day of days) {
   const png = join(tmpdir(), `lumen-day-${day}.png`);
   await withPage(
-    `${BASE}/game.html?day=${day}&tutorial=0&calm=1&user=cardpainter`,
+    `${BASE}/game.html?day=${day}&tutorial=0&calm=1&perf=1&user=cardpainter`,
     SIZE,
     async (page) => {
-      // A fresh browser would show the one-time rule cards (and on a wide view the island moves
-      // aside for them), and Thursday to Saturday a newcomer is offered a warm-up island.
-      await page.run(
-        `for (const rule of ['fixed', 'water', 'colour', 'mixed', 'sky']) localStorage.setItem('lumen.rule.' + rule, '1');
-         localStorage.setItem('lumen.hints.done', '1');
-         localStorage.setItem('lumen.tutorial.done', '1');
-         location.reload(); 1`
-      );
-      await page.sleep(4000);
+      // No card may be open: on a wide view a card moves the island aside (Nov 27).
+      await clearStage(page);
+      await checkFraming(page, SIZE);
       await page.run(
         `for (const id of ['hud', 'cards', 'warmup']) { const node = document.getElementById(id); if (node) node.style.display = 'none'; }
          for (const node of document.querySelectorAll('.panel, .card, .notice')) node.style.display = 'none'; 1`

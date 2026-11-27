@@ -12,6 +12,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { checkFraming, clearStage } from './card-stage.mjs';
 import { withPage } from './shoot.mjs';
 
 /** The hand-made hero island is served locally as days 900 to 904, one per biome. */
@@ -30,18 +31,12 @@ for (const [index, biome] of BIOMES.entries()) {
   const day = 900 + index;
   const png = join(tmpdir(), `lumen-hero-${biome}.png`);
   await withPage(
-    `http://localhost:5199/game.html?day=${day}&tutorial=0&calm=1&perf=1&hero=1`,
+    `http://localhost:5199/game.html?day=${day}&tutorial=0&calm=1&perf=1&hero=1&user=heropainter`,
     SIZE,
     async (page) => {
-      // A fresh browser would show the one-time rule cards, and a card on a wide view moves the
-      // island aside to make room for it. Mark them all seen, then load again.
-      await page.run(
-        `for (const rule of ['fixed', 'water', 'colour', 'mixed', 'sky']) localStorage.setItem('lumen.rule.' + rule, '1');
-         localStorage.setItem('lumen.hints.done', '1');
-         localStorage.setItem('lumen.tutorial.done', '1');
-         fetch('/api/forget').then(() => location.reload()); 1`
-      );
-      await page.sleep(4500);
+      // No card may be open: on a wide view a card moves the island aside (Nov 27).
+      await clearStage(page);
+      await checkFraming(page, SIZE);
       await page.run(
         `for (const [x, y, n] of ${JSON.stringify(taps)}) for (let i = 0; i < n; i++) window.lumenTap(x, y);
          document.getElementById('hud').style.display = 'none'; 1`
