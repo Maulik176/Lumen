@@ -49,6 +49,21 @@ body {
   opacity: 1;
 }
 
+/*
+ * An island with no picture of its own (Nov 27: a community island whose upload Reddit refused
+ * showed another island's stock picture): its own layout, drawn, on its world's sky.
+ */
+.hero-drawn {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 12%;
+}
+
+.hero-drawn[hidden] {
+  display: none;
+}
+
 /* The island at feed size looked dim (review, Nov 17): a little lift, and the scrim starts lower. */
 .card:not(.solved) .hero {
   filter: brightness(1.1) saturate(1.05);

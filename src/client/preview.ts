@@ -20,7 +20,7 @@ import {
   weekdayLabel,
   type Biome,
 } from '../shared/calendar';
-import { CARD, COPY, UI } from '../shared/config';
+import { BIOME_LOOK, CARD, COPY, UI } from '../shared/config';
 import { recallSolved, rememberSolved } from './card-cache';
 import { drawIslandOutline } from './outline';
 
@@ -46,6 +46,52 @@ function dayPicture(day: number): string {
 const TICK = 'M4.2 10.6l3.9 3.900 7.800-8.700';
 const FLAME =
   'M10 2.600c.6 3.100 4.600 4.700 4.600 9.100 0 3-2.100 5.300-4.600 5.300s-4.600-2.300-4.600-5.300c0-1.900.9-3.300 2-4.400.2 1.500.9 2.400 1.700 2.700-.3-2.500-.1-5.200.9-7.400z';
+
+const hex = (colour: number): string =>
+  `#${colour.toString(16).padStart(6, '0')}`;
+
+/**
+ * The card's picture is always this island (Nov 27). A daily post shows its rendered picture; a
+ * community island or a picked Sunday shows the picture taken at Publish. Without one, or if it
+ * cannot be loaded, the island is drawn from its own rows on its world's sky. A stock picture
+ * (another island) only for an old post that carries no rows at all.
+ */
+function showHero(hero: HTMLImageElement, post: PostData): void {
+  const biome = post.biome ?? biomeOfDay(post.day);
+  const rows = post.rows;
+  const drawn = (): void => {
+    if (rows === undefined) {
+      hero.src = HERO[biome];
+      return;
+    }
+    hero.hidden = true;
+    const box = byId('hero-drawn');
+    const canvas = byId('hero-island');
+    if (!(canvas instanceof HTMLCanvasElement)) return;
+    const look = BIOME_LOOK[biome];
+    box.style.background = `linear-gradient(180deg, ${hex(look.skyTop[0])} 0%, ${hex(look.skyHorizon[0])} 70%)`;
+    box.hidden = false;
+    const card = byId('card');
+    const paint = (): void =>
+      drawIslandOutline(canvas, rows, {
+        width: Math.max(120, card.clientWidth * 0.82),
+        height: Math.max(90, card.clientHeight * CARD.drawnIslandShare),
+        lit: false,
+        rock: true,
+        land: hex(look.groundA),
+        detail: { water: hex(look.water), rock: hex(look.rock) },
+      });
+    requestAnimationFrame(paint);
+    window.addEventListener('resize', paint);
+    box.classList.add('shown');
+  };
+  hero.addEventListener('load', () => hero.classList.add('shown'));
+  hero.addEventListener('error', drawn);
+  const picked = post.kind === 'community' || post.maker !== undefined;
+  const own = post.picture ?? (picked ? undefined : dayPicture(post.day));
+  if (own === undefined) drawn();
+  else hero.src = own;
+}
 
 function byId(id: string): HTMLElement {
   const node = document.getElementById(id);
@@ -171,22 +217,7 @@ function paint(): void {
   if (!heroSet) {
     heroSet = true;
     const hero = byId('hero');
-    if (hero instanceof HTMLImageElement) {
-      // The island's own world: a community island's, or a picked Sunday's maker's.
-      const stock = HERO[post.biome ?? biomeOfDay(post.day)];
-      hero.addEventListener('load', () => hero.classList.add('shown'));
-      // The island's own picture; the world's stock picture whenever it cannot be loaded.
-      hero.addEventListener('error', () => {
-        if (!hero.src.endsWith(stock)) hero.src = stock;
-      });
-      // A daily post (or an unpicked Sunday) shows its own island; a community island or a
-      // picked Sunday shows the picture taken at Publish, when there is one.
-      const own =
-        post.kind === 'community' || post.maker !== undefined
-          ? undefined
-          : dayPicture(post.day);
-      hero.src = post.picture ?? own ?? stock;
-    }
+    if (hero instanceof HTMLImageElement) showHero(hero, post);
   }
   if (refused !== null) {
     play.hidden = true;

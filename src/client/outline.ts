@@ -3,7 +3,7 @@
  * land as pale tiles, water as gaps, a spark for each sun and a lantern for each lantern.
  * Used on the feed card (today's island) and on the Archipelago map (past islands). Canvas 2D only.
  */
-import { OTHERS, UI } from '../shared/config';
+import { LOOK, OTHERS, UI } from '../shared/config';
 import type { Placement } from '../shared/types';
 
 export type OutlineOptions = {
@@ -18,6 +18,26 @@ export type OutlineOptions = {
   land?: string;
   /** Pieces a player placed, drawn on their tiles ("See others' islands"). */
   pieces?: readonly Placement[];
+  /**
+   * Drawn large, as a feed card's picture (Nov 27: an island with no picture of its own): water
+   * in its world's colour, rocks and trees as darker tiles, suns that glow, and each lantern in
+   * its own colour, all sized to the tiles rather than to a thumbnail.
+   */
+  detail?: { water: string; rock: string };
+};
+
+const hexOf = (colour: number): string =>
+  `#${colour.toString(16).padStart(6, '0')}`;
+
+/** A lantern's colour by its letter in the rows. */
+const LANTERN_HEX: Record<string, string> = {
+  W: hexOf(LOOK.lanternWarm),
+  R: hexOf(LOOK.beamRed),
+  G: hexOf(LOOK.beamGreen),
+  B: hexOf(LOOK.beamBlue),
+  M: hexOf(LOOK.lanternMagenta),
+  C: hexOf(LOOK.lanternCyan),
+  Y: hexOf(LOOK.lanternYellow),
 };
 
 export function drawIslandOutline(
@@ -68,11 +88,31 @@ export function drawIslandOutline(
     pen.fill();
   }
 
-  const lights: { x: number; y: number; sun: boolean }[] = [];
+  const lights: { x: number; y: number; sun: boolean; tile: string }[] = [];
+  const detail = options.detail;
   rows.forEach((row, y) => {
     [...row].forEach((tile, x) => {
       const [cx, cy] = at(x, y);
-      if (tile !== '~') {
+      if (detail !== undefined) {
+        pen.beginPath();
+        pen.moveTo(cx, cy);
+        pen.lineTo(cx + half, cy + rise);
+        pen.lineTo(cx, cy + rise * 2);
+        pen.lineTo(cx - half, cy + rise);
+        pen.closePath();
+        pen.globalAlpha = 1;
+        pen.fillStyle =
+          tile === '~'
+            ? detail.water
+            : tile === '#' || tile === 'T'
+              ? detail.rock
+              : (options.land ?? UI.light);
+        pen.fill();
+        // A soft seam, so the squares read, as in the game.
+        pen.globalAlpha = (x + y) % 2 ? 0.1 : 0.04;
+        pen.fillStyle = UI.ink;
+        pen.fill();
+      } else if (tile !== '~') {
         pen.beginPath();
         pen.moveTo(cx, cy);
         pen.lineTo(cx + half, cy + rise);
@@ -84,8 +124,8 @@ export function drawIslandOutline(
         pen.fillStyle = options.land ?? UI.light;
         pen.fill();
       }
-      if ('WRGBMCY'.includes(tile)) lights.push({ x, y, sun: false });
-      if ('^>v<'.includes(tile)) lights.push({ x, y, sun: true });
+      if ('WRGBMCY'.includes(tile)) lights.push({ x, y, sun: false, tile });
+      if ('^>v<'.includes(tile)) lights.push({ x, y, sun: true, tile });
     });
   });
   // Placed pieces: a mirror as a short bar along its diagonal, a prism as a small triangle.
@@ -129,6 +169,38 @@ export function drawIslandOutline(
     const [cx, top0] = at(light.x, light.y);
     const cy = top0 + rise - 1;
     pen.globalAlpha = 1;
+    if (detail !== undefined) {
+      if (light.sun) {
+        // A sun: a warm glow and a bright core.
+        const reach = half * 1.1;
+        const glow = pen.createRadialGradient(cx, cy, 0, cx, cy, reach);
+        glow.addColorStop(0, 'rgba(255, 246, 214, 0.95)');
+        glow.addColorStop(0.35, 'rgba(255, 214, 140, 0.55)');
+        glow.addColorStop(1, 'rgba(255, 214, 140, 0)');
+        pen.fillStyle = glow;
+        pen.fillRect(cx - reach, cy - reach, reach * 2, reach * 2);
+        pen.beginPath();
+        pen.arc(cx, cy, half * 0.2, 0, Math.PI * 2);
+        pen.fillStyle = '#fffdf3';
+        pen.fill();
+        continue;
+      }
+      // A paper lantern, banded in the colour it wants.
+      const radius = half * 0.34;
+      pen.beginPath();
+      pen.arc(cx, cy - radius * 0.4, radius, 0, Math.PI * 2);
+      pen.fillStyle = hexOf(LOOK.lanternPaper);
+      pen.fill();
+      pen.lineWidth = Math.max(1.2, radius * 0.28);
+      pen.strokeStyle = LANTERN_HEX[light.tile] ?? UI.amber;
+      pen.stroke();
+      pen.beginPath();
+      pen.arc(cx, cy - radius * 0.4, radius * 0.32, 0, Math.PI * 2);
+      pen.fillStyle = UI.ink;
+      pen.globalAlpha = 0.75;
+      pen.fill();
+      continue;
+    }
     if (light.sun) {
       pen.fillStyle = UI.paper;
       pen.beginPath();
