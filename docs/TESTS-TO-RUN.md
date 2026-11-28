@@ -225,6 +225,11 @@ causes, all fixed:
 Sunset (already posted, no picture) now shows its own island drawn from its rows.
 **Re-check E2 on the next build: publish from the laptop (Chrome) and from the iPhone.**
 
+**Nov 28, v0.0.1.106, laptop (Chrome): E2 pass.** Published "Prism Hollow" (7x7, par 4,
+difficulty 77.8, Tricky; built from a layout checked with the server's own `checkIsland`). Log:
+"Publish picture: form 1 of 2 (webp, 14303 chars) uploaded" on the first try; the card shows the
+sharp 3D picture. Still to see on Reddit: a publish from the iPhone (the JPEG path).
+
 ## 2. Fixed in code, never confirmed on a phone
 
 | # | Test | How |
